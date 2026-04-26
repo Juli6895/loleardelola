@@ -1,44 +1,59 @@
 import type { VisionResult } from "@/types";
 
-// Vocabulario de prendas que nos interesan (en inglés porque así devuelve Vision)
-// Mapeamos a término de búsqueda en español para Google Shopping.
-const PRENDAS: Record<string, string> = {
-  dress: "vestido",
-  gown: "vestido largo",
-  skirt: "falda",
-  jeans: "jean",
-  denim: "jean",
-  trousers: "pantalón",
-  pants: "pantalón",
-  shorts: "short",
-  "t-shirt": "camiseta",
-  shirt: "camisa",
-  blouse: "blusa",
-  sweater: "suéter",
-  cardigan: "cardigan",
-  hoodie: "buzo",
-  jacket: "chaqueta",
-  coat: "abrigo",
-  blazer: "blazer",
-  suit: "traje",
-  boots: "botas",
-  sneakers: "tenis",
-  heels: "tacones",
-  sandals: "sandalias",
-  shoes: "zapatos",
-  bag: "bolso",
-  handbag: "bolso de mano",
-  backpack: "mochila",
-  hat: "sombrero",
-  cap: "gorra",
-  scarf: "bufanda",
-  belt: "cinturón",
-  sunglasses: "gafas de sol",
-  jumpsuit: "enterizo",
-  romper: "enterizo corto",
-  bikini: "bikini",
-  swimsuit: "vestido de baño",
+// Vocabulario de prendas priorizado: lo más específico primero, genérico al final.
+// "categoria" permite dedupear (solo una prenda por cuerpo/inferior/superior/etc).
+// "colorImplicito" fija un color típico de esa prenda (ej: jean = azul).
+type PrendaDef = {
+  match: string[];         // substrings que buscamos en los labels de Vision
+  nombre: string;          // término en español para Google Shopping
+  categoria: string;       // dedup
+  colorImplicito?: string; // si la prenda tiene un color intrínseco
 };
+
+const PRENDAS: PrendaDef[] = [
+  // Inferiores (específico → genérico)
+  { match: ["denim", "jeans"], nombre: "jean", categoria: "inferior", colorImplicito: "azul" },
+  { match: ["skirt"], nombre: "falda", categoria: "inferior" },
+  { match: ["shorts"], nombre: "short", categoria: "inferior" },
+  { match: ["trousers", "pants"], nombre: "pantalón", categoria: "inferior" },
+  // Cuerpo completo
+  { match: ["dress", "gown"], nombre: "vestido", categoria: "cuerpo" },
+  { match: ["jumpsuit", "romper"], nombre: "enterizo", categoria: "cuerpo" },
+  { match: ["suit"], nombre: "traje", categoria: "cuerpo" },
+  // Superiores (específico → genérico; t-shirt/blouse antes que shirt)
+  { match: ["t-shirt"], nombre: "camiseta", categoria: "superior" },
+  { match: ["blouse"], nombre: "blusa", categoria: "superior" },
+  { match: ["hoodie"], nombre: "buzo", categoria: "superior" },
+  { match: ["sweater"], nombre: "suéter", categoria: "superior" },
+  { match: ["cardigan"], nombre: "cardigan", categoria: "superior" },
+  { match: ["shirt"], nombre: "camisa", categoria: "superior" },
+  // Prendas externas
+  { match: ["blazer"], nombre: "blazer", categoria: "externo" },
+  { match: ["coat"], nombre: "abrigo", categoria: "externo" },
+  { match: ["jacket"], nombre: "chaqueta", categoria: "externo" },
+  // Calzado (específico → genérico)
+  { match: ["boots"], nombre: "botas", categoria: "calzado" },
+  { match: ["sneakers"], nombre: "tenis", categoria: "calzado" },
+  { match: ["heels"], nombre: "tacones", categoria: "calzado" },
+  { match: ["sandals"], nombre: "sandalias", categoria: "calzado" },
+  { match: ["shoes", "footwear"], nombre: "zapatos", categoria: "calzado" },
+  // Accesorios (varios permitidos, cada uno categoría distinta)
+  { match: ["handbag"], nombre: "bolso de mano", categoria: "bolso" },
+  { match: ["backpack"], nombre: "mochila", categoria: "bolso" },
+  { match: ["bag"], nombre: "bolso", categoria: "bolso" },
+  { match: ["sunglasses"], nombre: "gafas de sol", categoria: "gafas" },
+  { match: ["hat"], nombre: "sombrero", categoria: "sombrero" },
+  { match: ["cap"], nombre: "gorra", categoria: "sombrero" },
+  { match: ["scarf"], nombre: "bufanda", categoria: "bufanda" },
+  { match: ["belt"], nombre: "cinturón", categoria: "cinturon" },
+  { match: ["bikini"], nombre: "bikini", categoria: "bano" },
+  { match: ["swimsuit"], nombre: "vestido de baño", categoria: "bano" },
+];
+
+// Neutros que suelen venir del fondo (calle, pared, cielo). Los excluimos
+// como "color de la prenda" porque ensucian las búsquedas ("camiseta gris"
+// cuando en realidad la camiseta es blanca y el gris es el concreto).
+const COLORES_NEUTROS = new Set(["gris", "negro", "blanco", "beige"]);
 
 // Mapeo de colores detectados por Vision (nombres aproximados por hex)
 function hexToColorName(r: number, g: number, b: number): string | null {
@@ -126,27 +141,39 @@ export async function analyzeImage(
     if (name && !colors.includes(name)) colors.push(name);
   }
 
-  // Construir términos de búsqueda: "color + prenda"
-  const prendasDetectadas: string[] = [];
-  for (const label of rawLabels) {
-    for (const [en, es] of Object.entries(PRENDAS)) {
-      if (label.includes(en) && !prendasDetectadas.includes(es)) {
-        prendasDetectadas.push(es);
-      }
+  // Detectar prendas recorriendo PRENDAS en orden de especificidad.
+  // Una sola prenda por categoría (p.ej. jean gana sobre pantalón).
+  const detectadas: { nombre: string; color?: string }[] = [];
+  const categoriasUsadas = new Set<string>();
+  for (const def of PRENDAS) {
+    if (categoriasUsadas.has(def.categoria)) continue;
+    const hit = rawLabels.some((label) =>
+      def.match.some((m) => label.includes(m))
+    );
+    if (hit) {
+      detectadas.push({ nombre: def.nombre, color: def.colorImplicito });
+      categoriasUsadas.add(def.categoria);
     }
   }
 
+  // Separar colores saturados de neutros (los neutros suelen ser del fondo)
+  const coloresSaturados = colors.filter((c) => !COLORES_NEUTROS.has(c));
+
+  // Construir términos: prioridad color implícito > saturado real > sin color.
+  // Si solo tenemos neutros, omitimos el color (mejor una búsqueda genérica).
   const searchTerms: string[] = [];
-  if (prendasDetectadas.length > 0) {
-    for (const prenda of prendasDetectadas) {
-      if (colors.length > 0) {
-        searchTerms.push(`${prenda} ${colors[0]}`);
-      } else {
-        searchTerms.push(prenda);
-      }
+  let idxSaturado = 0;
+  for (const d of detectadas) {
+    let color: string | undefined = d.color;
+    if (!color && coloresSaturados.length > 0) {
+      color = coloresSaturados[idxSaturado % coloresSaturados.length];
+      idxSaturado++;
     }
-  } else if (rawLabels.length > 0) {
-    // Fallback: usar primeras etiquetas crudas (por si la imagen no tiene prenda clara)
+    searchTerms.push(color ? `${d.nombre} ${color}` : d.nombre);
+  }
+
+  // Fallback si no detectamos ninguna prenda
+  if (searchTerms.length === 0 && rawLabels.length > 0) {
     searchTerms.push(...rawLabels.slice(0, 3));
   }
 
@@ -159,22 +186,43 @@ export async function analyzeImage(
 
 /**
  * Extrae la URL de imagen de un pin de Pinterest.
- * Admite URLs tipo https://www.pinterest.com/pin/12345/ o https://pin.it/abc
+ * Admite URLs tipo https://www.pinterest.com/pin/12345/, https://co.pinterest.com/pin/...
+ * y enlaces cortos https://pin.it/abc
  */
 export async function extractPinterestImage(pinUrl: string): Promise<string | null> {
   try {
     const res = await fetch(pinUrl, {
       redirect: "follow",
       headers: {
+        // Pinterest a veces entrega HTML reducido si el UA no es de navegador real
         "User-Agent":
-          "Mozilla/5.0 (compatible; LolearDeLolaBot/1.0; +https://loleardelola.com)",
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "es-CO,es;q=0.9,en;q=0.8",
       },
     });
     const html = await res.text();
-    // Pinterest expone la imagen en og:image
-    const match = html.match(/<meta\s+property=["']og:image["']\s+content=["']([^"']+)["']/i);
-    return match?.[1] ?? null;
+    return extractOgImage(html);
   } catch {
     return null;
   }
+}
+
+/**
+ * Busca og:image en un HTML sin asumir el orden de los atributos.
+ * Pinterest por ejemplo devuelve `<meta content="..." name="og:image" property="og:image"/>`
+ * (content antes que property), por lo que un regex rígido falla.
+ */
+export function extractOgImage(html: string): string | null {
+  // Itera todas las <meta ...> y se queda con la que tenga og:image exacto
+  const metaRegex = /<meta\b[^>]*>/gi;
+  const metas = html.match(metaRegex) ?? [];
+  for (const meta of metas) {
+    // Comillas obligatorias alrededor de og:image — así no nos comemos og:image:width/height
+    if (/(?:property|name)=["']og:image["']/i.test(meta)) {
+      const contentMatch = meta.match(/content=["']([^"']+)["']/i);
+      if (contentMatch?.[1]) return contentMatch[1];
+    }
+  }
+  return null;
 }

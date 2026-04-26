@@ -2,7 +2,7 @@
 
 import type { Outfit } from "@/types";
 import TagChip from "./TagChip";
-import { googleShoppingAllOutfitUrl } from "@/lib/shopping";
+import { abrirOutfitEnGoogleShopping } from "@/lib/shopping";
 
 type Props = {
   outfit: Outfit;
@@ -31,14 +31,13 @@ export default function OutfitCard({ outfit, onDelete }: Props) {
         </div>
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
-          <a
-            href={googleShoppingAllOutfitUrl(outfit.tags)}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            onClick={() => abrirOutfitEnGoogleShopping(outfit.tags)}
             className="rounded-full bg-noche px-4 py-1.5 text-xs font-medium text-white transition hover:bg-rosa-500"
+            title="Abre una pestaña por cada prenda"
           >
             Buscar todo el outfit
-          </a>
+          </button>
           {onDelete && (
             <button
               onClick={() => onDelete(outfit.id)}

@@ -5,8 +5,8 @@ inspiración y te decimos **dónde comprar prendas similares online** usando
 Google Shopping.
 
 Stack: **Next.js 14 (App Router) · TypeScript · Tailwind · Supabase ·
-NextAuth (Pinterest OAuth) · Google Cloud Vision · Cloudinary**. Deploy gratis
-en **Vercel**.
+NextAuth (Pinterest OAuth) · Claude (Anthropic) + Google Cloud Vision (fallback)
+· Cloudinary**. Deploy gratis en **Vercel**.
 
 ---
 
@@ -14,8 +14,11 @@ en **Vercel**.
 
 1. **Login con Pinterest** via NextAuth + Pinterest API v5.
 2. **Importar boards** del usuario autenticado.
-3. **Analizar outfits** pegando un link de pin o subiendo una imagen
-   (Google Cloud Vision + diccionario de prendas en español).
+3. **Analizar outfits** pegando un link de pin o subiendo una imagen.
+   El analizador principal es **Claude Haiku 4.5** (multimodal) — identifica
+   prenda + color + estilo en español colombiano. Si falla por cualquier
+   motivo (sin API key, error de red, rate limit), cae automáticamente a
+   **Google Cloud Vision** como respaldo.
 4. **Búsqueda en Google Shopping** con geo Colombia (`gl=co&hl=es-419`).
 5. **Guardar outfits** favoritos en Supabase y revisarlos en *Mis Outfits*.
 6. UI mobile-first, paleta rosa palo + blanco + negro, fuentes
@@ -58,7 +61,21 @@ npm run dev                  # http://localhost:3000
 > Pinterest exige verificación de dominio antes de pasar la app a producción.
 > Para probar, agrega tu propia cuenta como *Trusted Tester* en la consola.
 
-### 3. Google Cloud Vision
+### 3. Anthropic (Claude) — analizador principal
+
+1. Crea una API key en [console.anthropic.com/settings/keys](https://console.anthropic.com/settings/keys).
+2. Cópiala en `ANTHROPIC_API_KEY`.
+
+Usamos **Claude Haiku 4.5** con visión multimodal y *tool use* para forzar
+output estructurado (`searchTerms`, `dominantColors`, `rawLabels`). El system
+prompt usa **prompt caching** (TTL 5min) para amortizar el costo del
+vocabulario en español colombiano.
+
+> Costo aprox: ~$0.001 por outfit. Mucho mejor identificación de prendas y
+> colores que Vision (que mira la imagen como un bag de labels + colores
+> globales y termina atribuyendo el café de la pared al pantalón).
+
+### 4. Google Cloud Vision — fallback
 
 1. Entra a [console.cloud.google.com](https://console.cloud.google.com).
 2. Crea un proyecto y habilita **Cloud Vision API**.
@@ -66,10 +83,10 @@ npm run dev                  # http://localhost:3000
 4. Restringe la key a la **Cloud Vision API** por seguridad.
 5. Usa el valor en `GOOGLE_CLOUD_VISION_API_KEY`.
 
-> Free tier: 1.000 unidades/mes por feature. Cada análisis usa 3 features
-> (labels + objects + properties), así que alcanza para ~330 imágenes/mes gratis.
+> Solo se llama si Claude falla o no hay `ANTHROPIC_API_KEY`. Free tier:
+> 1.000 unidades/mes por feature × 3 features = ~330 imágenes/mes gratis.
 
-### 4. Cloudinary
+### 5. Cloudinary
 
 1. Crea cuenta gratis en [cloudinary.com](https://cloudinary.com).
 2. En *Dashboard*, copia:
@@ -77,7 +94,7 @@ npm run dev                  # http://localhost:3000
    - `CLOUDINARY_API_KEY`
    - `CLOUDINARY_API_SECRET`
 
-### 5. NextAuth
+### 6. NextAuth
 
 - Genera un secret: `openssl rand -base64 32` → `NEXTAUTH_SECRET`.
 - En local: `NEXTAUTH_URL=http://localhost:3000`.
@@ -105,7 +122,8 @@ lib/
   auth.ts        # Opciones de NextAuth + provider Pinterest
   supabase.ts    # Clientes anon + service
   cloudinary.ts  # Upload helper
-  vision.ts      # Análisis de imágenes + extracción Pinterest
+  garment-ai.ts  # Análisis con Claude (multimodal, principal)
+  vision.ts      # Análisis con Google Vision (fallback) + scraping Pinterest
   shopping.ts    # URLs de Google Shopping (geo Colombia)
 supabase/schema.sql
 types/
@@ -146,6 +164,7 @@ types/
 | --- | --- |
 | "Pinterest API: 401" | Token expirado o scopes faltantes — reloguéate. |
 | "No pudimos leer la imagen del pin" | Pin privado o URL inválida. |
+| Resultados muy genéricos | Claude está cayendo a Vision. Revisa `ANTHROPIC_API_KEY` y los logs `[/api/vision] Claude falló`. |
 | Vision devuelve pocas etiquetas | Imagen muy oscura o sin prenda clara — usa otra. |
 | Outfits no se guardan | Revisa `SUPABASE_SERVICE_ROLE_KEY` y que el schema.sql se haya ejecutado. |
 

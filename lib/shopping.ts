@@ -15,10 +15,17 @@ export function googleShoppingUrl(term: string): string {
 }
 
 /**
- * Construye una URL que busca todas las prendas del outfit de una.
- * Usa un OR entre términos: mostrará resultados mixtos.
+ * Abre una pestaña de Google Shopping por cada término del outfit.
+ * Hay que llamarla SÍNCRONAMENTE desde un click handler para que el navegador
+ * permita los múltiples window.open (popup blocker).
+ *
+ * Nota: combinar todos los términos con OR en una sola búsqueda da resultados
+ * pobres (Google interpreta "(jean azul) OR (chaqueta)" como "chaqueta de jean").
+ * Mejor abrir una pestaña por prenda — más útil para el shopping real.
  */
-export function googleShoppingAllOutfitUrl(terms: string[]): string {
-  const joined = terms.map((t) => `(${t})`).join(" OR ");
-  return googleShoppingUrl(joined);
+export function abrirOutfitEnGoogleShopping(terms: string[]) {
+  if (typeof window === "undefined") return;
+  for (const term of terms) {
+    window.open(googleShoppingUrl(term), "_blank", "noopener,noreferrer");
+  }
 }

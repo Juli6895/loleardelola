@@ -3,7 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import TagChip from "./TagChip";
-import { googleShoppingAllOutfitUrl } from "@/lib/shopping";
+import { abrirOutfitEnGoogleShopping } from "@/lib/shopping";
 import { useSession, signIn } from "next-auth/react";
 import type { SearchResult as Result } from "./SearchBox";
 
@@ -87,14 +87,13 @@ export default function SearchResult({ data }: { data: Result }) {
 
           <div className="mt-6 flex flex-wrap gap-3">
             {terms.length > 0 && (
-              <a
-                href={googleShoppingAllOutfitUrl(terms)}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={() => abrirOutfitEnGoogleShopping(terms)}
                 className="rounded-full bg-noche px-5 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
+                title="Abre una pestaña por cada prenda detectada"
               >
-                Buscar todo el outfit
-              </a>
+                Buscar todo el outfit ({terms.length})
+              </button>
             )}
             <button
               onClick={saveOutfit}

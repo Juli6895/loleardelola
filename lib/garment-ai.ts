@@ -18,8 +18,10 @@ import type { VisionResult } from "@/types";
 //   - Tool use para forzar output estructurado (sin parsear JSON ad-hoc).
 //   - Prompt caching en el system prompt: el system es ~1KB y se repite en
 //     cada análisis → 90% menos costo en cache hits.
-//   - URL source para imágenes: Anthropic descarga la imagen directamente,
-//     no necesitamos pasarle base64.
+//   - Descarga server-side + base64: NO usamos image.source.type "url" porque
+//     Anthropic respeta robots.txt y Pinterest CDN lo bloquea ("This URL is
+//     disallowed by the website's robots.txt"). El server descarga los bytes
+//     y se los pasa a Claude inline.
 // =====================================================================
 
 const MODEL = "claude-haiku-4-5";
@@ -97,17 +99,62 @@ const REPORT_TOOL: Anthropic.Tool = {
   },
 };
 
+type SupportedMedia = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+
+/**
+ * Descarga una imagen y la convierte a base64. Pinterest, Cloudinary y la
+ * mayoría de CDNs sirven sin auth pero bloquean bots vía robots.txt — por eso
+ * no podemos delegarle el fetch a Anthropic.
+ */
+async function fetchImageAsBase64(
+  imageUrl: string
+): Promise<{ base64: string; mediaType: SupportedMedia }> {
+  const res = await fetch(imageUrl, {
+    headers: {
+      // Pinterest entrega 403 a User-Agents desconocidos. Mismo header que
+      // usamos para scrapear el HTML del pin.
+      "User-Agent":
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+      "Accept": "image/avif,image/webp,image/png,image/jpeg,*/*;q=0.8",
+    },
+  });
+  if (!res.ok) {
+    throw new Error(
+      `No se pudo descargar la imagen (HTTP ${res.status}): ${imageUrl}`
+    );
+  }
+
+  const contentType = (res.headers.get("content-type") ?? "image/jpeg")
+    .split(";")[0]
+    .trim()
+    .toLowerCase();
+
+  // Anthropic acepta jpeg/png/gif/webp. Si llega algo raro (ej. avif),
+  // reportamos jpeg como mejor adivinanza — Claude suele decodificar igual.
+  const mediaType: SupportedMedia = (
+    ["image/jpeg", "image/png", "image/gif", "image/webp"].includes(contentType)
+      ? contentType
+      : "image/jpeg"
+  ) as SupportedMedia;
+
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { base64: buffer.toString("base64"), mediaType };
+}
+
 /**
  * Analiza una foto de outfit con Claude y devuelve términos de búsqueda
  * estructurados.
  *
- * @throws si falta ANTHROPIC_API_KEY o la API responde con error.
+ * @throws si falta ANTHROPIC_API_KEY, la imagen no se puede descargar, o la
+ * API responde con error.
  */
 export async function analyzeImageWithClaude(
   imageUrl: string
 ): Promise<VisionResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
+
+  const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
 
   const client = new Anthropic({ apiKey });
 
@@ -134,8 +181,9 @@ export async function analyzeImageWithClaude(
           {
             type: "image",
             source: {
-              type: "url",
-              url: imageUrl,
+              type: "base64",
+              media_type: mediaType,
+              data: base64,
             },
           },
           {

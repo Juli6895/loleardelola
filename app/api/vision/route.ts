@@ -68,6 +68,10 @@ export async function POST(req: Request) {
 async function analyzeWithFallback(
   imageUrl: string
 ): Promise<{ data: VisionResult; source: "claude" | "vision" }> {
+  console.log("[/api/vision] env check", {
+    anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
+    anthropicKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 12) ?? null,
+  });
   // Si no hay ANTHROPIC_API_KEY, no perdemos tiempo intentando Claude.
   if (process.env.ANTHROPIC_API_KEY) {
     try {

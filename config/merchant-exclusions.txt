@@ -1,0 +1,13 @@
+# Comercios excluidos de las búsquedas de Google Shopping.
+#
+# Una entrada por línea — solo el dominio (sin https://, sin www., sin paths).
+# Líneas vacías o que empiezan con # se ignoran.
+#
+# Cada dominio se inyecta a la query como `-site:dominio` para que Google
+# Shopping no muestre resultados de ese comercio.
+#
+# Editá este archivo y reinicia el server (o redeploy) para aplicar cambios.
+
+shein.com
+temu.com
+exito.com

@@ -11,6 +11,9 @@ import type { Outfit } from "@/types";
 export default function MisOutfitsPage() {
   const { data: session, status } = useSession();
   const [outfits, setOutfits] = useState<Outfit[] | null>(null);
+  // Lista de comercios excluidos (config editable). Se pasa a OutfitCard
+  // para que las URLs de Google Shopping respeten las exclusiones.
+  const [excludedMerchants, setExcludedMerchants] = useState<string[]>([]);
 
   useEffect(() => {
     if (status !== "authenticated") return;
@@ -19,6 +22,15 @@ export default function MisOutfitsPage() {
       .then((j) => setOutfits(j.outfits ?? []))
       .catch(() => setOutfits([]));
   }, [status]);
+
+  // Carga la lista de exclusiones una sola vez al montar (cacheable a nivel
+  // de browser por /api/config/route.ts).
+  useEffect(() => {
+    fetch("/api/config")
+      .then((r) => r.json())
+      .then((j) => setExcludedMerchants(j.excludedMerchants ?? []))
+      .catch(() => setExcludedMerchants([]));
+  }, []);
 
   async function handleDelete(id: string) {
     if (!confirm("¿Seguro que quieres eliminar este outfit?")) return;
@@ -100,7 +112,12 @@ export default function MisOutfitsPage() {
         ) : (
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {outfits.map((o) => (
-              <OutfitCard key={o.id} outfit={o} onDelete={handleDelete} />
+              <OutfitCard
+                key={o.id}
+                outfit={o}
+                onDelete={handleDelete}
+                excludeMerchants={excludedMerchants}
+              />
             ))}
           </div>
         )}

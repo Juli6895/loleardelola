@@ -20,8 +20,15 @@ NextAuth (Pinterest OAuth) · Claude (Anthropic) + Google Cloud Vision (fallback
    motivo (sin API key, error de red, rate limit), cae automáticamente a
    **Google Cloud Vision** como respaldo.
 4. **Búsqueda en Google Shopping** con geo Colombia (`gl=co&hl=es-419`).
-5. **Guardar outfits** favoritos en Supabase y revisarlos en *Mis Outfits*.
-6. UI mobile-first, paleta rosa palo + blanco + negro, fuentes
+5. **Presupuesto opcional**: la usuaria define cuánto quiere gastar en
+   total y Claude reparte el monto entre las prendas; cada búsqueda en
+   Google Shopping va con `ppr_max:N` para que solo aparezcan productos
+   en su rango.
+6. **Lista de comercios excluidos** (Shein, Temu, exito.com…) editable en
+   `config/merchant-exclusions.txt`. Cada query se inyecta con
+   `-site:dominio` para sacar esos comercios de los resultados.
+7. **Guardar outfits** favoritos en Supabase y revisarlos en *Mis Outfits*.
+8. UI mobile-first, paleta rosa palo + blanco + negro, fuentes
    Playfair Display + Inter.
 
 ---
@@ -119,12 +126,15 @@ components/
   SearchBox.tsx, SearchResult.tsx
   OutfitCard.tsx, TagChip.tsx, BoardsList.tsx
 lib/
-  auth.ts        # Opciones de NextAuth + provider Pinterest
-  supabase.ts    # Clientes anon + service
-  cloudinary.ts  # Upload helper
-  garment-ai.ts  # Análisis con Claude (multimodal, principal)
-  vision.ts      # Análisis con Google Vision (fallback) + scraping Pinterest
-  shopping.ts    # URLs de Google Shopping (geo Colombia)
+  auth.ts                # Opciones de NextAuth + provider Pinterest
+  supabase.ts            # Clientes anon + service
+  cloudinary.ts          # Upload helper
+  garment-ai.ts          # Análisis con Claude (multimodal, principal)
+  vision.ts              # Análisis con Google Vision (fallback) + scraping Pinterest
+  shopping.ts            # URLs de Google Shopping (geo Colombia, precio, exclusiones)
+  merchant-exclusions.ts # Lee la lista de comercios excluidos
+config/
+  merchant-exclusions.txt # Comercios a excluir (uno por línea, # = comentario)
 supabase/schema.sql
 types/
   index.ts, next-auth.d.ts
@@ -155,6 +165,36 @@ types/
 - Todas las búsquedas de Google Shopping fijan `gl=co&hl=es-419`.
 - Copy en español colombiano, tono cercano ("lolear", "chismosear", etc.).
 - UI mobile-first: la mayoría del tráfico entra desde celular.
+
+---
+
+## 💰 Presupuesto y exclusiones
+
+### Presupuesto total
+- En `/buscar` la usuaria puede ingresar un monto total en COP (también hay
+  chips rápidos: $150k, $300k, $500k, $1M).
+- El monto se manda al endpoint `/api/vision`. Claude lo reparte realisticamente
+  entre las prendas detectadas (jean/chaqueta/tenis pesan más, accesorios menos)
+  y devuelve `priceMaxCop` por prenda.
+- Cada chip de búsqueda lleva el filtro `tbs=mr:1,price:1,ppr_max:N` en la URL
+  de Google Shopping → solo aparecen productos hasta ese precio.
+- Si Claude cae al fallback de Vision, no hay reparto de precio (Vision no sabe
+  estimar costos) — se busca sin filtro.
+
+### Comercios excluidos
+Edita `config/merchant-exclusions.txt`:
+
+```
+shein.com
+temu.com
+exito.com
+```
+
+- Una entrada por línea. Líneas vacías o que empiezan con `#` se ignoran.
+- Solo el dominio (sin `https://`, sin `www.`).
+- Cada query inyecta `-site:dominio` para que Google Shopping los saque.
+- Se lee en cada request, así que cambios al archivo aplican sin redeploy en
+  dev. En Vercel se aplica con cada deploy nuevo.
 
 ---
 

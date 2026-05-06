@@ -8,29 +8,55 @@ export type SearchResult = {
   imageUrl: string;
   result: VisionResult;
   pinterestUrl?: string;
+  // Lista de comercios excluidos viene del servidor (config editable).
+  excludedMerchants?: string[];
 };
 
 type Props = {
   onResult: (r: SearchResult) => void;
 };
 
-// Caja de búsqueda: admite URL de Pinterest o archivo subido
+// Sugerencias rápidas de presupuesto en COP. La usuaria también puede teclear
+// un valor libre en el input.
+const QUICK_BUDGETS = [
+  { label: "$150k", value: 150000 },
+  { label: "$300k", value: 300000 },
+  { label: "$500k", value: 500000 },
+  { label: "$1M", value: 1000000 },
+];
+
+// Caja de búsqueda: admite URL de Pinterest o archivo subido + presupuesto.
 export default function SearchBox({ onResult }: Props) {
   const [pinUrl, setPinUrl] = useState("");
+  // Mantenemos el budget como string para que el input se sienta natural
+  // (vacío = sin presupuesto). Lo parseamos a número solo al enviar.
+  const [budget, setBudget] = useState("");
   const [loading, setLoading] = useState(false);
+
+  function parseBudget(): number | null {
+    const cleaned = budget.replace(/[^\d]/g, ""); // quita puntos, comas, $, etc.
+    const n = parseInt(cleaned, 10);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }
+
+  async function postAnalysis(payload: Record<string, unknown>) {
+    const budgetCop = parseBudget();
+    const res = await fetch("/api/vision", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...payload, budgetCop }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error ?? "Error analizando la imagen");
+    return data as SearchResult;
+  }
 
   async function analyzePinterestUrl(e: React.FormEvent) {
     e.preventDefault();
     if (!pinUrl.trim()) return;
     setLoading(true);
     try {
-      const res = await fetch("/api/vision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ pinterestUrl: pinUrl.trim() }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error analizando el pin");
+      const data = await postAnalysis({ pinterestUrl: pinUrl.trim() });
       onResult({ ...data, pinterestUrl: pinUrl.trim() });
       toast.success("¡Outfit analizado!");
     } catch (err: any) {
@@ -48,13 +74,7 @@ export default function SearchBox({ onResult }: Props) {
     setLoading(true);
     try {
       const base64 = await fileToBase64(file);
-      const res = await fetch("/api/vision", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageBase64: base64 }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Error analizando la imagen");
+      const data = await postAnalysis({ imageBase64: base64 });
       onResult(data);
       toast.success("¡Outfit analizado!");
     } catch (err: any) {
@@ -89,6 +109,59 @@ export default function SearchBox({ onResult }: Props) {
           </button>
         </div>
       </form>
+
+      {/* Bloque de presupuesto: aplica tanto a "buscar pin" como a "subir foto". */}
+      <div className="mt-5 rounded-xl border border-rosa-100 bg-rosa-50/40 p-4">
+        <label htmlFor="budget" className="text-sm font-medium text-noche/80">
+          Presupuesto total <span className="text-noche/40">(opcional)</span>
+        </label>
+        <p className="mt-0.5 text-xs text-noche/50">
+          Repartimos el monto entre las prendas y filtramos Google Shopping
+          para que no te muestre cosas fuera de tu rango.
+        </p>
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="relative flex-1">
+            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-sm text-noche/40">
+              $
+            </span>
+            <input
+              id="budget"
+              type="text"
+              inputMode="numeric"
+              value={budget}
+              onChange={(e) => setBudget(e.target.value)}
+              placeholder="300.000"
+              disabled={loading}
+              className="w-full rounded-full border border-rosa-200 bg-white py-2.5 pl-8 pr-4 text-sm outline-none transition placeholder:text-noche/30 focus:border-rosa-400 disabled:opacity-50"
+            />
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {QUICK_BUDGETS.map((b) => (
+              <button
+                key={b.value}
+                type="button"
+                onClick={() =>
+                  setBudget(b.value.toLocaleString("es-CO"))
+                }
+                disabled={loading}
+                className="rounded-full border border-rosa-200 bg-white px-3 py-1.5 text-xs text-noche/70 transition hover:border-rosa-400 hover:text-rosa-600 disabled:opacity-50"
+              >
+                {b.label}
+              </button>
+            ))}
+            {budget && (
+              <button
+                type="button"
+                onClick={() => setBudget("")}
+                disabled={loading}
+                className="rounded-full px-3 py-1.5 text-xs text-noche/40 transition hover:text-rosa-600 disabled:opacity-50"
+              >
+                limpiar
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
 
       <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-noche/30">
         <span className="h-px flex-1 bg-rosa-100" />

@@ -20,6 +20,9 @@ export type PinterestBoard = {
 export type VisionResult = {
   // Etiquetas ya traducidas y pensadas para búsqueda de moda (ej: "vestido rojo floral")
   searchTerms: string[];
+  // Precio máximo en COP por cada término (mismo orden que searchTerms).
+  // null cuando no hay presupuesto definido o no aplica al término.
+  priceMaxCop: (number | null)[];
   // Etiquetas crudas que devolvió Vision (útiles para debug)
   rawLabels: string[];
   // Colores dominantes detectados

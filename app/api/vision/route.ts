@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { analyzeImage, extractPinterestImage } from "@/lib/vision";
 import { analyzeImageWithClaude } from "@/lib/garment-ai";
 import { uploadImage } from "@/lib/cloudinary";
+import { getExcludedMerchants } from "@/lib/merchant-exclusions";
 import type { VisionResult } from "@/types";
 
 // Endpoint: POST /api/vision
@@ -9,7 +10,10 @@ import type { VisionResult } from "@/types";
 //   - { pinterestUrl: string }          → extrae og:image y analiza
 //   - { imageUrl: string }              → analiza URL pública
 //   - { imageBase64: "data:image/..." } → sube a Cloudinary + analiza
-// Devuelve: { imageUrl, result, source } donde source ∈ {"claude", "vision"}.
+//   - opcional: { budgetCop: number }   → presupuesto total en COP; Claude
+//     reparte el monto y devuelve priceMaxCop por prenda.
+// Devuelve: { imageUrl, result, source, excludedMerchants } donde
+//   source ∈ {"claude", "vision"} y excludedMerchants viene de la config.
 //
 // Estrategia de análisis:
 //   1. Intenta Claude (mejor identificación de prendas + colores correctos).
@@ -45,12 +49,18 @@ export async function POST(req: Request) {
       );
     }
 
-    const result = await analyzeWithFallback(imageUrl!);
+    const budgetCop =
+      typeof body.budgetCop === "number" && body.budgetCop > 0
+        ? Math.round(body.budgetCop)
+        : null;
+
+    const result = await analyzeWithFallback(imageUrl!, budgetCop);
 
     return NextResponse.json({
       imageUrl,
       result: result.data,
       source: result.source,
+      excludedMerchants: getExcludedMerchants(),
     });
   } catch (e: any) {
     console.error("[/api/vision] error:", e);
@@ -66,16 +76,18 @@ export async function POST(req: Request) {
  * Devuelve también qué motor se usó (útil para logs y debugging).
  */
 async function analyzeWithFallback(
-  imageUrl: string
+  imageUrl: string,
+  budgetCop: number | null
 ): Promise<{ data: VisionResult; source: "claude" | "vision" }> {
   console.log("[/api/vision] env check", {
     anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
     anthropicKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 12) ?? null,
+    budgetCop,
   });
   // Si no hay ANTHROPIC_API_KEY, no perdemos tiempo intentando Claude.
   if (process.env.ANTHROPIC_API_KEY) {
     try {
-      const data = await analyzeImageWithClaude(imageUrl);
+      const data = await analyzeImageWithClaude(imageUrl, { budgetCop });
       // Si Claude devuelve vacío (raro pero posible), también consideramos
       // que falló y caemos a Vision para tener algo.
       if (data.searchTerms.length === 0) {

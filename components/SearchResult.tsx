@@ -3,7 +3,10 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import TagChip from "./TagChip";
-import { abrirOutfitEnGoogleShopping } from "@/lib/shopping";
+import {
+  abrirOutfitEnGoogleShopping,
+  type ShoppingItem,
+} from "@/lib/shopping";
 import { useSession, signIn } from "next-auth/react";
 import type { SearchResult as Result } from "./SearchBox";
 
@@ -15,6 +18,21 @@ export default function SearchResult({ data }: { data: Result }) {
   const [saving, setSaving] = useState(false);
 
   const terms = data.result.searchTerms;
+  const prices = data.result.priceMaxCop ?? [];
+  const excluded = data.excludedMerchants ?? [];
+
+  // Items para el opener multi-tab. Cada uno con su priceMaxCop si existe.
+  const items: ShoppingItem[] = terms.map((q, i) => ({
+    q,
+    priceMaxCop: prices[i] ?? null,
+  }));
+
+  // Total estimado por la IA (suma de los priceMaxCop). Lo mostramos como
+  // confirmación visual de que el presupuesto se aplicó.
+  const totalEstimado: number = prices.reduce<number>(
+    (acc, p) => (typeof p === "number" ? acc + p : acc),
+    0
+  );
 
   async function saveOutfit() {
     if (!session) {
@@ -68,8 +86,13 @@ export default function SearchResult({ data }: { data: Result }) {
 
           {terms.length > 0 ? (
             <div className="mt-5 flex flex-wrap gap-2">
-              {terms.map((t) => (
-                <TagChip key={t} term={t} />
+              {terms.map((t, i) => (
+                <TagChip
+                  key={t}
+                  term={t}
+                  priceMaxCop={prices[i] ?? null}
+                  excludeMerchants={excluded}
+                />
               ))}
             </div>
           ) : (
@@ -79,16 +102,33 @@ export default function SearchResult({ data }: { data: Result }) {
             </p>
           )}
 
+          {totalEstimado > 0 && (
+            <p className="mt-4 text-xs text-rosa-600">
+              Repartimos tu presupuesto: total estimado{" "}
+              <strong>${totalEstimado.toLocaleString("es-CO")} COP</strong>.
+            </p>
+          )}
+
           {data.result.dominantColors.length > 0 && (
-            <p className="mt-4 text-xs text-noche/40">
+            <p className="mt-2 text-xs text-noche/40">
               Colores dominantes: {data.result.dominantColors.join(", ")}
+            </p>
+          )}
+
+          {excluded.length > 0 && (
+            <p className="mt-1 text-xs text-noche/40">
+              Excluyendo: {excluded.join(", ")}
             </p>
           )}
 
           <div className="mt-6 flex flex-wrap gap-3">
             {terms.length > 0 && (
               <button
-                onClick={() => abrirOutfitEnGoogleShopping(terms)}
+                onClick={() =>
+                  abrirOutfitEnGoogleShopping(items, {
+                    excludeMerchants: excluded,
+                  })
+                }
                 className="rounded-full bg-noche px-5 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
                 title="Abre una pestaña por cada prenda detectada"
               >

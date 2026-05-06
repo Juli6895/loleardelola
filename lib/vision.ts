@@ -295,8 +295,13 @@ export async function analyzeImage(
     searchTerms.push(...rawLabels.slice(0, 3));
   }
 
+  // Vision no estima precios — siempre devuelve nulls alineados con
+  // searchTerms para cumplir el contrato de VisionResult. El presupuesto
+  // queda inactivo cuando caemos al fallback (mejor sin filtro de precio
+  // que con un filtro inventado).
   return {
     searchTerms,
+    priceMaxCop: searchTerms.map(() => null),
     rawLabels,
     dominantColors: colors,
   };

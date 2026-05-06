@@ -62,7 +62,17 @@ REGLAS:
 
 6. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
 
-7. Devuelve también:
+7. PRESUPUESTO (si te llega en el mensaje del usuario):
+   - El usuario te dará un presupuesto TOTAL en pesos colombianos (COP).
+   - Reparte ese total entre las prendas considerando lo que vale típicamente
+     cada una en Colombia. Las prendas grandes/centrales (vestido, chaqueta,
+     tenis, jean) se llevan más; los accesorios (gafas, gorra, cinturón)
+     menos. Cuida que la suma NO supere el total dado.
+   - Devuelve un priceMaxCop entero (sin decimales, sin separadores) por cada
+     prenda, EN EL MISMO ORDEN que searchTerms.
+   - Si NO te llega presupuesto, omite priceMaxCop o devuelve un array vacío.
+
+8. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
    - rawLabels: lista en inglés de las prendas que ves (debug)
 
@@ -81,6 +91,12 @@ const REPORT_TOOL: Anthropic.Tool = {
         items: { type: "string" },
         description:
           "Lista de 3-7 términos de búsqueda en español colombiano, formato '[prenda] [color] [estilo opcional]'. Ej: 'jean azul oscuro wide leg'.",
+      },
+      priceMaxCop: {
+        type: "array",
+        items: { type: "integer" },
+        description:
+          "Precio máximo en pesos colombianos (COP, entero, sin decimales) por cada prenda, mismo orden que searchTerms. SOLO incluir si el usuario dio un presupuesto en su mensaje. Distribuye el total realisticamente entre prendas (jean/chaqueta/tenis pesan más, accesorios menos). La suma no debe superar el presupuesto total.",
       },
       dominantColors: {
         type: "array",
@@ -141,15 +157,23 @@ async function fetchImageAsBase64(
   return { base64: buffer.toString("base64"), mediaType };
 }
 
+export type AnalyzeOptions = {
+  // Presupuesto total del outfit en COP. Si está, le pedimos a Claude que
+  // distribuya el monto entre las prendas y devuelva priceMaxCop por cada una.
+  budgetCop?: number | null;
+};
+
 /**
  * Analiza una foto de outfit con Claude y devuelve términos de búsqueda
- * estructurados.
+ * estructurados, opcionalmente con priceMaxCop por prenda si se da un
+ * presupuesto total.
  *
  * @throws si falta ANTHROPIC_API_KEY, la imagen no se puede descargar, o la
  * API responde con error.
  */
 export async function analyzeImageWithClaude(
-  imageUrl: string
+  imageUrl: string,
+  options: AnalyzeOptions = {}
 ): Promise<VisionResult> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
@@ -157,6 +181,13 @@ export async function analyzeImageWithClaude(
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
 
   const client = new Anthropic({ apiKey });
+
+  // Construir el mensaje del usuario. Si hay presupuesto, lo metemos en el
+  // texto para que Claude lo use al calcular priceMaxCop.
+  const budget = options.budgetCop && options.budgetCop > 0 ? options.budgetCop : null;
+  const userText = budget
+    ? `Analiza este outfit. Presupuesto total disponible: ${budget.toLocaleString("es-CO")} COP. Distribuye ese total entre las prendas y devuelve priceMaxCop por cada una. Reporta con report_outfit.`
+    : "Analiza este outfit y reporta las prendas con report_outfit. NO incluyas priceMaxCop (no hay presupuesto definido).";
 
   const response = await client.messages.create({
     model: MODEL,
@@ -188,7 +219,7 @@ export async function analyzeImageWithClaude(
           },
           {
             type: "text",
-            text: "Analiza este outfit y reporta las prendas con report_outfit.",
+            text: userText,
           },
         ],
       },
@@ -206,12 +237,25 @@ export async function analyzeImageWithClaude(
 
   const input = toolUse.input as {
     searchTerms?: string[];
+    priceMaxCop?: number[];
     dominantColors?: string[];
     rawLabels?: string[];
   };
 
+  const searchTerms = Array.isArray(input.searchTerms) ? input.searchTerms : [];
+
+  // Alinear priceMaxCop con searchTerms. Si Claude se equivoca de longitud,
+  // truncamos/rellenamos con null para mantener invariante (i-ésimo precio
+  // pertenece al i-ésimo término).
+  const rawPrices = Array.isArray(input.priceMaxCop) ? input.priceMaxCop : [];
+  const priceMaxCop: (number | null)[] = searchTerms.map((_, i) => {
+    const v = rawPrices[i];
+    return typeof v === "number" && v > 0 ? Math.round(v) : null;
+  });
+
   return {
-    searchTerms: Array.isArray(input.searchTerms) ? input.searchTerms : [],
+    searchTerms,
+    priceMaxCop,
     dominantColors: Array.isArray(input.dominantColors)
       ? input.dominantColors
       : [],

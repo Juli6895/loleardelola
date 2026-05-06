@@ -7,10 +7,17 @@ import { abrirOutfitEnGoogleShopping } from "@/lib/shopping";
 type Props = {
   outfit: Outfit;
   onDelete?: (id: string) => void;
+  // Lista de comercios a excluir. La pasa la página padre (que ya la trajo
+  // una vez de /api/config) para no spamear el endpoint en cada card.
+  excludeMerchants?: string[];
 };
 
 // Tarjeta para mostrar un outfit guardado en "Mis outfits"
-export default function OutfitCard({ outfit, onDelete }: Props) {
+export default function OutfitCard({
+  outfit,
+  onDelete,
+  excludeMerchants,
+}: Props) {
   return (
     <article className="group flex flex-col overflow-hidden rounded-2xl border border-rosa-100 bg-white shadow-sm transition hover:shadow-suave">
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-rosa-50">
@@ -26,13 +33,15 @@ export default function OutfitCard({ outfit, onDelete }: Props) {
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex flex-wrap gap-1.5">
           {outfit.tags.slice(0, 5).map((t) => (
-            <TagChip key={t} term={t} />
+            <TagChip key={t} term={t} excludeMerchants={excludeMerchants} />
           ))}
         </div>
 
         <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-2">
           <button
-            onClick={() => abrirOutfitEnGoogleShopping(outfit.tags)}
+            onClick={() =>
+              abrirOutfitEnGoogleShopping(outfit.tags, { excludeMerchants })
+            }
             className="rounded-full bg-noche px-4 py-1.5 text-xs font-medium text-white transition hover:bg-rosa-500"
             title="Abre una pestaña por cada prenda"
           >

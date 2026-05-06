@@ -34,15 +34,24 @@ REGLAS:
 
 1. Identifica entre 3 y 7 prendas/accesorios principales del outfit. NO inventes prendas que no se ven claramente. NO listes detalles internos (botones, costuras, etc).
 
-2. Para cada prenda usa este formato: "[prenda] [color] [estilo opcional]". Ejemplos:
-   - "jean azul oscuro wide leg"
+2. **CADA término MÁXIMO 4 palabras** (prenda + color + 0-1 modificador). Más palabras = búsqueda con cero resultados en Google Shopping. Piensa cómo una mujer colombiana real escribiría la búsqueda — corto y directo.
+
+   Ejemplos BUENOS (4 palabras o menos):
+   - "jean azul wide leg"
    - "chaqueta bomber café"
    - "tenis blancos chunky"
    - "vestido midi negro"
-   - "bolso de mano café cuero"
+   - "bolso café cuero"
    - "blazer beige oversize"
-   - "falda midi denim"
-   - "botas negras cuero altas"
+   - "falda denim midi"
+   - "botas negras cuero"
+   - "blusa rayas" (no "blusa blanca estampado rayas")
+   - "vestido floral" (no "vestido azul estampado floral")
+
+   Ejemplos MALOS (recortar):
+   - ❌ "chaqueta azul oscuro estampado rayas" → ✅ "chaqueta rayas azul"
+   - ❌ "jean azul oscuro wide leg cropped" → ✅ "jean wide leg azul"
+   - ❌ "vestido midi blanco estampado floral" → ✅ "vestido floral midi"
 
 3. Vocabulario en español COLOMBIANO:
    - "tenis" (no zapatillas, no sneakers)
@@ -56,13 +65,15 @@ REGLAS:
    - "gafas de sol" (sunglasses)
    - "vestido" (dress), "enterizo" (jumpsuit)
 
-4. COLORES: usa nombres comunes en español (negro, blanco, azul, azul oscuro, azul claro, rojo, vinotinto, verde, verde olivo, café, beige, crema, amarillo, mostaza, naranja, rosa, rosado, morado, lila, gris, multicolor). Si una prenda es estampada, di "estampado floral", "rayas", "cuadros", etc. Si no estás 99% segura del color, omítelo (mejor "chaqueta" sin color que el color equivocado).
+4. COLORES: usa nombres comunes en español, UNA sola palabra preferible (negro, blanco, azul, rojo, vinotinto, verde, café, beige, crema, amarillo, mostaza, naranja, rosa, morado, gris). Solo usa colores compuestos ("azul oscuro", "verde olivo") cuando sean cruciales — y NO agregues otro modificador después. Si no estás 99% segura del color, omítelo.
 
-5. ESTILO opcional: agrégalo solo si es claro y útil para la búsqueda — "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". No metas más de 1-2 modificadores por prenda.
+5. ESTAMPADOS: si la prenda tiene estampado, escoge UN solo descriptor — "rayas", "cuadros", "floral", "animal print", "estampado". NO combines color + estampado en el mismo término salvo que sea esencial.
 
-6. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
+6. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". Solo si la prenda lo necesita para buscarse bien.
 
-7. PRESUPUESTO (si te llega en el mensaje del usuario):
+7. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
+
+8. PRESUPUESTO (si te llega en el mensaje del usuario):
    - El usuario te dará un presupuesto TOTAL en pesos colombianos (COP).
    - Reparte ese total entre las prendas considerando lo que vale típicamente
      cada una en Colombia. Las prendas grandes/centrales (vestido, chaqueta,
@@ -72,7 +83,7 @@ REGLAS:
      prenda, EN EL MISMO ORDEN que searchTerms.
    - Si NO te llega presupuesto, omite priceMaxCop o devuelve un array vacío.
 
-8. Devuelve también:
+9. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
    - rawLabels: lista en inglés de las prendas que ves (debug)
 
@@ -90,7 +101,7 @@ const REPORT_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista de 3-7 términos de búsqueda en español colombiano, formato '[prenda] [color] [estilo opcional]'. Ej: 'jean azul oscuro wide leg'.",
+          "Lista de 3-7 términos de búsqueda en español colombiano. MÁXIMO 4 palabras por término (prenda + color + máx 1 modificador). Ej: 'jean wide leg azul', 'chaqueta bomber café', 'tenis blancos chunky'. NO uses descripciones largas tipo 'chaqueta azul oscuro estampado rayas' — Google Shopping no devuelve nada con queries largas.",
       },
       priceMaxCop: {
         type: "array",

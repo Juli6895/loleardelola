@@ -2,6 +2,9 @@
 //
 // Soporta dos features que se aplican por término:
 //   - priceMaxCop: filtro de precio máximo en pesos colombianos
+//     ⚠️ DESACTIVADO temporalmente: el filtro `ppr_max` recortaba demasiado
+//        los resultados (Google devolvía 0-1 productos). Se mantiene el tipo
+//        para no romper callers, pero `googleShoppingUrl` lo ignora.
 //   - excludeMerchants: dominios que se excluyen vía operador `-site:`
 
 const BASE = "https://www.google.com/search";
@@ -36,8 +39,6 @@ export function googleShoppingUrl(
   opts: ShoppingOptions = {}
 ): string {
   const term = typeof item === "string" ? item : item.q;
-  const priceMax =
-    typeof item === "string" ? null : item.priceMaxCop ?? null;
 
   const exclusions = (opts.excludeMerchants ?? [])
     .map((domain) => `-site:${domain}`)
@@ -46,12 +47,11 @@ export function googleShoppingUrl(
   const fullQuery = exclusions ? `${term.trim()} ${exclusions}` : term.trim();
   const q = encodeURIComponent(fullQuery);
 
-  let priceParam = "";
-  if (priceMax && priceMax > 0) {
-    priceParam = `&tbs=mr:1,price:1,ppr_max:${Math.round(priceMax)}`;
-  }
+  // Filtro `ppr_max` desactivado — combinado con las exclusiones por dominio
+  // y queries largas dejaba 0-1 resultados. Si lo reactivamos, restaurar
+  // `&tbs=mr:1,price:1,ppr_max:N` aquí.
 
-  return `${BASE}?tbm=shop&q=${q}&${COLOMBIA_PARAMS}${priceParam}`;
+  return `${BASE}?tbm=shop&q=${q}&${COLOMBIA_PARAMS}`;
 }
 
 /**

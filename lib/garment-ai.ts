@@ -34,26 +34,32 @@ REGLAS:
 
 1. Identifica entre 3 y 7 prendas/accesorios principales del outfit. NO inventes prendas que no se ven claramente. NO listes detalles internos (botones, costuras, etc).
 
-2. **CADA término MÁXIMO 4 palabras** (prenda + color + 0-1 modificador). Más palabras = búsqueda con cero resultados en Google Shopping. Piensa cómo una mujer colombiana real escribiría la búsqueda — corto y directo.
+2. **CADA término MÁXIMO 5 palabras**: prenda + color + (modificador opcional) + GÉNERO al final. Más palabras = búsqueda con cero resultados en Google Shopping. Piensa cómo una persona real escribiría la búsqueda — corto y directo.
 
-   Ejemplos BUENOS (4 palabras o menos):
-   - "jean azul wide leg"
-   - "chaqueta bomber café"
-   - "tenis blancos chunky"
-   - "vestido midi negro"
-   - "bolso café cuero"
-   - "blazer beige oversize"
-   - "falda denim midi"
-   - "botas negras cuero"
-   - "blusa rayas" (no "blusa blanca estampado rayas")
-   - "vestido floral" (no "vestido azul estampado floral")
+   Ejemplos BUENOS (≤ 5 palabras, con género al final):
+   - "jean wide leg azul mujer"
+   - "chaqueta bomber café hombre"
+   - "tenis blancos chunky mujer"
+   - "vestido midi negro mujer"
+   - "blazer beige oversize hombre"
+   - "blusa rayas mujer"
+   - "buzo gris niño"
+   - "vestido floral niña"
+   - "botas negras cuero mujer"
 
    Ejemplos MALOS (recortar):
-   - ❌ "chaqueta azul oscuro estampado rayas" → ✅ "chaqueta rayas azul"
-   - ❌ "jean azul oscuro wide leg cropped" → ✅ "jean wide leg azul"
-   - ❌ "vestido midi blanco estampado floral" → ✅ "vestido floral midi"
+   - ❌ "chaqueta azul oscuro estampado rayas mujer" (6) → ✅ "chaqueta rayas azul mujer"
+   - ❌ "jean azul oscuro wide leg cropped hombre" (6) → ✅ "jean wide leg azul hombre"
+   - ❌ "vestido midi blanco estampado floral mujer" (6) → ✅ "vestido floral midi mujer"
 
-3. Vocabulario en español COLOMBIANO:
+3. **GÉNERO obligatorio al final**: agrega "hombre", "mujer", "niño" o "niña" como última palabra de CADA término. Detecta el género según la persona que viste la prenda en la foto:
+   - Adulta femenina → "mujer"
+   - Adulto masculino → "hombre"
+   - Niño hasta ~12 años, masculino → "niño"
+   - Niña hasta ~12 años, femenina → "niña"
+   Si la imagen no muestra persona o no es claro (foto solo de la prenda), usa "mujer" como default. Esto ayuda a Google Shopping a filtrar la sección correcta del catálogo.
+
+4. Vocabulario en español COLOMBIANO:
    - "tenis" (no zapatillas, no sneakers)
    - "buzo" o "hoodie" (sudadera con capucha)
    - "saco" (sweater)
@@ -65,15 +71,15 @@ REGLAS:
    - "gafas de sol" (sunglasses)
    - "vestido" (dress), "enterizo" (jumpsuit)
 
-4. COLORES: usa nombres comunes en español, UNA sola palabra preferible (negro, blanco, azul, rojo, vinotinto, verde, café, beige, crema, amarillo, mostaza, naranja, rosa, morado, gris). Solo usa colores compuestos ("azul oscuro", "verde olivo") cuando sean cruciales — y NO agregues otro modificador después. Si no estás 99% segura del color, omítelo.
+5. COLORES: usa nombres comunes en español, UNA sola palabra preferible (negro, blanco, azul, rojo, vinotinto, verde, café, beige, crema, amarillo, mostaza, naranja, rosa, morado, gris). Solo usa colores compuestos ("azul oscuro", "verde olivo") cuando sean cruciales — y NO agregues otro modificador después. Si no estás 99% segura del color, omítelo.
 
-5. ESTAMPADOS: si la prenda tiene estampado, escoge UN solo descriptor — "rayas", "cuadros", "floral", "animal print", "estampado". NO combines color + estampado en el mismo término salvo que sea esencial.
+6. ESTAMPADOS: si la prenda tiene estampado, escoge UN solo descriptor — "rayas", "cuadros", "floral", "animal print", "estampado". NO combines color + estampado en el mismo término salvo que sea esencial.
 
-6. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". Solo si la prenda lo necesita para buscarse bien.
+7. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". Solo si la prenda lo necesita para buscarse bien.
 
-7. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
+8. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
 
-8. PRESUPUESTO (si te llega en el mensaje del usuario):
+9. PRESUPUESTO (si te llega en el mensaje del usuario):
    - El usuario te dará un presupuesto TOTAL en pesos colombianos (COP).
    - Reparte ese total entre las prendas considerando lo que vale típicamente
      cada una en Colombia. Las prendas grandes/centrales (vestido, chaqueta,
@@ -83,7 +89,7 @@ REGLAS:
      prenda, EN EL MISMO ORDEN que searchTerms.
    - Si NO te llega presupuesto, omite priceMaxCop o devuelve un array vacío.
 
-9. Devuelve también:
+10. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
    - rawLabels: lista en inglés de las prendas que ves (debug)
 
@@ -101,7 +107,7 @@ const REPORT_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista de 3-7 términos de búsqueda en español colombiano. MÁXIMO 4 palabras por término (prenda + color + máx 1 modificador). Ej: 'jean wide leg azul', 'chaqueta bomber café', 'tenis blancos chunky'. NO uses descripciones largas tipo 'chaqueta azul oscuro estampado rayas' — Google Shopping no devuelve nada con queries largas.",
+          "Lista de 3-7 términos de búsqueda en español colombiano. MÁXIMO 5 palabras por término: prenda + color + (modificador opcional) + GÉNERO al final (hombre/mujer/niño/niña, default 'mujer' si no se ve persona). Ej: 'jean wide leg azul mujer', 'chaqueta bomber café hombre', 'vestido floral niña'. NO uses descripciones largas tipo 'chaqueta azul oscuro estampado rayas mujer' — Google Shopping no devuelve nada con queries largas.",
       },
       priceMaxCop: {
         type: "array",

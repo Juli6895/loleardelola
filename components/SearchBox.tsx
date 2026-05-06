@@ -25,6 +25,11 @@ const QUICK_BUDGETS = [
   { label: "$1M", value: 1000000 },
 ];
 
+// Feature flag: el flujo de presupuesto está temporalmente desactivado porque
+// el filtro `ppr_max` en Google Shopping recortaba demasiado los resultados.
+// Para reactivar: poner true y descomentar el wire en `postAnalysis`.
+const BUDGET_ENABLED = false;
+
 // Caja de búsqueda: admite URL de Pinterest o archivo subido + presupuesto.
 export default function SearchBox({ onResult }: Props) {
   const [pinUrl, setPinUrl] = useState("");
@@ -40,7 +45,8 @@ export default function SearchBox({ onResult }: Props) {
   }
 
   async function postAnalysis(payload: Record<string, unknown>) {
-    const budgetCop = parseBudget();
+    // Cuando reactivemos presupuesto, volver a leer parseBudget() y mandarlo.
+    const budgetCop = BUDGET_ENABLED ? parseBudget() : null;
     const res = await fetch("/api/vision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -111,6 +117,7 @@ export default function SearchBox({ onResult }: Props) {
       </form>
 
       {/* Bloque de presupuesto: aplica tanto a "buscar pin" como a "subir foto". */}
+      {BUDGET_ENABLED && (
       <div className="mt-5 rounded-xl border border-rosa-100 bg-rosa-50/40 p-4">
         <label htmlFor="budget" className="text-sm font-medium text-noche/80">
           Presupuesto total <span className="text-noche/40">(opcional)</span>
@@ -162,6 +169,7 @@ export default function SearchBox({ onResult }: Props) {
           </div>
         </div>
       </div>
+      )}
 
       <div className="my-5 flex items-center gap-3 text-xs uppercase tracking-widest text-noche/30">
         <span className="h-px flex-1 bg-rosa-100" />

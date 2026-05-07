@@ -11,6 +11,12 @@ import path from "path";
 // igual se respeta el archivo del repo.
 // =====================================================================
 
+// Feature flag: las exclusiones por dominio (`-site:shein.com`...) están
+// temporalmente desactivadas. Sumadas a las queries con género y al filtro
+// de precio, dejaban Google Shopping con 0-1 resultados. Para reactivarlas:
+// poner true. El archivo `config/merchant-exclusions.txt` se conserva.
+const EXCLUSIONS_ENABLED = false;
+
 const CONFIG_PATH = path.join(
   process.cwd(),
   "config",
@@ -19,10 +25,11 @@ const CONFIG_PATH = path.join(
 
 /**
  * Lee la lista de dominios excluidos del archivo de configuración.
- * Devuelve una lista vacía si el archivo no existe o no se puede leer
- * (no queremos romper el flujo de búsqueda por un problema de config).
+ * Devuelve una lista vacía si el archivo no existe, no se puede leer, o
+ * el feature flag EXCLUSIONS_ENABLED está apagado.
  */
 export function getExcludedMerchants(): string[] {
+  if (!EXCLUSIONS_ENABLED) return [];
   try {
     const raw = fs.readFileSync(CONFIG_PATH, "utf-8");
     return raw

@@ -15,13 +15,18 @@ export function googleShoppingUrl(term: string): string {
 }
 
 /**
+ * Construye la URL de Google Shopping combinando prenda + marca.
+ * Ej: "jean azul wide leg" + "Zara" → busca "jean azul wide leg Zara"
+ */
+export function googleShoppingUrlConMarca(term: string, marca: string): string {
+  const q = encodeURIComponent(`${term.trim()} ${marca.trim()}`);
+  return `${BASE}?tbm=shop&q=${q}&${COLOMBIA_PARAMS}`;
+}
+
+/**
  * Abre una pestaña de Google Shopping por cada término del outfit.
  * Hay que llamarla SÍNCRONAMENTE desde un click handler para que el navegador
  * permita los múltiples window.open (popup blocker).
- *
- * Nota: combinar todos los términos con OR en una sola búsqueda da resultados
- * pobres (Google interpreta "(jean azul) OR (chaqueta)" como "chaqueta de jean").
- * Mejor abrir una pestaña por prenda — más útil para el shopping real.
  */
 export function abrirOutfitEnGoogleShopping(terms: string[]) {
   if (typeof window === "undefined") return;
@@ -29,3 +34,35 @@ export function abrirOutfitEnGoogleShopping(terms: string[]) {
     window.open(googleShoppingUrl(term), "_blank", "noopener,noreferrer");
   }
 }
+
+/**
+ * Abre una pestaña por prenda con la marca añadida al query.
+ * Ej: si terms = ["jean azul", "camiseta blanca"] y marca = "Zara",
+ * abre "jean azul Zara" y "camiseta blanca Zara" en pestañas separadas.
+ */
+export function abrirOutfitEnGoogleShoppingConMarca(
+  terms: string[],
+  marca: string
+) {
+  if (typeof window === "undefined") return;
+  for (const term of terms) {
+    window.open(
+      googleShoppingUrlConMarca(term, marca),
+      "_blank",
+      "noopener,noreferrer"
+    );
+  }
+}
+
+// Marcas disponibles para filtrar la búsqueda
+export const MARCAS_FAVORITAS = [
+  "Zara",
+  "H&M",
+  "Naf Naf",
+  "American Eagle",
+  "Color Blue",
+  "Bybla",
+  "Gef",
+] as const;
+
+export type MarcaFavorita = (typeof MARCAS_FAVORITAS)[number];

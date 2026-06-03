@@ -70,30 +70,25 @@ async function analyzeWithFallback(
 ): Promise<{ data: VisionResult; source: "claude" | "vision" }> {
   console.log("[/api/vision] env check", {
     anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
-    anthropicKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 12) ?? null,
+    anthropicKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 12) ?? "(será leído desde .env.local)",
   });
-  // Si no hay ANTHROPIC_API_KEY, no perdemos tiempo intentando Claude.
-  if (process.env.ANTHROPIC_API_KEY) {
-    try {
-      const data = await analyzeImageWithClaude(imageUrl);
-      // Si Claude devuelve vacío (raro pero posible), también consideramos
-      // que falló y caemos a Vision para tener algo.
-      if (data.searchTerms.length === 0) {
-        console.warn(
-          "[/api/vision] Claude devolvió 0 prendas, cayendo a Vision"
-        );
-      } else {
-        console.log("[/api/vision] análisis con Claude OK", {
-          terms: data.searchTerms.length,
-        });
-        return { data, source: "claude" };
-      }
-    } catch (e: any) {
-      console.warn(
-        "[/api/vision] Claude falló, cayendo a Vision:",
-        e?.message ?? e
-      );
+  // analyzeImageWithClaude lee la key directamente desde .env.local si
+  // process.env no la tiene todavía — siempre intentamos Claude primero.
+  try {
+    const data = await analyzeImageWithClaude(imageUrl);
+    if (data.searchTerms.length === 0) {
+      console.warn("[/api/vision] Claude devolvió 0 prendas, cayendo a Vision");
+    } else {
+      console.log("[/api/vision] análisis con Claude (Sonnet) OK", {
+        terms: data.searchTerms.length,
+      });
+      return { data, source: "claude" };
     }
+  } catch (e: any) {
+    console.warn(
+      "[/api/vision] Claude falló, cayendo a Vision:",
+      e?.message ?? e
+    );
   }
 
   const data = await analyzeImage({ url: imageUrl });

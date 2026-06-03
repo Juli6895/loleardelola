@@ -21,7 +21,7 @@ export default function BuscarPage() {
 
       <SearchBox onResult={setResult} />
 
-      {result && <SearchResult data={result} />}
+      {result && <SearchResult key={result.imageUrl} data={result} />}
     </div>
   );
 }

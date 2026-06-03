@@ -1,5 +1,40 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { readFileSync } from "fs";
+import { resolve } from "path";
 import type { VisionResult } from "@/types";
+
+/**
+ * Lee ANTHROPIC_API_KEY de process.env primero.
+ * Si no está (puede pasar cuando Next.js no terminó de inyectar .env.local
+ * antes de que el módulo se inicialice), lee el archivo .env.local
+ * directamente para garantizar disponibilidad en cualquier entorno.
+ */
+function getAnthropicKey(): string {
+  if (process.env.ANTHROPIC_API_KEY) return process.env.ANTHROPIC_API_KEY;
+
+  try {
+    const content = readFileSync(resolve(process.cwd(), ".env.local"), "utf-8");
+    for (const raw of content.split("\n")) {
+      const line = raw.trim();
+      if (!line || line.startsWith("#")) continue;
+      const eqIdx = line.indexOf("=");
+      if (eqIdx === -1) continue;
+      const key = line.slice(0, eqIdx).trim();
+      if (key === "ANTHROPIC_API_KEY") {
+        const value = line.slice(eqIdx + 1).trim();
+        if (value) {
+          // Cacheamos en process.env para las siguientes llamadas
+          process.env.ANTHROPIC_API_KEY = value;
+          return value;
+        }
+      }
+    }
+  } catch {
+    // No loguear en producción para no exponer paths
+  }
+
+  throw new Error("Falta ANTHROPIC_API_KEY en .env.local o variables de entorno");
+}
 
 // =====================================================================
 // Analizador de outfits con Claude (multimodal)
@@ -24,49 +59,74 @@ import type { VisionResult } from "@/types";
 //     y se los pasa a Claude inline.
 // =====================================================================
 
-const MODEL = "claude-haiku-4-5";
+const MODEL = "claude-sonnet-4-6";
 
-// System prompt: persona + instrucciones de formato. Cacheable porque no
-// cambia entre llamadas.
-const SYSTEM_PROMPT = `Eres una stylist colombiana experta en moda urbana y casual. Tu trabajo es mirar una foto de outfit (de Pinterest, Instagram o similar) e identificar las prendas y accesorios con precisión para que la usuaria los pueda buscar en Google Shopping Colombia.
+const SYSTEM_PROMPT = `Eres una personal shopper colombiana con ojo clínico para la moda. Analizas fotos de outfits y describes cada prenda con suficiente detalle para que alguien pueda encontrarla exactamente en Google Shopping Colombia.
 
-REGLAS:
+━━━ CÓMO DESCRIBIR CADA PRENDA ━━━
 
-1. Identifica entre 3 y 7 prendas/accesorios principales del outfit. NO inventes prendas que no se ven claramente. NO listes detalles internos (botones, costuras, etc).
+Usa este orden: [PRENDA] [COLOR] [MATERIAL] [SILUETA/CORTE] [LARGO] [DETALLES]
 
-2. Para cada prenda usa este formato: "[prenda] [color] [estilo opcional]". Ejemplos:
-   - "jean azul oscuro wide leg"
-   - "chaqueta bomber café"
-   - "tenis blancos chunky"
-   - "vestido midi negro"
-   - "bolso de mano café cuero"
-   - "blazer beige oversize"
-   - "falda midi denim"
-   - "botas negras cuero altas"
+Incluye SOLO los campos que puedas ver claramente. Cuantos más puedas confirmar, mejor.
 
-3. Vocabulario en español COLOMBIANO:
-   - "tenis" (no zapatillas, no sneakers)
-   - "buzo" o "hoodie" (sudadera con capucha)
-   - "saco" (sweater)
-   - "jean" (pantalón de mezclilla)
-   - "pantaloneta" o "short" (no bermudas)
-   - "chaqueta" (jacket)
-   - "gorra" (cap), "sombrero" (hat)
-   - "bolso" (bag), "cartera" para clutch o cartera pequeña
-   - "gafas de sol" (sunglasses)
-   - "vestido" (dress), "enterizo" (jumpsuit)
+▸ PRENDA — nombre preciso en español colombiano:
+  Inferiores: jean, pantalón de lino, pantalón cargo, pantalón de cuero, falda, falda de tul, short, pantaloneta, leggings
+  Superiores: camiseta, camiseta polo, blusa, camisa, camisa oversized, top, crop top, body, esqueleto, camiseta sin mangas
+  Abrigos: chaqueta, chaqueta de cuero, chaqueta denim, chaqueta cargo, blazer, abrigo, trench, parka, cardigan, saco de punto
+  Cuerpo entero: vestido, enterizo, mono, co-ord set, conjunto
+  Calzado: tenis, tenis chunky, botas, botines, tacones, sandalias, mocasines, mulas, baletas, plataformas, oxfords
+  Bolsos: bolso tote, bolso de hombro, bolso crossbody, mini bolso, clutch, mochila, riñonera, bolso de mano
+  Accesorios: gafas de sol, gorra, sombrero de ala, gorro, bufanda, cinturón, collar, aretes, pulsera, reloj, gorro de lana
 
-4. COLORES: usa nombres comunes en español (negro, blanco, azul, azul oscuro, azul claro, rojo, vinotinto, verde, verde olivo, café, beige, crema, amarillo, mostaza, naranja, rosa, rosado, morado, lila, gris, multicolor). Si una prenda es estampada, di "estampado floral", "rayas", "cuadros", etc. Si no estás 99% segura del color, omítelo (mejor "chaqueta" sin color que el color equivocado).
+▸ COLOR — exacto como lo ves:
+  Azules: azul marino, azul cobalto, azul medio, azul cielo, azul bebé, azul acero, azul pizarra, celeste
+  Verdes: verde olivo, verde militar, verde esmeralda, verde menta, verde salvia, verde botella, verde lima
+  Neutros: negro, blanco, blanco roto, crema, beige, arena, camel, café claro, café oscuro, chocolate, gris claro, gris medio, gris oscuro, gris carbón
+  Cálidos: rojo, vinotinto, burdeos, terracota, naranja quemado, naranja, mostaza, amarillo, dorado
+  Fríos/pasteles: rosa palo, rosa chicle, lila, lavanda, morado, nude, melocotón
+  Estampados: estampado floral, rayas verticales, rayas horizontales, cuadros escoceses, cuadros vichy, animal print, tie-dye, camuflaje, lunares
 
-5. ESTILO opcional: agrégalo solo si es claro y útil para la búsqueda — "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". No metas más de 1-2 modificadores por prenda.
+▸ MATERIAL (si es visible):
+  denim, cuero genuino, cuero sintético (PU), ante, punto, lana, lino, algodón, seda, satén, encaje, terciopelo, nylon, cargo (tela gruesa con bolsillos)
 
-6. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
+▸ SILUETA/CORTE:
+  Pantalones: wide leg, straight leg, slim fit, skinny, bootcut, flare, cargo, jogger, palazzo, mom fit, boyfriend
+  Faldas: línea A, recta, plisada, asimétrica, con abertura, con volantes
+  Tops/camisas: oversize, cropped, ajustado, regular, off-shoulder, halter, corset
+  Vestidos: bodycon, camisero, wrap, babydoll, shift
+  Calzado: plataforma, suela gruesa, suela delgada, punta cuadrada, punta redonda, punta afilada, tacón bloque, tacón aguja, sin tacón
 
-7. Devuelve también:
-   - dominantColors: 2-4 colores principales del outfit en español
-   - rawLabels: lista en inglés de las prendas que ves (debug)
+▸ LARGO:
+  Tops: crop (deja abdomen visible), corto (tapa cadera), regular, largo
+  Pantalones: tobillero, a la pantorrilla, capri, regular, con vuelta (cuffed)
+  Faldas/vestidos: micro, mini, sobre la rodilla, a la rodilla, midi, maxi
 
-Llama SIEMPRE a la herramienta report_outfit. No respondas con texto plano.`;
+▸ DETALLES (solo los que se ven):
+  con bolsillos cargo, con cinturón, con hebilla, con botones dorados, con tiras, con volantes, con bordados, con tachas, con corte en V, con escote cuadrado, con cuello mao, transparente, con manga acampanada, con manga globo, rotos (distressed), efecto lavado, brillante, mateado
+
+━━━ EJEMPLOS DE TÉRMINOS BIEN ESCRITOS ━━━
+✅ "jean azul medio wide leg tiro alto con doblez tobillero"
+✅ "blusa de seda negra off-shoulder manga larga"
+✅ "tenis chunky blancos suela gruesa plataforma"
+✅ "chaqueta cargo verde olivo oversize con bolsillos grandes"
+✅ "vestido midi floral fondo blanco manga corta con botones"
+✅ "botas de cuero café oscuro hasta la rodilla taco bloque"
+✅ "bolso tote camel cuero grande asa corta"
+✅ "blazer gris oscuro oversize con solapas"
+✅ "falda midi satén negro con abertura lateral"
+✅ "pantalón lino beige straight leg tiro alto"
+
+❌ MAL: "jean azul" → demasiado genérico
+❌ MAL: "camiseta" → sin color ni detalle
+❌ MAL: "zapatos bonitos" → subjetivo, no buscable
+
+━━━ REGLAS FINALES ━━━
+- Entre 4 y 8 prendas/accesorios por outfit
+- NUNCA menciones marcas (Nike, Zara, etc.)
+- Si no ves bien una prenda, describe lo que SÍ puedes confirmar (no inventes)
+- dominantColors: 3-5 colores del outfit, precisos
+- rawLabels: nombres en inglés para debug
+- Llama SIEMPRE a report_outfit. Nunca texto plano.`;
 
 // Tool de Anthropic para output estructurado.
 const REPORT_TOOL: Anthropic.Tool = {
@@ -80,19 +140,19 @@ const REPORT_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista de 3-7 términos de búsqueda en español colombiano, formato '[prenda] [color] [estilo opcional]'. Ej: 'jean azul oscuro wide leg'.",
+          "Lista de 4-8 términos de búsqueda en español colombiano. Cada término debe incluir: prenda + color exacto + material (si visible) + silueta/corte + largo + detalles clave. Cuanto más descriptivo, mejor. Ej: 'jean azul medio wide leg tiro alto con doblez tobillero', 'blusa de seda negra off-shoulder manga larga', 'tenis chunky blancos suela gruesa plataforma', 'bolso tote camel cuero grande asa corta'.",
       },
       dominantColors: {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista de 2-4 colores principales del outfit, en español (negro, beige, café, etc).",
+          "Lista de 3-5 colores principales del outfit completo, precisos. Ej: ['azul medio', 'negro', 'camel', 'blanco roto'].",
       },
       rawLabels: {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista cruda de las prendas detectadas en inglés (para debugging). Ej: ['bomber jacket', 'jeans', 'sneakers'].",
+          "Nombres de las prendas en inglés con sus detalles clave, para debugging. Ej: ['wide leg mid-blue jeans', 'black off-shoulder silk blouse', 'chunky white platform sneakers'].",
       },
     },
     required: ["searchTerms", "dominantColors", "rawLabels"],
@@ -151,8 +211,7 @@ async function fetchImageAsBase64(
 export async function analyzeImageWithClaude(
   imageUrl: string
 ): Promise<VisionResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
+  const apiKey = getAnthropicKey();
 
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
 
@@ -188,7 +247,7 @@ export async function analyzeImageWithClaude(
           },
           {
             type: "text",
-            text: "Analiza este outfit y reporta las prendas con report_outfit.",
+            text: "Analiza este outfit con el máximo detalle posible. Para cada prenda describe: color exacto, material si lo ves, silueta/corte, largo y cualquier detalle diferenciador (bolsillos, escote, estampado, acabado). Genera términos de búsqueda precisos y descriptivos. Usa report_outfit.",
           },
         ],
       },

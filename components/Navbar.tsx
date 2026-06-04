@@ -29,6 +29,12 @@ export default function Navbar() {
           >
             Buscar
           </Link>
+          <Link
+            href="/personalizar"
+            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+          >
+            Personalizar ✨
+          </Link>
           {session && (
             <Link
               href="/mis-outfits"
@@ -88,6 +94,13 @@ export default function Navbar() {
             className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
           >
             Buscar
+          </Link>
+          <Link
+            href="/personalizar"
+            onClick={() => setMenuOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+          >
+            Personalizar ✨
           </Link>
           {session && (
             <Link

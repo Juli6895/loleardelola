@@ -11,11 +11,13 @@ import path from "path";
 // igual se respeta el archivo del repo.
 // =====================================================================
 
-// Feature flag: las exclusiones por dominio (`-site:shein.com`...) están
-// temporalmente desactivadas. Sumadas a las queries con género y al filtro
-// de precio, dejaban Google Shopping con 0-1 resultados. Para reactivarlas:
-// poner true. El archivo `config/merchant-exclusions.txt` se conserva.
-const EXCLUSIONS_ENABLED = false;
+// Feature flag: reactivado. Estaba apagado porque combinar `-site:` con
+// `tbm=shop` (la pestaña Shopping) y el filtro de precio dejaba 0-1
+// resultados — pero la causa real era que `tbm=shop` prioriza anuncios
+// pagos que ignoran site:/-site: sin importar la combinación. Ahora
+// `googleShoppingUrl` (lib/shopping.ts) cambia a búsqueda web normal en
+// cuanto hay exclusiones o restricciones de marca, que sí las respeta.
+const EXCLUSIONS_ENABLED = true;
 
 const CONFIG_PATH = path.join(
   process.cwd(),

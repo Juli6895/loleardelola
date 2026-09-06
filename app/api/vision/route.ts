@@ -3,6 +3,7 @@ import { analyzeImage, extractPinterestImage } from "@/lib/vision";
 import { analyzeImageWithClaude } from "@/lib/garment-ai";
 import { uploadImage } from "@/lib/cloudinary";
 import { getExcludedMerchants } from "@/lib/merchant-exclusions";
+import { getAllowedMerchants } from "@/lib/merchant-allowlist";
 import type { VisionResult } from "@/types";
 
 // Endpoint: POST /api/vision
@@ -12,8 +13,9 @@ import type { VisionResult } from "@/types";
 //   - { imageBase64: "data:image/..." } → sube a Cloudinary + analiza
 //   - opcional: { budgetCop: number }   → presupuesto total en COP; Claude
 //     reparte el monto y devuelve priceMaxCop por prenda.
-// Devuelve: { imageUrl, result, source, excludedMerchants } donde
-//   source ∈ {"claude", "vision"} y excludedMerchants viene de la config.
+// Devuelve: { imageUrl, result, source, excludedMerchants, allowedMerchants }
+//   donde source ∈ {"claude", "vision"} y ambas listas de comercios vienen
+//   de la config de administración (.txt en /config, no editable desde la UI).
 //
 // Estrategia de análisis:
 //   1. Intenta Claude (mejor identificación de prendas + colores correctos).
@@ -61,6 +63,7 @@ export async function POST(req: Request) {
       result: result.data,
       source: result.source,
       excludedMerchants: getExcludedMerchants(),
+      allowedMerchants: getAllowedMerchants(),
     });
   } catch (e: any) {
     console.error("[/api/vision] error:", e);

@@ -17,6 +17,25 @@ export type PinterestBoard = {
   image_cover_url?: string;
 };
 
+export type ClosetCategory =
+  | "top"
+  | "bottom"
+  | "vestido"
+  | "abrigo"
+  | "calzado"
+  | "accesorio";
+
+export type ClosetItem = {
+  id: string;
+  user_id: string | null;
+  image_url: string;
+  category: ClosetCategory;
+  color: string | null;
+  tags: string[];
+  label: string | null;
+  created_at: string;
+};
+
 export type VisionResult = {
   // Etiquetas ya traducidas y pensadas para búsqueda de moda (ej: "vestido rojo floral")
   searchTerms: string[];

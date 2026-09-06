@@ -57,3 +57,31 @@ create policy "outfits_self_write" on public.outfits for all using (true) with c
 
 drop policy if exists "searches_self_read" on public.searches;
 create policy "searches_self_read" on public.searches for all using (true) with check (true);
+
+-- =========================================================
+-- Clóset digital (Fase 1 del roadmap premium)
+-- =========================================================
+
+-- Placeholder para el futuro muro de pago. Por ahora siempre false — la
+-- lógica de premium se activa cuando exista el cobro (ver roadmap).
+alter table public.users add column if not exists is_premium boolean not null default false;
+
+-- Prendas que cada usuaria sube a su clóset. category es uno de:
+-- 'top' | 'bottom' | 'vestido' | 'abrigo' | 'calzado' | 'accesorio'
+create table if not exists public.closet_items (
+  id uuid primary key default uuid_generate_v4(),
+  user_id uuid references public.users(id) on delete cascade,
+  image_url text not null,
+  category text not null,
+  color text,
+  tags text[] not null default '{}',
+  label text,
+  created_at timestamptz default now()
+);
+
+create index if not exists idx_closet_items_user on public.closet_items(user_id);
+
+alter table public.closet_items enable row level security;
+
+drop policy if exists "closet_items_all" on public.closet_items;
+create policy "closet_items_all" on public.closet_items for all using (true) with check (true);

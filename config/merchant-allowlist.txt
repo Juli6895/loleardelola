@@ -1,0 +1,33 @@
+# =========================================================
+# LolearDeLola - Comercios PERMITIDOS (allowlist)
+# =========================================================
+# Esto es lo opuesto a merchant-exclusions.txt: si dejas al menos una
+# línea activa aquí, las búsquedas de Google Shopping se van a restringir
+# SOLO a esos comercios (equivalente a "site:marca1.com OR site:marca2.com").
+#
+# - Una entrada por línea. Líneas vacías o que empiezan con "#" se ignoran.
+# - Solo el dominio (sin "https://", sin "www.").
+# - Si dejas el archivo vacío (o todo comentado, como está ahora), NO se
+#   aplica ninguna restricción — las búsquedas siguen abiertas a todo
+#   Google Shopping.
+# - Se lee en cada request, así que los cambios aplican sin redeploy en
+#   dev. En Vercel se aplica con cada deploy nuevo.
+#
+# ⚠️ Ojo: restringir a pocos comercios puede dejar 0-1 resultados por
+# prenda si esa tienda no está bien indexada en Google Shopping. Prueba
+# con 4-6 marcas activas a la vez, no una sola.
+#
+# Ejemplos de marcas con despacho a Colombia (descomenta las que quieras
+# activar, o agrega las tuyas):
+zara.com
+hm.com
+mango.com
+# pullandbear.com
+# bershka.com
+# stradivarius.com
+koaj.co
+arturocalle.com
+# studiof.com.co
+# velez.com.co
+# dafiti.com.co
+# falabella.com.co — excluida a propósito, ver merchant-exclusions.txt

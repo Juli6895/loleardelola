@@ -279,3 +279,155 @@ export async function analyzeImageWithClaude(
     rawLabels: Array.isArray(input.rawLabels) ? input.rawLabels : [],
   };
 }
+
+// =====================================================================
+// Analizador de UNA prenda para el Clóset digital (Fase 1 del roadmap
+// premium). A diferencia de analyzeImageWithClaude (que mira un outfit
+// completo puesto por una persona), esto clasifica una sola prenda —
+// normalmente una foto plana ("flat lay") o colgada, sin modelo.
+// =====================================================================
+
+export type ClosetCategory =
+  | "top"
+  | "bottom"
+  | "vestido"
+  | "abrigo"
+  | "calzado"
+  | "accesorio";
+
+export type ClosetItemAnalysis = {
+  category: ClosetCategory;
+  color: string | null;
+  tags: string[];
+  label: string;
+};
+
+const CLOSET_SYSTEM_PROMPT = `Eres una estilista colombiana organizando el clóset digital de una usuaria. Te llega la foto de UNA sola prenda (puede estar sobre una superficie, colgada, o puesta por alguien) y la tienes que clasificar para un guardarropa digital — no es un outfit completo.
+
+REGLAS:
+
+1. category: elige EXACTAMENTE una de estas 6 opciones según la prenda:
+   - "top": camisas, blusas, camisetas, tops, sacos, buzos
+   - "bottom": pantalones, jeans, faldas, shorts, pantalonetas
+   - "vestido": vestidos y enterizos
+   - "abrigo": chaquetas, blazers, abrigos, ruanas
+   - "calzado": tenis, botas, tacones, sandalias
+   - "accesorio": bolsos, gorras, gafas, cinturones, joyería, bufandas
+
+2. color: el color principal en español, una sola palabra (negro, blanco, azul, café, beige, crema, rosa, etc). Si de verdad no es claro, usa null.
+
+3. tags: 2-4 palabras sueltas en español que describan la prenda para poder combinarla después — tipo de tela aparente, corte, estampado, ocasión. Ej: ["denim", "wide leg", "casual"] o ["cuero", "formal"].
+
+4. label: nombre corto para mostrar en la app, tipo "Jean wide leg azul" o "Blazer beige oversize" — prenda + color + (corte si aplica), máximo 4 palabras, SIN marcas.
+
+Llama SIEMPRE a la herramienta report_garment. No respondas con texto plano.`;
+
+const REPORT_GARMENT_TOOL: Anthropic.Tool = {
+  name: "report_garment",
+  description: "Reporta la clasificación de una prenda de clóset.",
+  input_schema: {
+    type: "object",
+    properties: {
+      category: {
+        type: "string",
+        enum: ["top", "bottom", "vestido", "abrigo", "calzado", "accesorio"],
+        description: "Categoría de la prenda, una de las 6 permitidas.",
+      },
+      color: {
+        type: "string",
+        description: "Color principal en español, una palabra. Vacío si no es claro.",
+      },
+      tags: {
+        type: "array",
+        items: { type: "string" },
+        description: "2-4 tags cortos en español: tela, corte, estampado u ocasión.",
+      },
+      label: {
+        type: "string",
+        description: "Nombre corto para mostrar, máx 4 palabras, sin marcas.",
+      },
+    },
+    required: ["category", "tags", "label"],
+  },
+};
+
+/**
+ * Clasifica una sola prenda (foto de clóset) con Claude: categoría, color,
+ * tags y un nombre corto para mostrar en la grilla del clóset.
+ *
+ * @throws si falta ANTHROPIC_API_KEY, la imagen no se puede descargar, la
+ * API responde con error, o Claude devuelve una categoría inválida.
+ */
+export async function analyzeClosetItem(
+  imageUrl: string
+): Promise<ClosetItemAnalysis> {
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
+
+  const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
+  const client = new Anthropic({ apiKey });
+
+  const response = await client.messages.create({
+    model: MODEL,
+    max_tokens: 512,
+    system: [
+      {
+        type: "text",
+        text: CLOSET_SYSTEM_PROMPT,
+        cache_control: { type: "ephemeral" },
+      },
+    ],
+    tools: [REPORT_GARMENT_TOOL],
+    tool_choice: { type: "tool", name: "report_garment" },
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: { type: "base64", media_type: mediaType, data: base64 },
+          },
+          {
+            type: "text",
+            text: "Clasifica esta prenda de clóset y reporta con report_garment.",
+          },
+        ],
+      },
+    ],
+  });
+
+  const toolUse = response.content.find(
+    (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
+  );
+  if (!toolUse || toolUse.name !== "report_garment") {
+    throw new Error("Claude no devolvió un report_garment válido");
+  }
+
+  const input = toolUse.input as {
+    category?: string;
+    color?: string;
+    tags?: string[];
+    label?: string;
+  };
+
+  const VALID_CATEGORIES: ClosetCategory[] = [
+    "top",
+    "bottom",
+    "vestido",
+    "abrigo",
+    "calzado",
+    "accesorio",
+  ];
+  const category: ClosetCategory = VALID_CATEGORIES.includes(
+    input.category as ClosetCategory
+  )
+    ? (input.category as ClosetCategory)
+    : "accesorio"; // fallback razonable si Claude devuelve algo inesperado
+
+  return {
+    category,
+    color: input.color?.trim() || null,
+    tags: Array.isArray(input.tags) ? input.tags : [],
+    label: input.label?.trim() || "Prenda sin nombre",
+  };
+}

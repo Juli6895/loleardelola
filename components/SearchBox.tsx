@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import type { VisionResult } from "@/types";
 
@@ -8,8 +8,10 @@ export type SearchResult = {
   imageUrl: string;
   result: VisionResult;
   pinterestUrl?: string;
-  // Lista de comercios excluidos viene del servidor (config editable).
+  // Ambas listas de comercios vienen del servidor (config de administración,
+  // no editable desde la UI): cuáles excluir y/o a cuáles restringir.
   excludedMerchants?: string[];
+  allowedMerchants?: string[];
 };
 
 type Props = {
@@ -89,6 +91,30 @@ export default function SearchBox({ onResult }: Props) {
       setLoading(false);
     }
   }
+
+  // Permite pegar una imagen copiada (Ctrl+V) desde cualquier parte de la
+  // página — captura de pantalla, imagen copiada de Pinterest, etc. — sin
+  // tener que guardarla primero y subirla como archivo.
+  useEffect(() => {
+    function handlePaste(e: ClipboardEvent) {
+      if (loading) return;
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith("image/")) {
+          const file = item.getAsFile();
+          if (file) {
+            e.preventDefault();
+            analyzeFile(file);
+          }
+          break;
+        }
+      }
+    }
+    window.addEventListener("paste", handlePaste);
+    return () => window.removeEventListener("paste", handlePaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading]);
 
   return (
     <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
@@ -177,7 +203,14 @@ export default function SearchBox({ onResult }: Props) {
         <span className="h-px flex-1 bg-rosa-100" />
       </div>
 
-      <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-8 text-center transition hover:border-rosa-400 hover:bg-rosa-50">
+      {/* Zona de pegado: enfocable con clic o tab. No abre el selector de
+          archivos — eso vive aparte en el link "sube un archivo" de abajo,
+          así ambas acciones (pegar y subir) quedan claras y separadas. */}
+      <div
+        tabIndex={0}
+        onClick={(e) => e.currentTarget.focus()}
+        className="flex cursor-text flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-8 text-center outline-none transition hover:border-rosa-400 hover:bg-rosa-50 focus:border-rosa-400 focus:bg-rosa-50 focus:ring-2 focus:ring-rosa-200"
+      >
         <svg
           className="h-8 w-8 text-rosa-400"
           fill="none"
@@ -192,21 +225,27 @@ export default function SearchBox({ onResult }: Props) {
           />
         </svg>
         <span className="text-sm font-medium text-noche">
-          Sube una foto de tu inspiración
+          Haz clic aquí y pega tu foto con Ctrl+V
         </span>
-        <span className="text-xs text-noche/50">PNG, JPG hasta 8MB</span>
-        <input
-          type="file"
-          accept="image/*"
-          className="hidden"
-          disabled={loading}
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) analyzeFile(f);
-            e.target.value = "";
-          }}
-        />
-      </label>
+        <span className="text-xs text-noche/50">
+          o{" "}
+          <label className="cursor-pointer font-medium text-rosa-600 underline-offset-2 hover:underline">
+            sube un archivo
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={loading}
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) analyzeFile(f);
+                e.target.value = "";
+              }}
+            />
+          </label>{" "}
+          · PNG, JPG hasta 8MB
+        </span>
+      </div>
 
       {loading && (
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-rosa-600">

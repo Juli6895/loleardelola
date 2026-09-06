@@ -15,10 +15,10 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <p className="mb-4 inline-block rounded-full border border-rosa-300 bg-white/70 px-4 py-1 text-xs font-medium tracking-wide text-rosa-700">
-          Moda + Pinterest + Colombia 🇨🇴
+          Moda + IA + Colombia 🇨🇴
         </p>
         <h1 className="font-display text-4xl leading-tight text-noche sm:text-5xl md:text-6xl">
-          Ese outfit que te robó el corazón en Pinterest,{" "}
+          Ese outfit que te robó el corazón,{" "}
           <span className="italic text-rosa-500">ya sabemos dónde lo consigues</span>.
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-base text-noche/70 sm:text-lg">
@@ -52,7 +52,7 @@ export default function Hero() {
         </div>
 
         <p className="mt-4 text-xs text-noche/50">
-          Sin compromiso. Tus pins y tus outfits quedan guardados solo pa' ti.
+          Sin compromiso. Tus outfits quedan guardados solo pa' ti.
         </p>
       </div>
 
@@ -60,8 +60,8 @@ export default function Hero() {
       <div className="relative mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-6 text-left sm:grid-cols-3">
         {[
           {
-            title: "Pega un pin",
-            desc: "Copia el link de Pinterest y nosotros extraemos la imagen.",
+            title: "Comparte tu inspiración",
+            desc: "Pega un link, sube una foto o pégala con Ctrl+V — como te quede más fácil.",
           },
           {
             title: "Detectamos prendas",

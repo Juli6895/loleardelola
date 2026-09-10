@@ -36,6 +36,27 @@ export type ClosetItem = {
   created_at: string;
 };
 
+// Silueta y Personalidad viven junto al contenido del manual de asesoría
+// (lib/image-consulting/) — se reexportan aquí para no tener dos
+// definiciones de la misma unión.
+export type { Silueta } from "@/lib/image-consulting/morfologia";
+import type { Silueta } from "@/lib/image-consulting/morfologia";
+export type { Personalidad } from "@/lib/image-consulting/personalidad";
+import type { Personalidad } from "@/lib/image-consulting/personalidad";
+
+// Perfil de medidas de la usuaria — base para la asesoría de figura hoy,
+// y para el Avatar (Fase 3 del roadmap) más adelante.
+export type PerfilSilueta = {
+  bust_cm: number | null;
+  waist_cm: number | null;
+  hip_cm: number | null;
+  height_cm: number | null;
+  silueta: Silueta | null;
+  personalidad: Personalidad | null;
+  personalidad_secundaria: Personalidad | null;
+  personalidad_fuente: string | null;
+};
+
 export type VisionResult = {
   // Etiquetas ya traducidas y pensadas para búsqueda de moda (ej: "vestido rojo floral")
   searchTerms: string[];

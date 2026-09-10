@@ -85,3 +85,23 @@ alter table public.closet_items enable row level security;
 
 drop policy if exists "closet_items_all" on public.closet_items;
 create policy "closet_items_all" on public.closet_items for all using (true) with check (true);
+
+-- =========================================================
+-- Perfil de silueta (medidas → asesoría, base del futuro Avatar)
+-- =========================================================
+-- Medidas en cm + la silueta que se calculó a partir de ellas (ver
+-- lib/image-consulting/morfologia.ts inferirSiluetaPorMedidas). Se
+-- guardan las medidas crudas, no solo la silueta, para poder recalcular
+-- si el criterio cambia más adelante.
+alter table public.users add column if not exists bust_cm numeric;
+alter table public.users add column if not exists waist_cm numeric;
+alter table public.users add column if not exists hip_cm numeric;
+alter table public.users add column if not exists height_cm numeric;
+alter table public.users add column if not exists silueta text;
+
+-- Personalidad de estilo (Pilar 5 del manual). Se guarda también la
+-- fuente (nombre de referencia, o 'foto') para poder mostrarle a la
+-- usuaria de dónde salió la sugerencia, o volver a calcularla.
+alter table public.users add column if not exists personalidad text;
+alter table public.users add column if not exists personalidad_secundaria text;
+alter table public.users add column if not exists personalidad_fuente text;

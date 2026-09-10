@@ -132,14 +132,15 @@ const REPORT_TOOL: Anthropic.Tool = {
   },
 };
 
-type SupportedMedia = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+export type SupportedMedia = "image/jpeg" | "image/png" | "image/gif" | "image/webp";
 
 /**
  * Descarga una imagen y la convierte a base64. Pinterest, Cloudinary y la
  * mayoría de CDNs sirven sin auth pero bloquean bots vía robots.txt — por eso
- * no podemos delegarle el fetch a Anthropic.
+ * no podemos delegarle el fetch a Anthropic. Exportada porque también la usa
+ * lib/personalidad-ai.ts.
  */
-async function fetchImageAsBase64(
+export async function fetchImageAsBase64(
   imageUrl: string
 ): Promise<{ base64: string; mediaType: SupportedMedia }> {
   const res = await fetch(imageUrl, {

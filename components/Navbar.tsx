@@ -45,6 +45,14 @@ export default function Navbar() {
               Mi clóset
             </Link>
           )}
+          {session && (
+            <Link
+              href="/mi-perfil"
+              className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+            >
+              Mi perfil
+            </Link>
+          )}
           {status === "loading" ? (
             <div className="h-9 w-24 animate-pulse-rosa rounded-full bg-rosa-100" />
           ) : session ? (
@@ -113,6 +121,15 @@ export default function Navbar() {
               className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
             >
               Mi clóset
+            </Link>
+          )}
+          {session && (
+            <Link
+              href="/mi-perfil"
+              onClick={() => setMenuOpen(false)}
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+            >
+              Mi perfil
             </Link>
           )}
           <div className="mt-2 border-t border-rosa-100 pt-3">

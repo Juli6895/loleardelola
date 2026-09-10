@@ -130,3 +130,44 @@ export const SILUETAS: Record<Silueta, SiluetaInfo> = {
     categoriasClave: ["bottom", "top"],
   },
 };
+
+// =====================================================================
+// Silueta a partir de medidas corporales
+// =====================================================================
+// Heurística clásica de asesoría de imagen basada en 3 medidas (busto,
+// cintura, cadera, en cm) — el mismo criterio que usan muchas
+// calculadoras de "shape" de tiendas de ropa. Es una PRIMERA
+// APROXIMACIÓN: los umbrales (6cm de diferencia hombro/cadera, 9-10cm de
+// definición de cintura) son valores de referencia general, no una
+// medición clínica. Ajustar con criterio profesional si hace falta.
+//
+// Se guarda junto con las medidas crudas (ver types/index.ts
+// BodyMeasurements) para que si el criterio cambia más adelante, se
+// pueda recalcular sin pedirle los datos de nuevo a la usuaria.
+export function inferirSiluetaPorMedidas(
+  bustoCm: number,
+  cinturaCm: number,
+  caderaCm: number
+): Silueta {
+  const bustoMenosCadera = bustoCm - caderaCm;
+  const bustoMenosCintura = bustoCm - cinturaCm;
+  const caderaMenosCintura = caderaCm - cinturaCm;
+
+  const cinturaDefinida = bustoMenosCintura >= 9 && caderaMenosCintura >= 10;
+
+  // 1. Hombros/busto claramente más ancho que la cadera.
+  if (bustoMenosCadera >= 6) return "triangulo_invertido";
+  // 2. Cadera claramente más ancha que el busto.
+  if (bustoMenosCadera <= -6) return "pera";
+
+  // A partir de acá, busto y cadera están dentro de 6cm uno del otro
+  // ("balanceados"). Lo que diferencia reloj de arena / manzana /
+  // rectángulo es qué tan marcada está la cintura:
+  if (cinturaDefinida) return "reloj_de_arena";
+  // Sin cintura marcada: si el busto es igual o mayor a la cadera, el
+  // volumen está concentrado arriba/en el torso → manzana. Si la cadera
+  // es apenas un poco mayor (pero no lo suficiente para ser "pera"), el
+  // contorno se lee más como rectángulo.
+  if (bustoMenosCadera >= 0) return "manzana";
+  return "rectangulo";
+}

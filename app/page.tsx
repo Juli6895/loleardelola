@@ -62,6 +62,47 @@ export default function HomePage() {
           </Link>
         </div>
       </section>
+
+      <section className="rounded-3xl border border-rosa-100 bg-white p-8 shadow-sm">
+        <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
+          Nuevo
+        </p>
+        <h2 className="mt-2 font-display text-3xl text-noche">
+          Asesoría de imagen personalizada
+        </h2>
+        <p className="mt-3 max-w-2xl text-sm text-noche/70">
+          Además de buscar outfits, arma tu clóset digital y descubre qué te
+          favorece según tu figura y tu personalidad de estilo — nombra una
+          celebridad con la que te identifiques, o sube una foto, y te
+          decimos con cuál arquetipo de estilo conectas.
+        </p>
+        <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Link
+            href="/mi-closet"
+            className="group rounded-2xl border border-rosa-100 bg-rosa-50/40 p-5 transition hover:border-rosa-300 hover:bg-rosa-50"
+          >
+            <h3 className="font-display text-xl text-noche">Mi clóset</h3>
+            <p className="mt-1.5 text-sm text-noche/60">
+              Sube fotos de tus prendas y las organizamos por categoría.
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-rosa-600 group-hover:underline">
+              Armar mi clóset →
+            </span>
+          </Link>
+          <Link
+            href="/mi-perfil"
+            className="group rounded-2xl border border-rosa-100 bg-rosa-50/40 p-5 transition hover:border-rosa-300 hover:bg-rosa-50"
+          >
+            <h3 className="font-display text-xl text-noche">Mi perfil</h3>
+            <p className="mt-1.5 text-sm text-noche/60">
+              Tu silueta y tu personalidad de estilo, con asesoría real.
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-rosa-600 group-hover:underline">
+              Ver mi perfil →
+            </span>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

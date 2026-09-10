@@ -29,28 +29,24 @@ export default function Navbar() {
           >
             Buscar
           </Link>
+          <Link
+            href="/mi-closet"
+            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+          >
+            Mi clóset
+          </Link>
+          <Link
+            href="/mi-perfil"
+            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+          >
+            Mi perfil
+          </Link>
           {session && (
             <Link
               href="/mis-outfits"
               className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
             >
               Mis outfits
-            </Link>
-          )}
-          {session && (
-            <Link
-              href="/mi-closet"
-              className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-            >
-              Mi clóset
-            </Link>
-          )}
-          {session && (
-            <Link
-              href="/mi-perfil"
-              className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-            >
-              Mi perfil
             </Link>
           )}
           {status === "loading" ? (
@@ -105,6 +101,20 @@ export default function Navbar() {
           >
             Buscar
           </Link>
+          <Link
+            href="/mi-closet"
+            onClick={() => setMenuOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+          >
+            Mi clóset
+          </Link>
+          <Link
+            href="/mi-perfil"
+            onClick={() => setMenuOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+          >
+            Mi perfil
+          </Link>
           {session && (
             <Link
               href="/mis-outfits"
@@ -112,24 +122,6 @@ export default function Navbar() {
               className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
             >
               Mis outfits
-            </Link>
-          )}
-          {session && (
-            <Link
-              href="/mi-closet"
-              onClick={() => setMenuOpen(false)}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-            >
-              Mi clóset
-            </Link>
-          )}
-          {session && (
-            <Link
-              href="/mi-perfil"
-              onClick={() => setMenuOpen(false)}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-            >
-              Mi perfil
             </Link>
           )}
           <div className="mt-2 border-t border-rosa-100 pt-3">

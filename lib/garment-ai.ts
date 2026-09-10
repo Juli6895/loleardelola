@@ -32,7 +32,7 @@ const SYSTEM_PROMPT = `Eres una stylist colombiana experta en moda urbana y casu
 
 REGLAS:
 
-1. Identifica entre 3 y 7 prendas/accesorios principales del outfit. NO inventes prendas que no se ven claramente. NO listes detalles internos (botones, costuras, etc).
+1. Identifica de 1 a 7 prendas/accesorios — SOLO los que de verdad ves puestos en la foto. Prioriza precisión sobre cantidad: es preferible reportar 1 sola prenda real que rellenar con accesorios inventados para "completar un outfit". NUNCA reportes una prenda que no está claramente visible en la imagen — ni chaquetas, ni gafas de sol, ni bolsos, ni zapatos, si no se alcanzan a ver puestos o sostenidos por la persona. Si la foto solo muestra un vestido y nada más, reporta SOLO ese vestido. NO listes detalles internos (botones, costuras, etc).
 
 2. **CADA término MÁXIMO 5 palabras**: prenda + color + (modificador opcional) + GÉNERO al final. Más palabras = búsqueda con cero resultados en Google Shopping. Piensa cómo una persona real escribiría la búsqueda — corto y directo.
 
@@ -76,8 +76,9 @@ REGLAS:
 5. COLORES: usa nombres comunes en español, UNA sola palabra preferible (negro, blanco, azul, rojo, vinotinto, verde, café, beige, crema, amarillo, mostaza, naranja, rosa, morado, gris). Solo usa colores compuestos ("azul oscuro", "verde olivo") cuando sean cruciales — y NO agregues otro modificador después. Si no estás 99% segura del color, omítelo.
 
 6. ESTAMPADOS Y TEXTURAS: si la prenda tiene estampado o un acabado especial, escoge UN solo descriptor:
-   - Estampados: "rayas", "cuadros", "floral", "animal print", "estampado"
-   - Acabados/pedrería: "brillante", "lentejuelas", "pedrería", "metalizado", "satinado" — usa estos para telas con brillo, cristales, strass o lentejuelas. ¡OJO! Un pantalón o top cubierto de piedras/cristales/lentejuelas NUNCA es "lunares" — es "brillante" o "pedrería", aunque a simple vista los puntos brillantes parezcan un patrón de lunares.
+   - Estampados (dibujo/forma reconocible en la tela): "rayas", "cuadros", "floral", "animal print", "estampado". Usa "floral" SOLO si de verdad ves flores o plantas dibujadas/estampadas — no lo uses como default genérico para cualquier textura que no reconozcas.
+   - Acabados/pedrería (destello de luz, no un dibujo): "brillante", "lentejuelas", "pedrería", "metalizado", "satinado" — usa estos para telas que reflejan luz, con cristales, strass, lentejuelas o paillettes. ¡OJO! Un pantalón, vestido o top cubierto de piedras/cristales/lentejuelas/paillettes NUNCA es "lunares" ni "floral" — es "brillante" o "pedrería", aunque a simple vista los destellos parezcan un patrón repetido.
+   Si no estás segura de si es un estampado real o solo brillo de la tela/luz de flash, prefiere omitir el descriptor antes que adivinar "floral".
    NO combines color + estampado/textura en el mismo término salvo que sea esencial.
 
 7. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped", "corset". Solo si la prenda lo necesita para buscarse bien.
@@ -117,7 +118,7 @@ const REPORT_TOOL: Anthropic.Tool = {
         type: "array",
         items: { type: "string" },
         description:
-          "Lista de 3-7 términos de búsqueda en español colombiano. MÁXIMO 5 palabras por término: prenda + color + (modificador opcional) + GÉNERO al final (hombre/mujer/niño/niña, default 'mujer' si no se ve persona). Ej: 'jean wide leg azul mujer', 'chaqueta bomber café hombre', 'vestido floral niña'. NO uses descripciones largas tipo 'chaqueta azul oscuro estampado rayas mujer' — Google Shopping no devuelve nada con queries largas.",
+          "Lista de 1-7 términos de búsqueda en español colombiano — SOLO prendas realmente visibles en la foto, nunca inventadas para llegar a un mínimo. MÁXIMO 5 palabras por término: prenda + color + (modificador opcional) + GÉNERO al final (hombre/mujer/niño/niña, default 'mujer' si no se ve persona). Ej: 'jean wide leg azul mujer', 'chaqueta bomber café hombre', 'vestido floral niña'. NO uses descripciones largas tipo 'chaqueta azul oscuro estampado rayas mujer' — Google Shopping no devuelve nada con queries largas.",
       },
       priceMaxCop: {
         type: "array",

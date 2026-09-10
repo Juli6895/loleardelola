@@ -295,13 +295,17 @@ export async function analyzeImage(
     searchTerms.push(...rawLabels.slice(0, 3));
   }
 
-  // Vision no estima precios — siempre devuelve nulls alineados con
-  // searchTerms para cumplir el contrato de VisionResult. El presupuesto
-  // queda inactivo cuando caemos al fallback (mejor sin filtro de precio
-  // que con un filtro inventado).
+  // Vision no estima precios ni desglosa color/tipo por prenda por
+  // separado (solo da un bag de labels + colores globales de toda la
+  // imagen) — todo alineado con searchTerms como null para cumplir el
+  // contrato de VisionResult. El presupuesto queda inactivo cuando caemos
+  // al fallback (mejor sin filtro de precio que con uno inventado).
   return {
     searchTerms,
     priceMaxCop: searchTerms.map(() => null),
+    tipoPrenda: searchTerms.map(() => null),
+    colores: searchTerms.map(() => null),
+    detalles: searchTerms.map(() => null),
     rawLabels,
     dominantColors: colors,
   };

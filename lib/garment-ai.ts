@@ -94,7 +94,12 @@ REGLAS:
      prenda, EN EL MISMO ORDEN que searchTerms.
    - Si NO te llega presupuesto, omite priceMaxCop o devuelve un array vacío.
 
-10. Devuelve también:
+10. Además de searchTerms, reporta CADA prenda también desglosada en piezas separadas (mismo orden, mismo largo que searchTerms) para que la usuaria vea el detalle claro, no solo el texto de búsqueda:
+   - tipoPrenda: el tipo de prenda solo, sin color ni estilo (ej: "top corset", "jean", "collar")
+   - colores: el color principal de ESA prenda específica (ej: "negro"). Cadena vacía "" solo si de verdad no es determinable.
+   - detalles: textura/estampado/acabado de ESA prenda si aplica (ej: "pedrería", "rayas", "cuero", "wide leg"). Cadena vacía "" si no aplica.
+
+11. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
    - rawLabels: lista en inglés de las prendas que ves (debug)
 
@@ -119,6 +124,24 @@ const REPORT_TOOL: Anthropic.Tool = {
         items: { type: "integer" },
         description:
           "Precio máximo en pesos colombianos (COP, entero, sin decimales) por cada prenda, mismo orden que searchTerms. SOLO incluir si el usuario dio un presupuesto en su mensaje. Distribuye el total realisticamente entre prendas (jean/chaqueta/tenis pesan más, accesorios menos). La suma no debe superar el presupuesto total.",
+      },
+      tipoPrenda: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Tipo de cada prenda SOLO (sin color ni estilo), mismo orden y largo que searchTerms. Ej: ['top corset', 'pantalón', 'collar'].",
+      },
+      colores: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Color principal de CADA prenda por separado, mismo orden y largo que searchTerms. Español, en lo posible una sola palabra. Cadena vacía '' solo si de verdad no es determinable para esa prenda.",
+      },
+      detalles: {
+        type: "array",
+        items: { type: "string" },
+        description:
+          "Textura, estampado o acabado de CADA prenda si aplica, mismo orden y largo que searchTerms. Ej: 'pedrería', 'rayas', 'cuero', 'wide leg', 'corset'. Cadena vacía '' si no aplica.",
       },
       dominantColors: {
         type: "array",
@@ -261,6 +284,9 @@ export async function analyzeImageWithClaude(
   const input = toolUse.input as {
     searchTerms?: string[];
     priceMaxCop?: number[];
+    tipoPrenda?: string[];
+    colores?: string[];
+    detalles?: string[];
     dominantColors?: string[];
     rawLabels?: string[];
   };
@@ -276,9 +302,23 @@ export async function analyzeImageWithClaude(
     return typeof v === "number" && v > 0 ? Math.round(v) : null;
   });
 
+  // Mismo alineamiento defensivo para el desglose por prenda — si Claude
+  // omite el array o la longitud no coincide, rellenamos con null en vez
+  // de romper el invariante "i-ésimo detalle pertenece a la i-ésima prenda".
+  const alinear = (arr: unknown): (string | null)[] => {
+    const raw = Array.isArray(arr) ? (arr as unknown[]) : [];
+    return searchTerms.map((_, i) => {
+      const v = raw[i];
+      return typeof v === "string" && v.trim() ? v.trim() : null;
+    });
+  };
+
   return {
     searchTerms,
     priceMaxCop,
+    tipoPrenda: alinear(input.tipoPrenda),
+    colores: alinear(input.colores),
+    detalles: alinear(input.detalles),
     dominantColors: Array.isArray(input.dominantColors)
       ? input.dominantColors
       : [],

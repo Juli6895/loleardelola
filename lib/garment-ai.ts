@@ -70,12 +70,17 @@ REGLAS:
    - "bolso" (bag), "cartera" para clutch o cartera pequeña
    - "gafas de sol" (sunglasses)
    - "vestido" (dress), "enterizo" (jumpsuit)
+   - "top corset" o "corset" (bustier/corset top, con o sin varillas visibles)
+   - "collar" (necklace), "cadena" cuando es una cadena metálica fina
 
 5. COLORES: usa nombres comunes en español, UNA sola palabra preferible (negro, blanco, azul, rojo, vinotinto, verde, café, beige, crema, amarillo, mostaza, naranja, rosa, morado, gris). Solo usa colores compuestos ("azul oscuro", "verde olivo") cuando sean cruciales — y NO agregues otro modificador después. Si no estás 99% segura del color, omítelo.
 
-6. ESTAMPADOS: si la prenda tiene estampado, escoge UN solo descriptor — "rayas", "cuadros", "floral", "animal print", "estampado". NO combines color + estampado en el mismo término salvo que sea esencial.
+6. ESTAMPADOS Y TEXTURAS: si la prenda tiene estampado o un acabado especial, escoge UN solo descriptor:
+   - Estampados: "rayas", "cuadros", "floral", "animal print", "estampado"
+   - Acabados/pedrería: "brillante", "lentejuelas", "pedrería", "metalizado", "satinado" — usa estos para telas con brillo, cristales, strass o lentejuelas. ¡OJO! Un pantalón o top cubierto de piedras/cristales/lentejuelas NUNCA es "lunares" — es "brillante" o "pedrería", aunque a simple vista los puntos brillantes parezcan un patrón de lunares.
+   NO combines color + estampado/textura en el mismo término salvo que sea esencial.
 
-7. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped". Solo si la prenda lo necesita para buscarse bien.
+7. ESTILO opcional (UN solo modificador): "oversize", "wide leg", "skinny", "midi", "crop", "cuero", "denim", "chunky", "bajos", "altos", "cropped", "corset". Solo si la prenda lo necesita para buscarse bien.
 
 8. NO MARCAS: nunca menciones marcas registradas (Nike, Zara, etc).
 

@@ -7,6 +7,7 @@ import {
   abrirOutfitEnGoogleShopping,
   type ShoppingItem,
 } from "@/lib/shopping";
+import { colorAHex } from "@/lib/color-swatch";
 import { useSession, signIn } from "next-auth/react";
 import type { SearchResult as Result } from "./SearchBox";
 
@@ -21,6 +22,9 @@ export default function SearchResult({ data }: { data: Result }) {
 
   const terms = data.result.searchTerms;
   const prices = data.result.priceMaxCop ?? [];
+  const tipos = data.result.tipoPrenda ?? [];
+  const colores = data.result.colores ?? [];
+  const detalles = data.result.detalles ?? [];
   const excluded = data.excludedMerchants ?? [];
   // Lista cerrada de comercios permitidos (ajuste de administración). Si
   // tiene datos, restringe la búsqueda y le gana a `excluded`.
@@ -104,17 +108,40 @@ export default function SearchResult({ data }: { data: Result }) {
               enfoque mejor el outfit.
             </p>
           ) : visibleIndices.length > 0 ? (
-            <div className="mt-5 flex flex-wrap gap-2">
-              {visibleIndices.map((i) => (
-                <TagChip
-                  key={i}
-                  term={terms[i]}
-                  priceMaxCop={prices[i] ?? null}
-                  excludeMerchants={excluded}
-                  includeMerchants={allowed}
-                  onRemove={() => removeTerm(i)}
-                />
-              ))}
+            <div className="mt-5 flex flex-wrap gap-4">
+              {visibleIndices.map((i) => {
+                const tipo = tipos[i];
+                const color = colores[i];
+                const detalle = detalles[i];
+                const tieneDetalle = tipo || color || detalle;
+                return (
+                  <div key={i} className="flex flex-col items-start gap-1.5">
+                    <TagChip
+                      term={terms[i]}
+                      priceMaxCop={prices[i] ?? null}
+                      excludeMerchants={excluded}
+                      includeMerchants={allowed}
+                      onRemove={() => removeTerm(i)}
+                    />
+                    {tieneDetalle && (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[11px] text-noche/50">
+                        {tipo && <span className="font-medium text-noche/70">{tipo}</span>}
+                        {color && (
+                          <span className="inline-flex items-center gap-1">
+                            <span
+                              className="h-2.5 w-2.5 rounded-full border border-noche/10"
+                              style={{ backgroundColor: colorAHex(color) }}
+                              aria-hidden
+                            />
+                            {color}
+                          </span>
+                        )}
+                        {detalle && <span>· {detalle}</span>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <p className="mt-5 rounded-xl bg-rosa-50 p-4 text-sm text-noche/70">

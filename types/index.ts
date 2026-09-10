@@ -63,6 +63,13 @@ export type VisionResult = {
   // Precio máximo en COP por cada término (mismo orden que searchTerms).
   // null cuando no hay presupuesto definido o no aplica al término.
   priceMaxCop: (number | null)[];
+  // Desglose por prenda (mismo orden/largo que searchTerms) para mostrar
+  // el detalle claro en la UI, no solo el texto de búsqueda combinado.
+  // null cuando Claude no lo determina para esa prenda, o cuando el
+  // análisis vino del fallback de Google Vision (no tiene esta finura).
+  tipoPrenda: (string | null)[];
+  colores: (string | null)[];
+  detalles: (string | null)[];
   // Etiquetas crudas que devolvió Vision (útiles para debug)
   rawLabels: string[];
   // Colores dominantes detectados

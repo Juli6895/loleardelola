@@ -1,5 +1,5 @@
 # =========================================================
-# LolearDeLola - Comercios PERMITIDOS (allowlist)
+# LoleardLola - Comercios PERMITIDOS (allowlist)
 # =========================================================
 # Esto es lo opuesto a merchant-exclusions.txt: si dejas al menos una
 # línea activa aquí, las búsquedas de Google Shopping se van a restringir

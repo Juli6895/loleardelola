@@ -113,7 +113,16 @@ export default function SearchResult({ data }: { data: Result }) {
                 const facetas = p
                   ? Array.from(
                       new Map(
-                        [p.corte, p.detalle, p.tela, p.ocasion]
+                        [
+                          p.largo,
+                          p.corte,
+                          p.escote,
+                          p.manga,
+                          p.abertura,
+                          p.detalle,
+                          p.tela,
+                          p.ocasion,
+                        ]
                           .filter((f): f is string => !!f)
                           .map((f) => [f.toLowerCase(), f])
                       ).values()

@@ -100,13 +100,19 @@ REGLAS:
    - tipo: el tipo de prenda solo, sin color ni estilo (ej: "top corset", "jean", "collar")
    - color: el color principal de ESA prenda (ej: "negro")
    - detalle: textura/estampado/acabado (ej: "pedrería", "rayas", "cuero", "satinado")
-   - corte: silueta o corte (ej: "mini", "midi", "wide leg", "oversize", "entallado", "línea A", "crop")
-   - tela: tela aparente si se distingue (ej: "denim", "lino", "punto", "satín", "cuero")
+   - corte: la silueta, SIN el largo (ej: "entallado", "línea A", "recto", "oversize", "wide leg", "ajustado")
+   - largo: qué tan larga es (ej: "mini", "midi", "maxi", "a la rodilla", "cropped", "tobillero")
+   - escote: escote o cuello (ej: "en V", "halter", "strapless", "barco", "redondo", "cuadrado", "corazón")
+   - manga: tipo de manga (ej: "sin mangas", "tirantes finos", "manga corta", "manga 3/4", "manga larga", "abullonada", "farol")
+   - abertura: abertura o cierre visible (ej: "abertura lateral", "abertura frontal", "botones", "cremallera atrás", "espalda descubierta")
+   - tela: tela aparente si se distingue (ej: "denim", "lino", "punto", "satín", "cuero", "encaje", "gasa")
    - ocasion: una de "casual", "trabajo", "formal", "fiesta", "deportivo"
+
+   Sé especialmente detallada con vestidos y prendas de arriba: escote, manga y largo son justo lo que la usuaria quiere comparar. En accesorios y calzado, muchos de estos campos no aplican — déjalos en "".
 
 11. DOS términos de búsqueda por prenda:
    - searchTerm: el CORTO, máximo 5 palabras (ver regla 2). Es el principal — trae más resultados.
-   - searchTermEspecifico: la versión detallada, 6 a 9 palabras, sumando corte/tela/detalle al término corto. Ej: "vestido mini lentejuelas plateado tirantes mujer". Sirve para cuando la usuaria quiere afinar aunque salgan menos resultados. Siempre termina también en el GÉNERO.
+   - searchTermEspecifico: la versión detallada, 6 a 10 palabras, sumando al término corto las características que MÁS distinguen a esa prenda de otra parecida. Para un vestido eso suele ser: largo + escote o manga + tela o detalle. Ej: "vestido mini lentejuelas plateado tirantes finos mujer" o "vestido midi lino verde manga farol mujer". Siempre termina también en el GÉNERO. No metas las 10 características a la fuerza: escoge las 3-4 más reconocibles, porque una query demasiado larga no devuelve nada.
 
 12. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
@@ -152,8 +158,12 @@ const REPORT_TOOL: Anthropic.Tool = {
             },
             color: { type: "string", description: "Color principal en español, una palabra si se puede." },
             detalle: { type: "string", description: "Textura/estampado/acabado. Ej: 'pedrería', 'rayas', 'cuero', 'satinado'." },
-            corte: { type: "string", description: "Corte o silueta. Ej: 'mini', 'midi', 'wide leg', 'oversize', 'entallado', 'línea A'." },
-            tela: { type: "string", description: "Tela aparente si se distingue. Ej: 'denim', 'lino', 'punto', 'satín', 'cuero'." },
+            corte: { type: "string", description: "Silueta SIN el largo. Ej: 'entallado', 'línea A', 'recto', 'oversize', 'wide leg'." },
+            largo: { type: "string", description: "Largo de la prenda. Ej: 'mini', 'midi', 'maxi', 'a la rodilla', 'cropped'." },
+            escote: { type: "string", description: "Escote o cuello. Ej: 'en V', 'halter', 'strapless', 'barco', 'redondo', 'corazón'." },
+            manga: { type: "string", description: "Tipo de manga. Ej: 'sin mangas', 'tirantes finos', 'manga corta', 'manga 3/4', 'manga larga', 'abullonada'." },
+            abertura: { type: "string", description: "Abertura o cierre visible. Ej: 'abertura lateral', 'botones', 'cremallera atrás', 'espalda descubierta'." },
+            tela: { type: "string", description: "Tela aparente si se distingue. Ej: 'denim', 'lino', 'punto', 'satín', 'cuero', 'encaje'." },
             ocasion: {
               type: "string",
               enum: ["casual", "trabajo", "formal", "fiesta", "deportivo", ""],
@@ -352,6 +362,10 @@ export async function analyzeImageWithClaude(
       color: texto(p.color),
       detalle: texto(p.detalle),
       corte: texto(p.corte),
+      largo: texto(p.largo),
+      escote: texto(p.escote),
+      manga: texto(p.manga),
+      abertura: texto(p.abertura),
       tela: texto(p.tela),
       ocasion: texto(p.ocasion),
       searchTerm: term,

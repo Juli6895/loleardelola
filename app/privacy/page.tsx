@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Política de Privacidad — LolearDeLola",
+  title: "Política de Privacidad — LoleardLola",
   description:
-    "Qué datos recoge LolearDeLola vía Pinterest OAuth, con quién se comparten y los derechos de la usuaria.",
+    "Qué datos recoge LoleardLola vía Pinterest OAuth, con quién se comparten y los derechos de la usuaria.",
 };
 
 // Política de privacidad, servida en el mismo dominio de la app
@@ -25,7 +25,7 @@ export default function PrivacyPage() {
         </p>
 
         <p className="mt-6 text-noche/80">
-          LolearDeLola conecta tu cuenta de Pinterest con Google Shopping para
+          LoleardLola conecta tu cuenta de Pinterest con Google Shopping para
           ayudarte a encontrar dónde comprar prendas similares a las que
           guardas en tus tableros. Este documento explica qué datos
           recogemos, para qué los usamos y cómo los protegemos.
@@ -178,7 +178,7 @@ export default function PrivacyPage() {
             asociados.
           </li>
           <li>
-            Revocar el acceso de LolearDeLola desde la configuración de
+            Revocar el acceso de LoleardLola desde la configuración de
             aplicaciones conectadas de tu cuenta de Pinterest.
           </li>
         </ul>
@@ -188,7 +188,7 @@ export default function PrivacyPage() {
         </h2>
         <p className="mt-3 text-sm text-noche/60">
           Las credenciales de Pinterest se manejan mediante OAuth 2.0 —
-          LolearDeLola nunca ve ni almacena tu contraseña de Pinterest. Las
+          LoleardLola nunca ve ni almacena tu contraseña de Pinterest. Las
           claves de servicio (Supabase, Anthropic, Cloudinary) se mantienen
           únicamente en el servidor y no se exponen al navegador.
         </p>

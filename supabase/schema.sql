@@ -99,6 +99,19 @@ alter table public.users add column if not exists hip_cm numeric;
 alter table public.users add column if not exists height_cm numeric;
 alter table public.users add column if not exists silueta text;
 
+-- Peso: NO entra en el cálculo de la silueta (esa sale de las
+-- proporciones). Se guarda para talla y para el Avatar más adelante.
+alter table public.users add column if not exists peso_kg numeric;
+
+-- Colorimetría (Pilar 1 del manual). `estacion` se calcula a partir de
+-- subtono + contraste (ver lib/image-consulting/colorimetria.ts); se
+-- guardan también las respuestas crudas para poder recalcular.
+alter table public.users add column if not exists color_cabello text;
+alter table public.users add column if not exists largo_cabello text;
+alter table public.users add column if not exists subtono text;
+alter table public.users add column if not exists contraste text;
+alter table public.users add column if not exists estacion text;
+
 -- Personalidad de estilo (Pilar 5 del manual). Se guarda también la
 -- fuente (nombre de referencia, o 'foto') para poder mostrarle a la
 -- usuaria de dónde salió la sugerencia, o volver a calcularla.

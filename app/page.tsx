@@ -51,7 +51,7 @@ export default function HomePage() {
             que no te llega.
           </p>
           <p className="mt-4 text-sm text-white/70">
-            Mobile-first: LolearDeLola se ve bonito desde el celular, porque
+            Mobile-first: LoleardLola se ve bonito desde el celular, porque
             sabemos que ahí es donde chismoseas tus pines.
           </p>
           <Link

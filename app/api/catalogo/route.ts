@@ -27,7 +27,11 @@ export async function GET(req: Request) {
   };
 
   try {
-    const productos = await buscarEnCatalogos(consulta, 8);
+    // Se devuelven más de las 8 que se muestran en la fila: las de
+    // sobra son las que alimentan las tarjetas de Instagram, que
+    // necesitan una prenda de UNA tienda puntual, y esa puede no estar
+    // entre las mejores 8 del conjunto.
+    const productos = await buscarEnCatalogos(consulta, 24);
     return NextResponse.json({ productos });
   } catch (e) {
     console.error("[api/catalogo] falló:", e);

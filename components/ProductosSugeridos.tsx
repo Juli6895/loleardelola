@@ -1,81 +1,29 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import type { GrupoProductos } from "@/lib/use-catalogo";
 
 // Prendas con foto sacadas del catálogo que publican las tiendas.
 // Ver lib/catalogo-tiendas.ts para el porqué y sus límites: solo cubre
 // las tiendas que publican catálogo, no Zara ni H&M.
-
-type Producto = {
-  titulo: string;
-  precioCop: number | null;
-  imagen: string | null;
-  url: string;
-  tienda: string;
-  dominio: string;
-};
+//
+// No busca nada por su cuenta: recibe ya hecho el resultado de
+// lib/use-catalogo, que comparte con las tarjetas de Instagram.
 
 const pesos = (n: number) =>
   "$" + n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
 
-// Lo que se le pide al catálogo por cada prenda. Se manda el desglose
-// completo y no el término corto de Google, porque ese término se
-// recorta a 5 palabras a propósito (Google no devuelve nada con
-// búsquedas largas) y ahí se perdían justo el escote, la manga y la
-// tela, que son los que deciden si dos prendas de verdad se parecen.
-export type ConsultaPrenda = {
-  etiqueta: string;
-  tipo: string;
-  color: string | null;
-  rasgos: string[];
-};
+// Cuántas prendas se muestran por cada una detectada. El endpoint
+// devuelve más de las que caben acá a propósito: las de sobra son las
+// que alimentan las tarjetas de Instagram de cada tienda.
+const POR_PRENDA = 8;
 
 export default function ProductosSugeridos({
-  consultas,
+  grupos,
+  cargando,
 }: {
-  consultas: ConsultaPrenda[];
+  grupos: GrupoProductos[];
+  cargando: boolean;
 }) {
-  const [grupos, setGrupos] = useState<Array<{ termino: string; productos: Producto[] }>>([]);
-  const [cargando, setCargando] = useState(false);
-
-  // La clave evita relanzar la búsqueda cuando React vuelve a renderizar
-  // con el mismo contenido pero otra identidad de array.
-  const clave = JSON.stringify(consultas);
-
-  useEffect(() => {
-    const lista: ConsultaPrenda[] = JSON.parse(clave);
-    if (lista.length === 0) {
-      setGrupos([]);
-      return;
-    }
-    let vigente = true;
-    setCargando(true);
-    Promise.all(
-      lista.map(async (c) => {
-        try {
-          const params = new URLSearchParams({ tipo: c.tipo });
-          if (c.color) params.set("color", c.color);
-          if (c.rasgos.length) params.set("rasgos", c.rasgos.join("|"));
-          const res = await fetch(`/api/catalogo?${params}`);
-          const json = await res.json();
-          return { termino: c.etiqueta, productos: (json.productos ?? []) as Producto[] };
-        } catch {
-          return { termino: c.etiqueta, productos: [] as Producto[] };
-        }
-      })
-    )
-      .then((r) => {
-        if (!vigente) return;
-        setGrupos(r.filter((g) => g.productos.length > 0));
-      })
-      .finally(() => {
-        if (vigente) setCargando(false);
-      });
-    return () => {
-      vigente = false;
-    };
-  }, [clave]);
-
   if (cargando) {
     return (
       <div className="rounded-2xl border border-rosa-100 bg-white p-6 text-sm text-noche/50 shadow-sm sm:p-8">
@@ -98,14 +46,14 @@ export default function ProductosSugeridos({
 
       <div className="mt-6 space-y-8">
         {grupos.map((g) => (
-          <div key={g.termino}>
+          <div key={g.etiqueta}>
             {variasPrendas && (
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-noche/50">
-                {g.termino}
+                {g.etiqueta}
               </p>
             )}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              {g.productos.map((p) => (
+              {g.productos.slice(0, POR_PRENDA).map((p) => (
                 <a
                   key={p.url}
                   href={p.url}

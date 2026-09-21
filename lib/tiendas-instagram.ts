@@ -44,9 +44,8 @@ export function getTiendasInstagram(): TiendaInstagram[] {
       .map((line) => line.trim())
       .filter((line) => line.length > 0 && !line.startsWith("#"))
       .map((line): TiendaInstagram | null => {
-        const [handleRaw, nombreRaw, categoriasRaw, ciudadRaw] = line
-          .split("|")
-          .map((p) => (p ?? "").trim());
+        const [handleRaw, nombreRaw, categoriasRaw, ciudadRaw, dominioRaw] =
+          line.split("|").map((p) => (p ?? "").trim());
 
         const handle = (handleRaw ?? "").replace(/^@/, "").toLowerCase();
         const nombre = nombreRaw ?? "";
@@ -65,6 +64,12 @@ export function getTiendasInstagram(): TiendaInstagram[] {
           nombre,
           categorias,
           ciudad: ciudadRaw || null,
+          dominio:
+            (dominioRaw || "")
+              .toLowerCase()
+              .replace(/^https?:\/\//, "")
+              .replace(/^www\./, "")
+              .replace(/\/.*$/, "") || null,
         };
       })
       .filter((t): t is TiendaInstagram => t !== null);

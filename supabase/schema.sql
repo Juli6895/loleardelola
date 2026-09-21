@@ -105,3 +105,25 @@ alter table public.users add column if not exists silueta text;
 alter table public.users add column if not exists personalidad text;
 alter table public.users add column if not exists personalidad_secundaria text;
 alter table public.users add column if not exists personalidad_fuente text;
+
+-- =========================================================
+-- Identidad anónima por dispositivo (mientras no hay login)
+-- =========================================================
+-- El login con Pinterest quedó para una fase siguiente. Mientras tanto
+-- cada navegador genera un UUID que se guarda acá, para que el clóset,
+-- el perfil y los outfits tengan dueño sin pedir registro.
+-- Ver lib/device-id.ts (cliente) y lib/device-user.ts (servidor).
+alter table public.users add column if not exists device_id text;
+
+-- Índice único recomendado (no obligatorio): evita filas duplicadas si
+-- dos requests simultáneos del mismo dispositivo nuevo llegan a la vez.
+-- El código (lib/device-user.ts) igual funciona sin él — hace select →
+-- insert → select, y siempre se queda con la fila más antigua.
+--
+-- OJO: tiene que ser un índice ÚNICO NORMAL, no parcial. Un índice
+-- parcial (`where device_id is not null`) no lo puede aprovechar
+-- ON CONFLICT salvo que la query repita el mismo predicado. Las filas
+-- con device_id null no estorban: en Postgres los NULL no se consideran
+-- iguales entre sí.
+create unique index if not exists idx_users_device_id
+  on public.users(device_id);

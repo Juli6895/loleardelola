@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
 
 const CATEGORY_LABELS: Record<ClosetCategory, string> = {
@@ -44,7 +45,9 @@ export default function ClosetGrid({ items, onDelete }: Props) {
   async function handleDelete(id: string) {
     if (!confirm("¿Quitar esta prenda de tu clóset?")) return;
     try {
-      const res = await fetch(`/api/closet?id=${id}`, { method: "DELETE" });
+      const res = await fetchConDispositivo(`/api/closet?id=${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Error al eliminar");
       onDelete(id);
       toast.success("Prenda eliminada");

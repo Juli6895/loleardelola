@@ -1,26 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getOrCreateUserId } from "@/lib/device-user";
 import { inferirSiluetaPorMedidas } from "@/lib/image-consulting/morfologia";
 
-async function getUserId(pinterestId: string | undefined): Promise<string | null> {
-  if (!pinterestId) return null;
-  const sb = supabaseAdmin();
-  const { data } = await sb
-    .from("users")
-    .select("id")
-    .eq("pinterest_id", pinterestId)
-    .maybeSingle();
-  return data?.id ?? null;
-}
-
-// GET /api/perfil → medidas y silueta guardadas de la usuaria autenticada
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+// GET /api/perfil → medidas y silueta guardadas de este dispositivo
+export async function GET(req: Request) {
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const sb = supabaseAdmin();
@@ -41,10 +28,9 @@ export async function GET() {
 // POST /api/perfil → guarda medidas (cm) y calcula la silueta
 // Body: { bustCm, waistCm, hipCm, heightCm? }
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const body = await req.json();

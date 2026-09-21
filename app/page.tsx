@@ -16,8 +16,8 @@ export default function HomePage() {
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rosa-500 text-xs font-bold text-white">
                 1
               </span>
-              Conecta tu cuenta de Pinterest (opcional, pero te permite guardar
-              tus outfits favoritos).
+              Entra directo, sin registro — tus outfits y tu clóset se
+              guardan en este dispositivo.
             </li>
             <li className="flex gap-3">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rosa-500 text-xs font-bold text-white">

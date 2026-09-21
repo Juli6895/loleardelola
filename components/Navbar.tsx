@@ -1,12 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signIn, signOut } from "next-auth/react";
 import { useState } from "react";
 
-// Navbar responsive con logo, link a Mis Outfits y botón de login
+const LINKS = [
+  { href: "/buscar", label: "Buscar" },
+  { href: "/mi-closet", label: "Mi clóset" },
+  { href: "/mi-perfil", label: "Mi perfil" },
+  { href: "/mis-outfits", label: "Mis outfits" },
+];
+
+// Navbar responsive. Sin login por ahora — el ingreso con Pinterest
+// quedó para una fase siguiente, así que todas las secciones están
+// abiertas y los datos viven por dispositivo (ver lib/device-id.ts).
 export default function Navbar() {
-  const { data: session, status } = useSession();
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -23,59 +30,21 @@ export default function Navbar() {
 
         {/* Desktop */}
         <div className="hidden items-center gap-6 sm:flex">
-          <Link
-            href="/buscar"
-            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-          >
-            Buscar
-          </Link>
-          <Link
-            href="/mi-closet"
-            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-          >
-            Mi clóset
-          </Link>
-          <Link
-            href="/mi-perfil"
-            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-          >
-            Mi perfil
-          </Link>
-          {session && (
+          {LINKS.map((l) => (
             <Link
-              href="/mis-outfits"
+              key={l.href}
+              href={l.href}
               className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
             >
-              Mis outfits
+              {l.label}
             </Link>
-          )}
-          {status === "loading" ? (
-            <div className="h-9 w-24 animate-pulse-rosa rounded-full bg-rosa-100" />
-          ) : session ? (
-            <div className="flex items-center gap-3">
-              {session.user?.image && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={session.user.image}
-                  alt={session.user.name ?? ""}
-                  className="h-8 w-8 rounded-full object-cover ring-2 ring-rosa-200"
-                />
-              )}
-              <button
-                onClick={() => signOut()}
-                className="rounded-full border border-rosa-200 px-4 py-1.5 text-sm font-medium text-noche/70 transition hover:bg-rosa-100"
-              >
-                Salir
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => signIn("pinterest")}
-              className="rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
-            >
-              Entrar con Pinterest
-            </button>
-          )}
+          ))}
+          <Link
+            href="/buscar"
+            className="rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
+          >
+            Buscar un outfit
+          </Link>
         </div>
 
         {/* Mobile */}
@@ -94,59 +63,16 @@ export default function Navbar() {
 
       {menuOpen && (
         <div className="border-t border-rosa-100 bg-white px-4 pb-4 pt-2 sm:hidden">
-          <Link
-            href="/buscar"
-            onClick={() => setMenuOpen(false)}
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-          >
-            Buscar
-          </Link>
-          <Link
-            href="/mi-closet"
-            onClick={() => setMenuOpen(false)}
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-          >
-            Mi clóset
-          </Link>
-          <Link
-            href="/mi-perfil"
-            onClick={() => setMenuOpen(false)}
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-          >
-            Mi perfil
-          </Link>
-          {session && (
+          {LINKS.map((l) => (
             <Link
-              href="/mis-outfits"
+              key={l.href}
+              href={l.href}
               onClick={() => setMenuOpen(false)}
               className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
             >
-              Mis outfits
+              {l.label}
             </Link>
-          )}
-          <div className="mt-2 border-t border-rosa-100 pt-3">
-            {session ? (
-              <button
-                onClick={() => {
-                  signOut();
-                  setMenuOpen(false);
-                }}
-                className="w-full rounded-full border border-rosa-200 px-4 py-2 text-sm font-medium text-noche/70"
-              >
-                Salir
-              </button>
-            ) : (
-              <button
-                onClick={() => {
-                  signIn("pinterest");
-                  setMenuOpen(false);
-                }}
-                className="w-full rounded-full bg-noche px-4 py-2 text-sm font-medium text-white"
-              >
-                Entrar con Pinterest
-              </button>
-            )}
-          </div>
+          ))}
         </div>
       )}
     </nav>

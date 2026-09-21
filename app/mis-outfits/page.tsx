@@ -1,15 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
-import BoardsList from "@/components/BoardsList";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { Outfit } from "@/types";
 
-// Página "Mis Outfits": muestra outfits guardados + boards de Pinterest
+// Página "Mis Outfits": outfits guardados en este dispositivo.
+// La sección de boards de Pinterest quedó para la fase del login.
 export default function MisOutfitsPage() {
-  const { data: session, status } = useSession();
   const [outfits, setOutfits] = useState<Outfit[] | null>(null);
   // Config de administración (config/*.txt). Se pasa a OutfitCard para que
   // las URLs de Google Shopping respeten exclusiones y/o la restricción a
@@ -18,12 +17,11 @@ export default function MisOutfitsPage() {
   const [allowedMerchants, setAllowedMerchants] = useState<string[]>([]);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/outfits")
+    fetchConDispositivo("/api/outfits")
       .then((r) => r.json())
       .then((j) => setOutfits(j.outfits ?? []))
       .catch(() => setOutfits([]));
-  }, [status]);
+  }, []);
 
   // Carga la lista de exclusiones una sola vez al montar (cacheable a nivel
   // de browser por /api/config/route.ts).
@@ -43,38 +41,15 @@ export default function MisOutfitsPage() {
   async function handleDelete(id: string) {
     if (!confirm("¿Seguro que quieres eliminar este outfit?")) return;
     try {
-      const res = await fetch(`/api/outfits?id=${id}`, { method: "DELETE" });
+      const res = await fetchConDispositivo(`/api/outfits?id=${id}`, {
+        method: "DELETE",
+      });
       if (!res.ok) throw new Error("Error al eliminar");
       setOutfits((prev) => prev?.filter((o) => o.id !== id) ?? null);
       toast.success("Outfit eliminado");
     } catch {
       toast.error("No se pudo eliminar");
     }
-  }
-
-  if (status === "loading") {
-    return (
-      <div className="mx-auto mt-20 h-8 w-40 animate-pulse-rosa rounded-full bg-rosa-100" />
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="mx-auto mt-16 max-w-md rounded-3xl border border-rosa-100 bg-white p-10 text-center shadow-suave">
-        <h1 className="font-display text-3xl text-noche">
-          Entra con Pinterest
-        </h1>
-        <p className="mt-3 text-noche/60">
-          Conecta tu cuenta para guardar outfits y ver tus boards aquí.
-        </p>
-        <button
-          onClick={() => signIn("pinterest")}
-          className="mt-6 rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500"
-        >
-          Entrar con Pinterest
-        </button>
-      </div>
-    );
   }
 
   return (
@@ -84,7 +59,7 @@ export default function MisOutfitsPage() {
           Tu perfil
         </p>
         <h1 className="font-display text-4xl text-noche sm:text-5xl">
-          Hola, {session.user?.name ?? "bonita"} 💕
+          Mis outfits 💕
         </h1>
       </header>
 
@@ -130,18 +105,6 @@ export default function MisOutfitsPage() {
             ))}
           </div>
         )}
-      </section>
-
-      <section>
-        <h2 className="font-display text-2xl text-noche">
-          Tus boards de Pinterest
-        </h2>
-        <p className="mt-1 text-sm text-noche/60">
-          Importados directamente desde tu cuenta.
-        </p>
-        <div className="mt-6">
-          <BoardsList />
-        </div>
       </section>
     </div>
   );

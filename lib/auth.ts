@@ -2,6 +2,15 @@ import type { NextAuthOptions } from "next-auth";
 import type { OAuthConfig } from "next-auth/providers/oauth";
 import { supabaseAdmin } from "./supabase";
 
+// ⚠️ DORMIDO: el login con Pinterest quedó para una fase siguiente.
+// Ninguna pantalla llama hoy a signIn() y el SessionProvider está fuera
+// del árbol (ver components/Providers.tsx). Mientras tanto la identidad
+// es anónima por dispositivo — ver lib/device-user.ts.
+//
+// Este archivo y app/api/auth/[...nextauth] se conservan tal cual para
+// retomar el login sin reescribirlo. Cuando se retome, falta además
+// migrar los datos del device_id a la cuenta real.
+
 // Perfil devuelto por Pinterest API v5 (/v5/user_account)
 type PinterestProfile = {
   username: string;

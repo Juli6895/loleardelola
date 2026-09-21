@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 
 type Props = {
@@ -23,7 +24,7 @@ export default function ClosetUpload({ onAdded }: Props) {
     setLoading(true);
     try {
       const base64 = await fileToBase64(file);
-      const res = await fetch("/api/closet", {
+      const res = await fetchConDispositivo("/api/closet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ imageBase64: base64 }),

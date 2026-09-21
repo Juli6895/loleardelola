@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signIn } from "next-auth/react";
 import toast from "react-hot-toast";
 import SiluetaIcon from "@/components/SiluetaIcon";
+import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
 import type { PerfilSilueta } from "@/types";
@@ -12,7 +12,6 @@ import type { PerfilSilueta } from "@/types";
 // cadera, estatura opcional) y recibe su silueta + asesoría del manual de
 // imagen. Esta misma data es la base del futuro Avatar (Fase 3).
 export default function MiPerfilPage() {
-  const { data: session, status } = useSession();
   const [perfil, setPerfil] = useState<PerfilSilueta | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingInicial, setLoadingInicial] = useState(true);
@@ -29,15 +28,7 @@ export default function MiPerfilPage() {
   >(null);
 
   useEffect(() => {
-    // Sin sesión (o todavía resolviendo la sesión), no hay perfil que
-    // cargar — dejamos de mostrar el loader para que se vea la puerta de
-    // login en vez de quedarse cargando para siempre.
-    if (status === "loading") return;
-    if (status !== "authenticated") {
-      setLoadingInicial(false);
-      return;
-    }
-    fetch("/api/perfil")
+    fetchConDispositivo("/api/perfil")
       .then((r) => r.json())
       .then((j) => {
         const p: PerfilSilueta | undefined = j.perfil;
@@ -50,13 +41,13 @@ export default function MiPerfilPage() {
         }
       })
       .finally(() => setLoadingInicial(false));
-  }, [status]);
+  }, []);
 
   async function guardarPerfil(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const res = await fetch("/api/perfil", {
+      const res = await fetchConDispositivo("/api/perfil", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -80,7 +71,7 @@ export default function MiPerfilPage() {
   async function analizarPersonalidad(payload: { referencia?: string; imageBase64?: string }) {
     setAnalizandoPersonalidad(true);
     try {
-      const res = await fetch("/api/perfil/personalidad", {
+      const res = await fetchConDispositivo("/api/perfil/personalidad", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -143,28 +134,9 @@ export default function MiPerfilPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [analizandoPersonalidad]);
 
-  if (status === "loading" || loadingInicial) {
+  if (loadingInicial) {
     return (
       <div className="mx-auto mt-20 h-8 w-40 animate-pulse-rosa rounded-full bg-rosa-100" />
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="mx-auto mt-16 max-w-md rounded-3xl border border-rosa-100 bg-white p-10 text-center shadow-suave">
-        <h1 className="font-display text-3xl text-noche">
-          Entra con Pinterest
-        </h1>
-        <p className="mt-3 text-noche/60">
-          Conecta tu cuenta para guardar tu perfil de silueta.
-        </p>
-        <button
-          onClick={() => signIn("pinterest")}
-          className="mt-6 rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500"
-        >
-          Entrar con Pinterest
-        </button>
-      </div>
     );
   }
 

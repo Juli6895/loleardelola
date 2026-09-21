@@ -22,6 +22,40 @@ const BASE = "https://www.google.com/search";
 // Geo + idioma Colombia
 const COLOMBIA_PARAMS = "gl=co&hl=es-419";
 
+// Cuántos dominios caben en UNA búsqueda restringida.
+//
+// Google deja de tener en cuenta la parte de la consulta que pasa de
+// cierto largo (del orden de 32 palabras). Cada "site:tienda.com" y cada
+// "OR" cuentan como palabra, así que N tiendas gastan 2N-1 palabras más
+// las del término. Con 12 quedan ~28 palabras contando la prenda, que
+// entra con margen.
+//
+// Pasado ese tope NO se recorta la lista a las primeras 12 —eso dejaría
+// a las últimas tiendas del archivo sin aparecer nunca—: se escoge un
+// subconjunto distinto según la prenda que se busca. Mismo término,
+// mismas tiendas (el enlace no cambia si vuelves a buscar lo mismo),
+// pero prendas distintas reparten el catálogo entre todas.
+const MAX_SITIOS_POR_BUSQUEDA = 12;
+
+/** Hash estable de un texto. Solo para escoger tiendas, no es seguridad. */
+function semilla(texto: string): number {
+  let h = 0;
+  for (let i = 0; i < texto.length; i++) {
+    h = (h * 31 + texto.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h);
+}
+
+function escogerSitios(dominios: string[], termino: string): string[] {
+  if (dominios.length <= MAX_SITIOS_POR_BUSQUEDA) return dominios;
+  const inicio = semilla(termino) % dominios.length;
+  // Recorre la lista en círculo desde un punto que depende del término.
+  return Array.from(
+    { length: MAX_SITIOS_POR_BUSQUEDA },
+    (_, i) => dominios[(inicio + i) % dominios.length]
+  );
+}
+
 export type ShoppingItem = {
   q: string;
   // Precio máximo en COP. null/undefined = sin filtro de precio.
@@ -55,7 +89,7 @@ export function googleShoppingUrl(
 ): string {
   const term = typeof item === "string" ? item : item.q;
 
-  const includeList = opts.includeMerchants ?? [];
+  const includeList = escogerSitios(opts.includeMerchants ?? [], term);
   // Restringir a una lista cerrada gana sobre excluir: si ya dijiste "solo
   // estas tiendas", excluir otras de por fuera de esa lista no aporta nada.
   const siteFilter =

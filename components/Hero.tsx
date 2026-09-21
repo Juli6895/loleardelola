@@ -15,7 +15,7 @@ export default function Hero() {
           Moda + IA + Colombia 🇨🇴
         </p>
         <h1 className="font-display text-4xl leading-tight text-noche sm:text-5xl md:text-6xl">
-          Busca dónde comprar,{" "}
+          Encuentra{" "}
           <span className="italic text-rosa-500">
             ese outfit que te robó el corazón
           </span>

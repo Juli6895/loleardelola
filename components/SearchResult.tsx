@@ -255,7 +255,27 @@ export default function SearchResult({ data }: { data: Result }) {
           bajar los catálogos no demore los resultados. Ocupa las 5
           columnas: es una fila propia debajo, no una columna al lado. */}
       <div className="lg:col-span-5">
-        <ProductosSugeridos terminos={visibleIndices.map((i) => terms[i])} />
+        <ProductosSugeridos
+          consultas={visibleIndices.map((i) => {
+            const p = prendas[i];
+            return {
+              etiqueta: terms[i],
+              // Si la IA no pudo decir el tipo, el término corto
+              // empieza por la prenda igual ("vestido floral rojo").
+              tipo: p?.tipo || terms[i].split(" ")[0],
+              color: p?.color ?? null,
+              rasgos: [
+                p?.detalle,
+                p?.largo,
+                p?.corte,
+                p?.escote,
+                p?.manga,
+                p?.abertura,
+                p?.tela,
+              ].filter((r): r is string => !!r),
+            };
+          })}
+        />
       </div>
     </div>
   );

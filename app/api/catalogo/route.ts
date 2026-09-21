@@ -1,21 +1,33 @@
 import { NextResponse } from "next/server";
-import { buscarEnCatalogos } from "@/lib/catalogo-tiendas";
+import { buscarEnCatalogos, type ConsultaPrenda } from "@/lib/catalogo-tiendas";
 
-// GET /api/catalogo?q=vestido+floral+rojo+mujer
+// GET /api/catalogo?tipo=vestido&color=rojo&rasgos=floral|midi|sin mangas
 //
 // Devuelve prendas con foto y precio, sacadas del catálogo que las
 // propias tiendas publican. Va aparte de /api/vision a propósito: la
 // primera vez hay que bajar los catálogos (~1.5s por tienda, en
 // paralelo), y no queremos que eso demore los resultados principales.
-// La página muestra primero las prendas detectadas y pide esto después.
+//
+// Los rasgos van separados por "|" y no por coma, porque varios traen
+// coma adentro ("manga 3/4, abullonada" sale de un solo campo).
 export async function GET(req: Request) {
-  const q = new URL(req.url).searchParams.get("q")?.trim();
-  if (!q) {
-    return NextResponse.json({ error: "Falta el término de búsqueda" }, { status: 400 });
+  const params = new URL(req.url).searchParams;
+  const tipo = params.get("tipo")?.trim();
+  if (!tipo) {
+    return NextResponse.json({ error: "Falta el tipo de prenda" }, { status: 400 });
   }
 
+  const consulta: ConsultaPrenda = {
+    tipo,
+    color: params.get("color")?.trim() || null,
+    rasgos: (params.get("rasgos") ?? "")
+      .split("|")
+      .map((r) => r.trim())
+      .filter(Boolean),
+  };
+
   try {
-    const productos = await buscarEnCatalogos(q, 8);
+    const productos = await buscarEnCatalogos(consulta, 8);
     return NextResponse.json({ productos });
   } catch (e) {
     console.error("[api/catalogo] falló:", e);

@@ -18,16 +18,32 @@ type Producto = {
 const pesos = (n: number) =>
   "$" + n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
 
-export default function ProductosSugeridos({ terminos }: { terminos: string[] }) {
+// Lo que se le pide al catálogo por cada prenda. Se manda el desglose
+// completo y no el término corto de Google, porque ese término se
+// recorta a 5 palabras a propósito (Google no devuelve nada con
+// búsquedas largas) y ahí se perdían justo el escote, la manga y la
+// tela, que son los que deciden si dos prendas de verdad se parecen.
+export type ConsultaPrenda = {
+  etiqueta: string;
+  tipo: string;
+  color: string | null;
+  rasgos: string[];
+};
+
+export default function ProductosSugeridos({
+  consultas,
+}: {
+  consultas: ConsultaPrenda[];
+}) {
   const [grupos, setGrupos] = useState<Array<{ termino: string; productos: Producto[] }>>([]);
   const [cargando, setCargando] = useState(false);
 
   // La clave evita relanzar la búsqueda cuando React vuelve a renderizar
-  // con el mismo array pero otra identidad.
-  const clave = terminos.join("||");
+  // con el mismo contenido pero otra identidad de array.
+  const clave = JSON.stringify(consultas);
 
   useEffect(() => {
-    const lista = clave ? clave.split("||") : [];
+    const lista: ConsultaPrenda[] = JSON.parse(clave);
     if (lista.length === 0) {
       setGrupos([]);
       return;
@@ -35,13 +51,16 @@ export default function ProductosSugeridos({ terminos }: { terminos: string[] })
     let vigente = true;
     setCargando(true);
     Promise.all(
-      lista.map(async (termino) => {
+      lista.map(async (c) => {
         try {
-          const res = await fetch(`/api/catalogo?q=${encodeURIComponent(termino)}`);
+          const params = new URLSearchParams({ tipo: c.tipo });
+          if (c.color) params.set("color", c.color);
+          if (c.rasgos.length) params.set("rasgos", c.rasgos.join("|"));
+          const res = await fetch(`/api/catalogo?${params}`);
           const json = await res.json();
-          return { termino, productos: (json.productos ?? []) as Producto[] };
+          return { termino: c.etiqueta, productos: (json.productos ?? []) as Producto[] };
         } catch {
-          return { termino, productos: [] as Producto[] };
+          return { termino: c.etiqueta, productos: [] as Producto[] };
         }
       })
     )

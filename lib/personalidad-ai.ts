@@ -15,11 +15,28 @@ import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalid
 // igual sin importar cómo se obtuvo el resultado.
 // =====================================================================
 
-const MODEL = "claude-haiku-4-5";
+// Ubicar a alguien en un arquetipo es un juicio fino, y con Haiku salía
+// impreciso. Va con Sonnet: el volumen es bajo (una vez por usuaria) y
+// aquí la precisión importa más que el costo.
+const MODEL = "claude-sonnet-5";
 
+// Antes solo se le pasaban la etiqueta y la descripción de cada
+// arquetipo. Al mirar una foto eso es demasiado abstracto — el modelo
+// tiene que decidir entre "romántica" y "creativa" sin saber en qué se
+// nota cada una. Ahora recibe también las prendas, telas y accesorios
+// típicos, que es contra lo que de verdad puede comparar lo que ve.
 const PERSONALIDADES_DESC = (Object.keys(PERSONALIDADES) as Personalidad[])
-  .map((p) => `- "${p}": ${PERSONALIDADES[p].label} — ${PERSONALIDADES[p].descripcion}`)
-  .join("\n");
+  .map((p) => {
+    const i = PERSONALIDADES[p];
+    return [
+      `- "${p}" (${i.label}): ${i.descripcion}`,
+      `  Prendas típicas: ${i.prendasClave.join(", ")}.`,
+      `  Telas: ${i.telasFavoritas.join(", ")}.`,
+      `  Accesorios: ${i.accesorios}`,
+      `  En una palabra: ${i.palabrasClave.join(", ")}.`,
+    ].join("\n");
+  })
+  .join("\n\n");
 
 export type PersonalidadResultado = {
   personalidad: Personalidad;
@@ -36,6 +53,13 @@ const REPORT_TOOL: Anthropic.Tool = {
   input_schema: {
     type: "object",
     properties: {
+      // Primero, por lo mismo que en report_outfit: obliga a mirar antes
+      // de clasificar. No se guarda ni se muestra.
+      observacion: {
+        type: "string",
+        description:
+          "ANTES de decidir el arquetipo, enumera en 2-3 frases las señales concretas en las que te estás basando: prendas, cortes, colores, telas y accesorios. Si es una foto, solo lo que se ve en ella. Si es un personaje, el estilo por el que se le conoce — y si no lo reconoces, dilo aquí.",
+      },
       personalidad: {
         type: "string",
         enum: ["clasica", "romantica", "dramatica", "natural", "creativa", "sensual"],
@@ -55,7 +79,13 @@ const REPORT_TOOL: Anthropic.Tool = {
         description: "true si reconoces al personaje con certeza (caso texto) o la imagen muestra ropa/estilo claro (caso foto). false si es una figura poco conocida o la imagen no deja ver bien el estilo.",
       },
     },
-    required: ["personalidad", "personalidadSecundaria", "explicacion", "confiable"],
+    required: [
+      "observacion",
+      "personalidad",
+      "personalidadSecundaria",
+      "explicacion",
+      "confiable",
+    ],
   },
 };
 
@@ -104,7 +134,7 @@ export async function inferirPersonalidadPorReferencia(
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 1024,
     system: [
       {
         type: "text",
@@ -142,11 +172,11 @@ export async function inferirPersonalidadPorImagen(
 
   const response = await client.messages.create({
     model: MODEL,
-    max_tokens: 512,
+    max_tokens: 1024,
     system: [
       {
         type: "text",
-        text: `Eres una estilista colombiana experta en asesoría de imagen. Te llega una foto — puede ser de la propia usuaria o una imagen de inspiración de estilo que le gusta. Analiza SOLO las decisiones de estilo visibles: prendas, cortes, colores, texturas, accesorios y la estética general del outfit. NUNCA comentes ni tengas en cuenta el cuerpo, la cara, el peso u otros rasgos físicos de la persona en la foto — el análisis es 100% sobre la ropa y el styling, no sobre la persona.\n\nUbica esa estética en uno de estos 6 arquetipos de personalidad de estilo:\n\n${PERSONALIDADES_DESC}\n\nSi la imagen no muestra ropa/estilo claro (por ejemplo, una foto muy de cerca de la cara, o mal iluminada), dilo en la explicación y marca confiable=false.\n\nLlama siempre a report_personalidad.`,
+        text: `Eres una estilista colombiana experta en asesoría de imagen. Te llega una foto — puede ser de la propia usuaria o una imagen de inspiración de estilo que le gusta. Analiza SOLO las decisiones de estilo visibles: prendas, cortes, colores, texturas, accesorios y la estética general del outfit. NUNCA comentes ni tengas en cuenta el cuerpo, la cara, el peso u otros rasgos físicos de la persona en la foto — el análisis es 100% sobre la ropa y el styling, no sobre la persona.\n\nUbica esa estética en uno de estos 6 arquetipos de personalidad de estilo:\n\n${PERSONALIDADES_DESC}\n\nCÓMO DECIDIR, que es donde más se falla:\n- Basa el arquetipo en el CORTE y la SILUETA antes que en el color. Un vestido negro puede ser clásico, dramático o sensual según cómo esté cortado; el color solo no decide.\n- Una sola foto es un solo outfit, no la vida entera de alguien. Si lo que ves es un look puntual (ropa de gimnasio, uniforme, una foto de fiesta), dilo en la explicación y marca confiable=false en vez de sacar una conclusión grande de poca evidencia.\n- Usa el arquetipo secundario de verdad: casi nadie es 100% uno solo. Si ves una base clásica con detalles románticos, repórtalo así en vez de forzar una sola etiqueta.\n- No confundas "arreglada" con "clásica" ni "cómoda" con "natural". Fíjate en las decisiones concretas de las prendas, no en qué tan producida se ve la foto.\n- Si la imagen no muestra ropa/estilo claro (una foto muy de cerca de la cara, mal iluminada, o donde casi no se ve el outfit), dilo en la explicación y marca confiable=false.\n\nLlama siempre a report_personalidad.`,
         cache_control: { type: "ephemeral" },
       },
     ],

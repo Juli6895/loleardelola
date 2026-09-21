@@ -192,7 +192,7 @@ const NIVEL_CABELLO: Record<string, number> = {
 export function inferirContraste(
   tonoPiel: TonoPiel | null,
   colorCabello: string | null
-): "alto" | "medio" | "bajo" | null {
+): Contraste | null {
   if (!tonoPiel) return null;
   const nivelCabello = colorCabello
     ? NIVEL_CABELLO[colorCabello.toLowerCase()]
@@ -205,19 +205,83 @@ export function inferirContraste(
   return "bajo";
 }
 
+export type Contraste = "alto" | "medio" | "bajo";
+
+export type ContrasteInfo = {
+  label: string;
+  descripcion: string;
+  comoVestir: string[];
+  evitar: string[];
+};
+
+/**
+ * Asesoría que se puede dar con solo el contraste piel-pelo, sin saber
+ * el subtono. No dice QUÉ colores usar (eso necesita el subtono), sino
+ * CÓMO combinarlos entre sí — que es la mitad del consejo, y la que más
+ * se nota en una foto.
+ */
+export const CONTRASTES: Record<Contraste, ContrasteInfo> = {
+  alto: {
+    label: "Contraste alto",
+    descripcion:
+      "Entre tu piel y tu cabello hay mucha diferencia de claridad. Tu cara aguanta — y pide — combinaciones fuertes: los colores intensos no te opacan, te acompañan.",
+    comoVestir: [
+      "Combina un color claro con uno oscuro: blanco con negro, crema con chocolate.",
+      "Los colores saturados y puros te lucen (rojo, azul rey, fucsia, esmeralda).",
+      "Un accesorio en color fuerte cerca de la cara te ilumina.",
+    ],
+    evitar: [
+      "Conjuntos de tonos muy parecidos entre sí: te apagan la cara.",
+      "Los pasteles de arriba a abajo sin nada que corte.",
+    ],
+  },
+  medio: {
+    label: "Contraste medio",
+    descripcion:
+      "La diferencia entre tu piel y tu cabello es moderada. Es el contraste más versátil: te funcionan casi todas las combinaciones, siempre que no te vayas a los extremos.",
+    comoVestir: [
+      "Combinaciones de contraste suave a medio: camel con blanco hueso, azul jean con gris.",
+      "Los colores de intensidad media son tu terreno seguro.",
+      "Puedes usar un toque de color fuerte, mejor como acento que como base.",
+    ],
+    evitar: [
+      "El blanco puro junto al negro puro: es más contraste del que tu cara necesita.",
+    ],
+  },
+  bajo: {
+    label: "Contraste bajo",
+    descripcion:
+      "Tu piel y tu cabello tienen una claridad parecida. Tu fuerza está en la armonía, no en el choque: los contrastes muy duros compiten con tu cara en vez de resaltarla.",
+    comoVestir: [
+      "Combinaciones de tonos cercanos entre sí, o un mismo color en varias intensidades.",
+      "Los colores suaves y empolvados te favorecen más que los muy saturados.",
+      "Si quieres un color fuerte, úsalo lejos de la cara (falda, zapatos, bolso).",
+    ],
+    evitar: [
+      "Blanco puro con negro puro: te endurece los rasgos.",
+      "Bloques de color muy saturado pegados a la cara.",
+    ],
+  },
+};
+
 /**
  * Dado un subtono y un nivel de contraste piel-pelo-ojos, sugiere la
  * estación más probable. Simplificado — la asesoría real usa más
  * variables (valor, croma), pero sirve como heurística inicial para el
  * cuestionario del Avatar (Fase 3).
+ *
+ * Devuelve null cuando el subtono no cae en ninguna estación. Las 4
+ * estaciones clásicas son frías o cálidas; un subtono "neutro" no tiene
+ * estación, y eso no es un error sino una respuesta legítima.
  */
 export function inferirEstacion(
   subtono: Subtono,
-  contraste: "alto" | "medio" | "bajo"
-): Estacion {
+  contraste: Contraste
+): Estacion | null {
   const candidatas = (Object.keys(ESTACIONES) as Estacion[]).filter(
     (e) => ESTACIONES[e].subtono === subtono
   );
+  if (candidatas.length === 0) return null;
   // Entre las 2 estaciones del mismo subtono, la de contraste más
   // parecido al de la usuaria.
   return candidatas.reduce((mejor, actual) =>

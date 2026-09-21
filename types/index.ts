@@ -47,11 +47,13 @@ export type {
   Subtono,
   Estacion,
   TonoPiel,
+  Contraste,
 } from "@/lib/image-consulting/colorimetria";
 import type {
   Subtono,
   Estacion,
   TonoPiel,
+  Contraste,
 } from "@/lib/image-consulting/colorimetria";
 
 // Perfil de medidas de la usuaria — base para la asesoría de figura hoy,
@@ -66,14 +68,16 @@ export type PerfilSilueta = {
   // las proporciones del Avatar más adelante.
   peso_kg: number | null;
   silueta: Silueta | null;
-  // Datos de colorimetría (Pilar 1 del manual). `contraste` y `estacion`
-  // NO se preguntan: se deducen del tono de piel, el color de cabello y
-  // el subtono — ver lib/image-consulting/colorimetria.ts.
+  // Datos de colorimetría (Pilar 1 del manual). `contraste` se deduce
+  // del tono de piel + el color de cabello — ver colorimetria.ts.
   tono_piel: TonoPiel | null;
   color_cabello: string | null;
   largo_cabello: string | null;
+  contraste: Contraste | null;
+  // `subtono` (frío/cálido) y la `estacion` que sale de él quedan para
+  // una fase siguiente: la pregunta de la joyería no le quedaba clara a
+  // la usuaria. La columna y el cálculo siguen en pie, sin preguntarse.
   subtono: Subtono | null;
-  contraste: "alto" | "medio" | "bajo" | null;
   estacion: Estacion | null;
   personalidad: Personalidad | null;
   personalidad_secundaria: Personalidad | null;

@@ -124,6 +124,11 @@ export type TiendaInstagram = {
   nombre: string;
   categorias: ClosetCategory[];
   ciudad: string | null;
+  // Página web de la misma tienda, si tiene. Sirve para mostrar en la
+  // tarjeta una prenda de verdad: de Instagram no podemos sacar fotos,
+  // pero si la tienda publica catálogo en su web (ver
+  // lib/catalogo-tiendas.ts) esa sí es una prenda suya.
+  dominio: string | null;
 };
 
 export type VisionResult = {

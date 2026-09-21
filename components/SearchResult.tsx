@@ -11,6 +11,7 @@ import {
 import { colorAHex } from "@/lib/color-swatch";
 import TiendasInstagram from "./TiendasInstagram";
 import ProductosSugeridos from "./ProductosSugeridos";
+import { useCatalogo } from "@/lib/use-catalogo";
 import type { ClosetCategory } from "@/types";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { SearchResult as Result } from "./SearchBox";
@@ -39,6 +40,31 @@ export default function SearchResult({ data }: { data: Result }) {
   function removeTerm(index: number) {
     setRemoved((prev) => new Set(prev).add(index));
   }
+
+  // Prendas de verdad, con foto, sacadas del catálogo de las tiendas.
+  // Se pide acá y no dentro de cada sección porque el resultado lo usan
+  // dos: la fila de prendas parecidas y las tarjetas de Instagram.
+  const { grupos, cargando: cargandoCatalogo } = useCatalogo(
+    visibleIndices.map((i) => {
+      const p = prendas[i];
+      return {
+        etiqueta: terms[i],
+        // Si la IA no pudo decir el tipo, el término corto empieza por
+        // la prenda igual ("vestido floral rojo").
+        tipo: p?.tipo || terms[i].split(" ")[0],
+        color: p?.color ?? null,
+        rasgos: [
+          p?.detalle,
+          p?.largo,
+          p?.corte,
+          p?.escote,
+          p?.manga,
+          p?.abertura,
+          p?.tela,
+        ].filter((r): r is string => !!r),
+      };
+    })
+  );
 
   // Items para el opener multi-tab. Cada uno con su priceMaxCop si existe.
   const items: ShoppingItem[] = visibleIndices.map((i) => ({
@@ -246,6 +272,7 @@ export default function SearchResult({ data }: { data: Result }) {
                 .map((i) => prendas[i]?.categoria)
                 .filter((c): c is ClosetCategory => !!c)
             }
+            grupos={grupos}
           />
         </div>
       </div>
@@ -255,27 +282,7 @@ export default function SearchResult({ data }: { data: Result }) {
           bajar los catálogos no demore los resultados. Ocupa las 5
           columnas: es una fila propia debajo, no una columna al lado. */}
       <div className="lg:col-span-5">
-        <ProductosSugeridos
-          consultas={visibleIndices.map((i) => {
-            const p = prendas[i];
-            return {
-              etiqueta: terms[i],
-              // Si la IA no pudo decir el tipo, el término corto
-              // empieza por la prenda igual ("vestido floral rojo").
-              tipo: p?.tipo || terms[i].split(" ")[0],
-              color: p?.color ?? null,
-              rasgos: [
-                p?.detalle,
-                p?.largo,
-                p?.corte,
-                p?.escote,
-                p?.manga,
-                p?.abertura,
-                p?.tela,
-              ].filter((r): r is string => !!r),
-            };
-          })}
-        />
+        <ProductosSugeridos grupos={grupos} cargando={cargandoCatalogo} />
       </div>
     </div>
   );

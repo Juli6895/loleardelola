@@ -34,10 +34,15 @@
 # tienda publica en su propia página. Las categorías tampoco: salen de
 # contar qué vende cada una en su catálogo (products.json), no de
 # suponer. Juliana: revísalas y corrige lo que no cuadre.
-navissiclothing | Navissi | top,bottom
-sjulianasanchez | Juliana Sánchez | top,bottom,abrigo
-gracies_a | Gracies | top,bottom,accesorio
-inmaculada_vj | Inmaculada VJ | vestido,abrigo,top,bottom,calzado,accesorio
+#
+# El 5º campo es la página web de la misma tienda. De Instagram no se
+# pueden sacar fotos, pero si la tienda publica catálogo en su web, la
+# tarjeta muestra una prenda suya de verdad en vez de solo el nombre.
+# Formato: handle | Nombre | categorias | ciudad | dominio
+navissiclothing | Navissi | top,bottom | | navissi.com
+sjulianasanchez | Juliana Sánchez | top,bottom,abrigo | | julianasanchez.co
+gracies_a | Gracies | top,bottom,accesorio | | gracies.com.co
+inmaculada_vj | Inmaculada VJ | vestido,abrigo,top,bottom,calzado,accesorio | | inmaculadavj.com
 
 # --- PENDIENTES DE CONFIRMAR ---
 # Estas tienen la cuenta ambigua o no se pudo derivar qué venden.

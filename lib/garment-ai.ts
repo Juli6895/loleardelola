@@ -24,7 +24,19 @@ import type { ClosetCategory, PrendaDetalle, VisionResult } from "@/types";
 //     y se los pasa a Claude inline.
 // =====================================================================
 
-const MODEL = "claude-haiku-4-5";
+// Dos modelos según lo difícil que sea la tarea:
+//
+//   - Analizar el outfit de una foto es el trabajo fino: hay que sacar
+//     escote, manga, largo, tela y abertura de una imagen, y ahí Haiku
+//     se quedaba corto (describía de más o de menos). Va con Sonnet.
+//   - Clasificar UNA prenda que la usuaria sube a su clóset es mucho más
+//     simple —ya sabe qué prenda es— y se queda en Haiku, que es más
+//     barato y más rápido.
+//
+// Sonnet cuesta más por token que Haiku. En volumen de pruebas son
+// centavos; cuando haya usuarias reales hay que volver a medirlo.
+const MODEL_OUTFIT = "claude-sonnet-5";
+const MODEL_PRENDA = "claude-haiku-4-5";
 
 // System prompt: persona + instrucciones de formato. Cacheable porque no
 // cambia entre llamadas.
@@ -110,6 +122,16 @@ REGLAS:
 
    Sé especialmente detallada con vestidos y prendas de arriba: escote, manga y largo son justo lo que la usuaria quiere comparar. En accesorios y calzado, muchos de estos campos no aplican — déjalos en "".
 
+   CÓMO MIRAR CADA PRENDA, en este orden — es la parte donde más se falla:
+   a) Primero decide si la prenda se ve COMPLETA o solo en parte. Si la foto está cortada a media pierna, el "largo" del pantalón NO se puede saber: déjalo en "". Si la persona está de frente, la espalda NO se ve: no reportes "espalda descubierta" ni "cremallera atrás".
+   b) Escote y manga: míralos por separado. Un vestido puede ser strapless (escote) Y tener mangas caídas fuera del hombro (manga). No asumas que sin mangas implica strapless, ni al revés.
+   c) Tela: decídela por cómo cae y cómo refleja la luz, no por el color. Satín y seda brillan parejo; las lentejuelas brillan en puntos; el punto y el algodón no brillan. Si no lo distingues, deja "".
+   d) Largo: úsalo contra el cuerpo (dónde termina: muslo, rodilla, pantorrilla, tobillo, piso), no contra la foto.
+   e) Si hay VARIAS personas en la foto, describe SOLO el outfit de la persona principal — la que está al frente o más centrada. No mezcles prendas de dos personas en un mismo outfit.
+   f) Si una prenda se superpone a otra (un blazer abierto sobre un top), son DOS prendas, no una. Pero una prenda con cinturón del mismo conjunto es UNA sola.
+   g) Antes de dar por cerrada la lista, vuelve a mirar la foto y pregúntate: ¿cada prenda que escribí está de verdad ahí, y no la puse porque "suele ir" con el resto?
+   h) UNA prenda = UNA entrada. "searchTerms" y "prendas" tienen que tener la MISMA cantidad de elementos y el MISMO orden. Nunca pongas dos términos de búsqueda distintos para la misma prenda: si un vestido se te ocurre buscarlo de dos formas, la segunda forma va en searchTermEspecifico de esa misma prenda, NO como una prenda aparte.
+
 11. DOS términos de búsqueda por prenda:
    - searchTerm: el CORTO, máximo 5 palabras (ver regla 2). Es el principal — trae más resultados.
    - searchTermEspecifico: la versión detallada, 6 a 10 palabras, sumando al término corto las características que MÁS distinguen a esa prenda de otra parecida. Para un vestido eso suele ser: largo + escote o manga + tela o detalle. Ej: "vestido mini lentejuelas plateado tirantes finos mujer" o "vestido midi lino verde manga farol mujer". Siempre termina también en el GÉNERO. No metas las 10 características a la fuerza: escoge las 3-4 más reconocibles, porque una query demasiado larga no devuelve nada.
@@ -128,6 +150,17 @@ const REPORT_TOOL: Anthropic.Tool = {
   input_schema: {
     type: "object",
     properties: {
+      // Va PRIMERO a propósito. Al forzar la llamada a la herramienta,
+      // el modelo no puede razonar antes de responder: empieza a llenar
+      // campos de una. Obligarlo a describir primero lo que ve hace que
+      // los campos siguientes salgan de esa observación y no de lo que
+      // "suele" llevar un outfit. Es el campo que más precisión aporta.
+      // No se guarda ni se muestra: es para que el modelo mire bien.
+      observacion: {
+        type: "string",
+        description:
+          "ANTES de llenar lo demás, describe en 2-3 frases lo que REALMENTE ves: cuántas personas hay, qué prendas se ven completas, cuáles solo en parte (ej. 'el pantalón se ve solo hasta la rodilla, la foto está cortada'), y qué NO se alcanza a ver (zapatos fuera de cuadro, espalda no visible). Menciona si hay algo que podrías confundir: brillo de tela vs estampado, una prenda vs dos superpuestas, tela vs sombra.",
+      },
       searchTerms: {
         type: "array",
         items: { type: "string" },
@@ -191,7 +224,7 @@ const REPORT_TOOL: Anthropic.Tool = {
           "Lista cruda de las prendas detectadas en inglés (para debugging). Ej: ['bomber jacket', 'jeans', 'sneakers'].",
       },
     },
-    required: ["searchTerms", "dominantColors", "rawLabels"],
+    required: ["observacion", "searchTerms", "dominantColors", "rawLabels"],
   },
 };
 
@@ -271,8 +304,12 @@ export async function analyzeImageWithClaude(
     : "Analiza este outfit y reporta las prendas con report_outfit. NO incluyas priceMaxCop (no hay presupuesto definido).";
 
   const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
+    model: MODEL_OUTFIT,
+    // 7 prendas × 13 campos + dos términos de búsqueda cada una no cabe
+    // en 1024 tokens. Cuando se quedaba sin espacio la respuesta salía
+    // cortada y los últimos campos llegaban vacíos — parecía que el
+    // modelo "no supo", cuando en realidad no alcanzó a escribirlo.
+    max_tokens: 2048,
     // Prompt caching: el system prompt se cachea (TTL 5min). En el segundo
     // request consecutivo, los ~1.2KB del system se cobran al 10% del costo.
     system: [
@@ -373,10 +410,29 @@ export async function analyzeImageWithClaude(
     };
   });
 
+  // A veces el modelo escribe DOS términos de búsqueda para la misma
+  // prenda (vio un solo vestido y puso "vestido rojo largo" y "vestido
+  // gala satinado") pero solo describe una. El término de sobra quedaba
+  // en pantalla como una segunda prenda con todos los campos vacíos.
+  // Nos quedamos solo con los que traen descripción de verdad, y con el
+  // primero de cada término repetido.
+  const vistos = new Set<string>();
+  const indicesValidos = prendas
+    .map((p, i) => i)
+    .filter((i) => {
+      const p = prendas[i];
+      const clave = p.searchTerm.trim().toLowerCase();
+      if (!clave || vistos.has(clave)) return false;
+      // Sin categoría NI tipo no hay nada que mostrar: es relleno.
+      if (!p.categoria && !p.tipo) return false;
+      vistos.add(clave);
+      return true;
+    });
+
   return {
-    searchTerms,
-    priceMaxCop,
-    prendas,
+    searchTerms: indicesValidos.map((i) => searchTerms[i]),
+    priceMaxCop: indicesValidos.map((i) => priceMaxCop[i]),
+    prendas: indicesValidos.map((i) => prendas[i]),
     dominantColors: Array.isArray(input.dominantColors)
       ? input.dominantColors
       : [],
@@ -469,7 +525,7 @@ export async function analyzeClosetItem(
   const client = new Anthropic({ apiKey });
 
   const response = await client.messages.create({
-    model: MODEL,
+    model: MODEL_PRENDA,
     max_tokens: 512,
     system: [
       {

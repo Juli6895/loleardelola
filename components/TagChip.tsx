@@ -16,7 +16,7 @@ type Props = {
   onRemove?: () => void;
 };
 
-// Chip clicable que abre Google Shopping con el término detectado.
+// Chip clicable que abre Google (pestaña Imágenes) con el término.
 // Si hay priceMaxCop, lo muestra en el chip y aplica el filtro de precio.
 // Con onRemove, agrega una "x" para descartar prendas mal detectadas.
 export default function TagChip({
@@ -43,8 +43,8 @@ export default function TagChip({
         className="inline-flex items-center gap-1.5 hover:text-rosa-600"
         title={
           hasBudget
-            ? `Buscar "${term}" en Google Shopping (${priceLabel})`
-            : `Buscar "${term}" en Google Shopping`
+            ? `Buscar "${term}" en Google Imágenes (${priceLabel})`
+            : `Buscar "${term}" en Google Imágenes`
         }
       >
         <span>{term}</span>

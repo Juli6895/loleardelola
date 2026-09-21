@@ -31,7 +31,7 @@ export default function HomePage() {
                 3
               </span>
               Detectamos vestidos, jeans, botas, bolsos, etc. y te armamos
-              búsquedas listas en Google Shopping.
+              búsquedas listas en Google, con foto y precio.
             </li>
             <li className="flex gap-3">
               <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-rosa-500 text-xs font-bold text-white">

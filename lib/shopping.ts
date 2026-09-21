@@ -12,10 +12,13 @@
 // el carrusel de "Productos Patrocinados" que aparece ahí es INVENTARIO
 // PAGO de Google Ads y ignora por completo los operadores `site:`/`-site:`
 // — confirmado en vivo: restringir a Zara/H&M/Mango igual mostró Shein
-// patrocinado. Por eso, cuando hay un filtro de marca activo, esta función
-// arma la URL de búsqueda web normal (sin `tbm=shop`), que sí respeta esos
-// operadores de forma confiable. Sin filtro, se mantiene `tbm=shop` para
-// conservar la grilla visual de productos con imagen y precio.
+// patrocinado. Por eso, cuando hay un filtro de marca activo, la búsqueda
+// NO puede ir por esa pestaña.
+//
+// La que sí sirve es la pestaña de IMÁGENES (`udm=2`): respeta `site:` y
+// muestra la prenda con foto y precio, sin que haya que entrar a cada
+// enlace para ver de qué se trata. Sin filtro de marca se sigue usando
+// `tbm=shop`, que ahí funciona bien.
 
 const BASE = "https://www.google.com/search";
 
@@ -106,12 +109,18 @@ export function googleShoppingUrl(
   // y queries largas dejaba 0-1 resultados. Si lo reactivamos, restaurar
   // `&tbs=mr:1,price:1,ppr_max:N` aquí.
 
-  // Sin filtro de marca: pestaña Shopping (grilla con imagen + precio).
-  // Con filtro de marca: búsqueda web normal, porque es la única que
-  // realmente obedece site:/-site: — ver nota arriba sobre Shopping Ads.
-  const tbm = siteFilter ? "" : "tbm=shop&";
+  // Con filtro de marca: pestaña IMÁGENES (udm=2). Es la mejor de las
+  // tres para esto: obedece site: igual que la búsqueda web —cosa que
+  // la pestaña Shopping no hace, ver la nota de arriba— pero además
+  // muestra la foto de cada prenda y, cuando la tienda la publica, el
+  // precio. La búsqueda web devolvía lo mismo en una lista de enlaces
+  // azules, donde tocaba entrar a cada uno para ver la prenda.
+  //
+  // Sin filtro de marca se mantiene la pestaña Shopping, que ahí sí
+  // funciona y trae la grilla de productos con precio y vendedor.
+  const pestana = siteFilter ? "udm=2&" : "tbm=shop&";
 
-  return `${BASE}?${tbm}q=${q}&${COLOMBIA_PARAMS}`;
+  return `${BASE}?${pestana}q=${q}&${COLOMBIA_PARAMS}`;
 }
 
 /**

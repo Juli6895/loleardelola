@@ -121,7 +121,7 @@ export default function SearchResult({ data }: { data: Result }) {
             Esto fue lo que vimos en la foto
           </h2>
           <p className="mt-1 text-sm text-noche/60">
-            Haz clic en cada chip para buscarlo en Google Shopping.
+            Haz clic en cada chip para verlo en Google Imágenes, solo en las tiendas de la lista.
           </p>
 
           {terms.length === 0 ? (

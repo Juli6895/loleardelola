@@ -59,7 +59,7 @@ export default function Hero() {
           },
           {
             title: "Buscamos por ti",
-            desc: "Abre Google Shopping con las prendas listas pa' comprar.",
+            desc: "Abre Google Imágenes con las prendas listas pa' comprar.",
           },
         ].map((f) => (
           <div

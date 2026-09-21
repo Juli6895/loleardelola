@@ -1,5 +1,10 @@
 "use client";
 
+// ⚠️ DORMIDO: este componente muestra los boards de Pinterest de la
+// usuaria, así que depende del login que quedó para una fase siguiente.
+// Hoy no se renderiza en ninguna página (se sacó de /mis-outfits). Se
+// conserva para cuando se retome el ingreso con Pinterest.
+
 import { useEffect, useState } from "react";
 import type { PinterestBoard } from "@/types";
 

@@ -1,12 +1,15 @@
 "use client";
 
-import { SessionProvider } from "next-auth/react";
 import { Toaster } from "react-hot-toast";
 
-// Providers globales (sesión de NextAuth + sistema de notificaciones)
+// Providers globales. Sin SessionProvider por ahora: el login con
+// Pinterest quedó para una fase siguiente, y mantenerlo hacía una
+// petición a /api/auth/session en cada carga de página sin necesidad.
+// El código de NextAuth (lib/auth.ts, app/api/auth) se conserva para
+// cuando se retome.
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <SessionProvider>
+    <>
       {children}
       <Toaster
         position="top-center"
@@ -20,6 +23,6 @@ export default function Providers({ children }: { children: React.ReactNode }) {
           },
         }}
       />
-    </SessionProvider>
+    </>
   );
 }

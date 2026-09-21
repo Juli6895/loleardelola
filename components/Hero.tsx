@@ -1,12 +1,9 @@
-"use client";
-
 import Link from "next/link";
-import { signIn, useSession } from "next-auth/react";
 
-// Sección hero de la landing — en español colombiano
+// Sección hero de la landing — en español colombiano.
+// Sin login por ahora: el ingreso con Pinterest quedó para una fase
+// siguiente, así que se entra directo a usar la app.
 export default function Hero() {
-  const { data: session } = useSession();
-
   return (
     <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rosa-100 via-white to-rosa-200 px-6 py-16 shadow-suave sm:px-12 sm:py-24">
       {/* Decoración */}
@@ -28,31 +25,22 @@ export default function Hero() {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          {session ? (
-            <Link
-              href="/buscar"
-              className="w-full rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500 sm:w-auto"
-            >
-              Empezar a lolear
-            </Link>
-          ) : (
-            <button
-              onClick={() => signIn("pinterest")}
-              className="w-full rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500 sm:w-auto"
-            >
-              Conectar mi Pinterest
-            </button>
-          )}
           <Link
             href="/buscar"
+            className="w-full rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500 sm:w-auto"
+          >
+            Empezar a lolear
+          </Link>
+          <Link
+            href="/mi-closet"
             className="w-full rounded-full border border-noche/20 bg-white px-6 py-3 text-sm font-medium text-noche transition hover:border-rosa-400 hover:text-rosa-500 sm:w-auto"
           >
-            Probar sin cuenta
+            Armar mi clóset
           </Link>
         </div>
 
         <p className="mt-4 text-xs text-noche/50">
-          Sin compromiso. Tus outfits quedan guardados solo pa' ti.
+          Sin registro, sin complicaciones. Empieza de una.
         </p>
       </div>
 

@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getOrCreateUserId } from "@/lib/device-user";
 import { uploadImage } from "@/lib/cloudinary";
 import { analyzeClosetItem } from "@/lib/garment-ai";
 
@@ -10,26 +9,26 @@ import { analyzeClosetItem } from "@/lib/garment-ai";
 // para usuarias con is_premium = true.
 const FREE_CLOSET_LIMIT = 15;
 
-// Helper: obtiene el user_id interno (y si es premium) a partir de la sesión
+// Helper: resuelve el usuario del dispositivo y si es premium.
 async function getUser(
-  pinterestId: string | undefined
+  req: Request
 ): Promise<{ id: string; is_premium: boolean } | null> {
-  if (!pinterestId) return null;
+  const userId = await getOrCreateUserId(req);
+  if (!userId) return null;
   const sb = supabaseAdmin();
   const { data } = await sb
     .from("users")
     .select("id, is_premium")
-    .eq("pinterest_id", pinterestId)
+    .eq("id", userId)
     .maybeSingle();
   return data ?? null;
 }
 
-// GET /api/closet → lista las prendas del clóset de la usuaria autenticada
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const user = await getUser(session?.pinterestId);
+// GET /api/closet → lista las prendas del clóset de este dispositivo
+export async function GET(req: Request) {
+  const user = await getUser(req);
   if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const sb = supabaseAdmin();
@@ -48,10 +47,9 @@ export async function GET() {
 // POST /api/closet → sube una foto de prenda, la analiza con Claude y la
 // guarda. Body: { imageBase64: "data:image/..." }
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const user = await getUser(session?.pinterestId);
+  const user = await getUser(req);
   if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const body = await req.json();
@@ -117,10 +115,9 @@ export async function POST(req: Request) {
 
 // DELETE /api/closet?id=xxx
 export async function DELETE(req: Request) {
-  const session = await getServerSession(authOptions);
-  const user = await getUser(session?.pinterestId);
+  const user = await getUser(req);
   if (!user) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const { searchParams } = new URL(req.url);

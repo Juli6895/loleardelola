@@ -1,32 +1,19 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getOrCreateUserId } from "@/lib/device-user";
 import { uploadImage } from "@/lib/cloudinary";
 import {
   inferirPersonalidadPorImagen,
   inferirPersonalidadPorReferencia,
 } from "@/lib/personalidad-ai";
 
-async function getUserId(pinterestId: string | undefined): Promise<string | null> {
-  if (!pinterestId) return null;
-  const sb = supabaseAdmin();
-  const { data } = await sb
-    .from("users")
-    .select("id")
-    .eq("pinterest_id", pinterestId)
-    .maybeSingle();
-  return data?.id ?? null;
-}
-
 // POST /api/perfil/personalidad
 // Body: { referencia: string } — nombre de celebridad/personaje, o
 //       { imageBase64: string } — foto propia o de inspiración
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const body = await req.json();

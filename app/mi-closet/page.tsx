@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, signIn } from "next-auth/react";
 import ClosetUpload from "@/components/ClosetUpload";
 import ClosetGrid from "@/components/ClosetGrid";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 
 const FREE_CLOSET_LIMIT = 15;
@@ -12,41 +12,14 @@ const FREE_CLOSET_LIMIT = 15;
 // organizadas por categoría. Fase 1 del roadmap premium — base de datos
 // que después usan el Manual de asesoría y el Avatar.
 export default function MiClosetPage() {
-  const { data: session, status } = useSession();
   const [items, setItems] = useState<ClosetItem[] | null>(null);
 
   useEffect(() => {
-    if (status !== "authenticated") return;
-    fetch("/api/closet")
+    fetchConDispositivo("/api/closet")
       .then((r) => r.json())
       .then((j) => setItems(j.items ?? []))
       .catch(() => setItems([]));
-  }, [status]);
-
-  if (status === "loading") {
-    return (
-      <div className="mx-auto mt-20 h-8 w-40 animate-pulse-rosa rounded-full bg-rosa-100" />
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="mx-auto mt-16 max-w-md rounded-3xl border border-rosa-100 bg-white p-10 text-center shadow-suave">
-        <h1 className="font-display text-3xl text-noche">
-          Entra con Pinterest
-        </h1>
-        <p className="mt-3 text-noche/60">
-          Conecta tu cuenta para armar tu clóset digital.
-        </p>
-        <button
-          onClick={() => signIn("pinterest")}
-          className="mt-6 rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500"
-        >
-          Entrar con Pinterest
-        </button>
-      </div>
-    );
-  }
+  }, []);
 
   const count = items?.length ?? 0;
   const nearLimit = count >= FREE_CLOSET_LIMIT - 3 && count < FREE_CLOSET_LIMIT;
@@ -61,6 +34,10 @@ export default function MiClosetPage() {
         <p className="mt-3 text-noche/60">
           Sube las prendas que ya tienes — nosotros las clasificamos y las
           dejamos listas para combinar.
+        </p>
+        <p className="mt-2 text-xs text-noche/40">
+          Por ahora tu clóset se guarda en este dispositivo. Si borras los
+          datos del navegador o entras desde otro celular, no lo vas a ver.
         </p>
       </header>
 

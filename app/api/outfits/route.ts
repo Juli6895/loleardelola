@@ -1,26 +1,12 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/supabase";
+import { getOrCreateUserId } from "@/lib/device-user";
 
-// Helper: obtiene el user_id interno a partir del pinterest_id de la sesión
-async function getUserId(pinterestId: string | undefined): Promise<string | null> {
-  if (!pinterestId) return null;
-  const sb = supabaseAdmin();
-  const { data } = await sb
-    .from("users")
-    .select("id")
-    .eq("pinterest_id", pinterestId)
-    .maybeSingle();
-  return data?.id ?? null;
-}
-
-// GET /api/outfits → lista los outfits del usuario autenticado
-export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+// GET /api/outfits → lista los outfits guardados en este dispositivo
+export async function GET(req: Request) {
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const sb = supabaseAdmin();
@@ -39,10 +25,9 @@ export async function GET() {
 // POST /api/outfits → guarda un outfit
 // Body: { imageUrl, tags: string[], pinterestUrl? }
 export async function POST(req: Request) {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const body = await req.json();
@@ -81,10 +66,9 @@ export async function POST(req: Request) {
 
 // DELETE /api/outfits?id=xxx
 export async function DELETE(req: Request) {
-  const session = await getServerSession(authOptions);
-  const userId = await getUserId(session?.pinterestId);
+  const userId = await getOrCreateUserId(req);
   if (!userId) {
-    return NextResponse.json({ error: "No autenticado" }, { status: 401 });
+    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
 
   const { searchParams } = new URL(req.url);

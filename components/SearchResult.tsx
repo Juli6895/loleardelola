@@ -11,13 +11,12 @@ import {
 import { colorAHex } from "@/lib/color-swatch";
 import TiendasInstagram from "./TiendasInstagram";
 import type { ClosetCategory } from "@/types";
-import { useSession, signIn } from "next-auth/react";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { SearchResult as Result } from "./SearchBox";
 
 // Renderiza los resultados del análisis: imagen, chips de búsqueda,
 // botón "buscar todo el outfit" y botón "guardar outfit"
 export default function SearchResult({ data }: { data: Result }) {
-  const { data: session } = useSession();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   // Índices de prendas que la usuaria quitó con la "x" del chip.
@@ -54,14 +53,9 @@ export default function SearchResult({ data }: { data: Result }) {
   );
 
   async function saveOutfit() {
-    if (!session) {
-      toast("Entra con Pinterest pa' guardar tus outfits 💖");
-      signIn("pinterest");
-      return;
-    }
     setSaving(true);
     try {
-      const res = await fetch("/api/outfits", {
+      const res = await fetchConDispositivo("/api/outfits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -19,14 +19,33 @@
 #
 # Ejemplos de marcas con despacho a Colombia (descomenta las que quieras
 # activar, o agrega las tuyas):
+# --- Marcas internacionales con tienda en Colombia ---
 zara.com
 hm.com
 mango.com
+koaj.co
+arturocalle.com
+bimbaylola.com
+esprit.com.co
+ae.com.co
+rapsodia.com.co
 # pullandbear.com
 # bershka.com
 # stradivarius.com
-koaj.co
-arturocalle.com
+
+# --- Marcas y boutiques colombianas ---
+navissi.com
+tiendacomplicity.com
+jeansandblouses.com
+especia.com.co
+julianasanchez.co
+ticketstores.co
+bybla.com.co
+gracies.com.co
+malvaonline.com
+inmaculadavj.com
+pepitaperez.co
+colorblue.com
 # studiof.com.co
 # velez.com.co
 # dafiti.com.co

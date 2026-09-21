@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import type { VisionResult } from "@/types";
+import type { ClosetCategory, PrendaDetalle, VisionResult } from "@/types";
 
 // =====================================================================
 // Analizador de outfits con Claude (multimodal)
@@ -95,12 +95,20 @@ REGLAS:
      prenda, EN EL MISMO ORDEN que searchTerms.
    - Si NO te llega presupuesto, omite priceMaxCop o devuelve un array vacío.
 
-10. Además de searchTerms, reporta CADA prenda también desglosada en piezas separadas (mismo orden, mismo largo que searchTerms) para que la usuaria vea el detalle claro, no solo el texto de búsqueda:
-   - tipoPrenda: el tipo de prenda solo, sin color ni estilo (ej: "top corset", "jean", "collar")
-   - colores: el color principal de ESA prenda específica (ej: "negro"). Cadena vacía "" solo si de verdad no es determinable.
-   - detalles: textura/estampado/acabado de ESA prenda si aplica (ej: "pedrería", "rayas", "cuero", "wide leg"). Cadena vacía "" si no aplica.
+10. Por CADA prenda reporta un objeto en el array "prendas" con el desglose completo. Mientras más campos llenes con precisión, mejor la asesoría — pero deja en "" lo que NO puedas determinar con seguridad viendo la foto (no adivines):
+   - categoria: una de "top", "bottom", "vestido", "abrigo", "calzado", "accesorio"
+   - tipo: el tipo de prenda solo, sin color ni estilo (ej: "top corset", "jean", "collar")
+   - color: el color principal de ESA prenda (ej: "negro")
+   - detalle: textura/estampado/acabado (ej: "pedrería", "rayas", "cuero", "satinado")
+   - corte: silueta o corte (ej: "mini", "midi", "wide leg", "oversize", "entallado", "línea A", "crop")
+   - tela: tela aparente si se distingue (ej: "denim", "lino", "punto", "satín", "cuero")
+   - ocasion: una de "casual", "trabajo", "formal", "fiesta", "deportivo"
 
-11. Devuelve también:
+11. DOS términos de búsqueda por prenda:
+   - searchTerm: el CORTO, máximo 5 palabras (ver regla 2). Es el principal — trae más resultados.
+   - searchTermEspecifico: la versión detallada, 6 a 9 palabras, sumando corte/tela/detalle al término corto. Ej: "vestido mini lentejuelas plateado tirantes mujer". Sirve para cuando la usuaria quiere afinar aunque salgan menos resultados. Siempre termina también en el GÉNERO.
+
+12. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
    - rawLabels: lista en inglés de las prendas que ves (debug)
 
@@ -126,23 +134,39 @@ const REPORT_TOOL: Anthropic.Tool = {
         description:
           "Precio máximo en pesos colombianos (COP, entero, sin decimales) por cada prenda, mismo orden que searchTerms. SOLO incluir si el usuario dio un presupuesto en su mensaje. Distribuye el total realisticamente entre prendas (jean/chaqueta/tenis pesan más, accesorios menos). La suma no debe superar el presupuesto total.",
       },
-      tipoPrenda: {
+      prendas: {
         type: "array",
-        items: { type: "string" },
         description:
-          "Tipo de cada prenda SOLO (sin color ni estilo), mismo orden y largo que searchTerms. Ej: ['top corset', 'pantalón', 'collar'].",
-      },
-      colores: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Color principal de CADA prenda por separado, mismo orden y largo que searchTerms. Español, en lo posible una sola palabra. Cadena vacía '' solo si de verdad no es determinable para esa prenda.",
-      },
-      detalles: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Textura, estampado o acabado de CADA prenda si aplica, mismo orden y largo que searchTerms. Ej: 'pedrería', 'rayas', 'cuero', 'wide leg', 'corset'. Cadena vacía '' si no aplica.",
+          "Una entrada por prenda realmente visible, MISMO ORDEN que searchTerms. Llena con precisión lo que veas; deja '' lo que no puedas determinar con seguridad (no adivines).",
+        items: {
+          type: "object",
+          properties: {
+            categoria: {
+              type: "string",
+              enum: ["top", "bottom", "vestido", "abrigo", "calzado", "accesorio"],
+              description: "Categoría de la prenda.",
+            },
+            tipo: {
+              type: "string",
+              description: "Tipo de prenda solo, sin color ni estilo. Ej: 'top corset', 'jean', 'collar'.",
+            },
+            color: { type: "string", description: "Color principal en español, una palabra si se puede." },
+            detalle: { type: "string", description: "Textura/estampado/acabado. Ej: 'pedrería', 'rayas', 'cuero', 'satinado'." },
+            corte: { type: "string", description: "Corte o silueta. Ej: 'mini', 'midi', 'wide leg', 'oversize', 'entallado', 'línea A'." },
+            tela: { type: "string", description: "Tela aparente si se distingue. Ej: 'denim', 'lino', 'punto', 'satín', 'cuero'." },
+            ocasion: {
+              type: "string",
+              enum: ["casual", "trabajo", "formal", "fiesta", "deportivo", ""],
+              description: "Ocasión para la que sirve la prenda.",
+            },
+            searchTermEspecifico: {
+              type: "string",
+              description:
+                "Búsqueda detallada de 6 a 9 palabras sumando corte/tela/detalle al término corto, terminando en el GÉNERO. Ej: 'vestido mini lentejuelas plateado tirantes mujer'.",
+            },
+          },
+          required: ["categoria", "tipo", "searchTermEspecifico"],
+        },
       },
       dominantColors: {
         type: "array",
@@ -285,9 +309,7 @@ export async function analyzeImageWithClaude(
   const input = toolUse.input as {
     searchTerms?: string[];
     priceMaxCop?: number[];
-    tipoPrenda?: string[];
-    colores?: string[];
-    detalles?: string[];
+    prendas?: Array<Record<string, unknown>>;
     dominantColors?: string[];
     rawLabels?: string[];
   };
@@ -303,23 +325,44 @@ export async function analyzeImageWithClaude(
     return typeof v === "number" && v > 0 ? Math.round(v) : null;
   });
 
-  // Mismo alineamiento defensivo para el desglose por prenda — si Claude
-  // omite el array o la longitud no coincide, rellenamos con null en vez
-  // de romper el invariante "i-ésimo detalle pertenece a la i-ésima prenda".
-  const alinear = (arr: unknown): (string | null)[] => {
-    const raw = Array.isArray(arr) ? (arr as unknown[]) : [];
-    return searchTerms.map((_, i) => {
-      const v = raw[i];
-      return typeof v === "string" && v.trim() ? v.trim() : null;
-    });
-  };
+  // Alineamiento defensivo del desglose: si Claude omite el array o la
+  // longitud no coincide, rellenamos con nulls en vez de romper el
+  // invariante "i-ésima prenda corresponde al i-ésimo searchTerm".
+  const rawPrendas = Array.isArray(input.prendas) ? input.prendas : [];
+  const texto = (v: unknown): string | null =>
+    typeof v === "string" && v.trim() ? v.trim() : null;
+
+  const CATEGORIAS: ClosetCategory[] = [
+    "top",
+    "bottom",
+    "vestido",
+    "abrigo",
+    "calzado",
+    "accesorio",
+  ];
+
+  const prendas: PrendaDetalle[] = searchTerms.map((term, i) => {
+    const p = rawPrendas[i] ?? {};
+    const cat = texto(p.categoria);
+    return {
+      categoria: CATEGORIAS.includes(cat as ClosetCategory)
+        ? (cat as ClosetCategory)
+        : null,
+      tipo: texto(p.tipo),
+      color: texto(p.color),
+      detalle: texto(p.detalle),
+      corte: texto(p.corte),
+      tela: texto(p.tela),
+      ocasion: texto(p.ocasion),
+      searchTerm: term,
+      searchTermEspecifico: texto(p.searchTermEspecifico),
+    };
+  });
 
   return {
     searchTerms,
     priceMaxCop,
-    tipoPrenda: alinear(input.tipoPrenda),
-    colores: alinear(input.colores),
-    detalles: alinear(input.detalles),
+    prendas,
     dominantColors: Array.isArray(input.dominantColors)
       ? input.dominantColors
       : [],
@@ -334,13 +377,10 @@ export async function analyzeImageWithClaude(
 // normalmente una foto plana ("flat lay") o colgada, sin modelo.
 // =====================================================================
 
-export type ClosetCategory =
-  | "top"
-  | "bottom"
-  | "vestido"
-  | "abrigo"
-  | "calzado"
-  | "accesorio";
+// ClosetCategory vive en types/index.ts (fuente de verdad única,
+// compartida con el clóset y el manual de asesoría) — se reexporta acá
+// para no romper imports existentes.
+export type { ClosetCategory } from "@/types";
 
 export type ClosetItemAnalysis = {
   category: ClosetCategory;

@@ -1,0 +1,31 @@
+# =========================================================
+# LolearDeLola - Directorio de tiendas en Instagram
+# =========================================================
+# Tiendas/boutiques colombianas que venden por Instagram. Se muestran
+# al final de los resultados de búsqueda, filtradas según el tipo de
+# prendas que se detectaron en la foto.
+#
+# ⚠️ IMPORTANTE: esto es un directorio CURADO POR TI. No dice "esta
+# tienda tiene exactamente esta prenda" (eso no lo podemos saber sin una
+# API de productos) — dice "esta tienda vende este tipo de prenda". El
+# texto en la app lo deja claro para no confundir a la usuaria.
+#
+# FORMATO (una tienda por línea, campos separados por "|"):
+#   handle | Nombre visible | categorias | ciudad (opcional)
+#
+# - handle: el @ de Instagram, con o sin la arroba
+# - categorias: una o varias de estas 6, separadas por coma:
+#     top, bottom, vestido, abrigo, calzado, accesorio
+# - ciudad: opcional, solo para mostrar (ej: Bogotá, Medellín)
+# - Líneas vacías o que empiezan con "#" se ignoran
+# - Se lee en cada request: en dev los cambios aplican de inmediato,
+#   en Vercel con cada deploy nuevo
+#
+# EJEMPLOS DE FORMATO (reemplázalos por tiendas reales que tú conozcas
+# y quieras recomendar — están comentados para que no salgan en la app):
+#
+# @mitiendadeejemplo | Mi Tienda de Ejemplo | vestido,top | Bogotá
+# @otraboutique | Otra Boutique | bottom,abrigo,calzado | Medellín
+# @accesoriosejemplo | Accesorios Ejemplo | accesorio
+#
+# Agrega tus tiendas debajo de esta línea:

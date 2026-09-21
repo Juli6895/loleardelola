@@ -4,6 +4,7 @@ import { analyzeImageWithClaude } from "@/lib/garment-ai";
 import { uploadImage } from "@/lib/cloudinary";
 import { getExcludedMerchants } from "@/lib/merchant-exclusions";
 import { getAllowedMerchants } from "@/lib/merchant-allowlist";
+import { getTiendasInstagram } from "@/lib/tiendas-instagram";
 import type { VisionResult } from "@/types";
 
 // Endpoint: POST /api/vision
@@ -64,6 +65,7 @@ export async function POST(req: Request) {
       source: result.source,
       excludedMerchants: getExcludedMerchants(),
       allowedMerchants: getAllowedMerchants(),
+      tiendasInstagram: getTiendasInstagram(),
     });
   } catch (e: any) {
     console.error("[/api/vision] error:", e);

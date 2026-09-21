@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import type { VisionResult } from "@/types";
+import type { TiendaInstagram, VisionResult } from "@/types";
 
 export type SearchResult = {
   imageUrl: string;
@@ -12,6 +12,8 @@ export type SearchResult = {
   // no editable desde la UI): cuáles excluir y/o a cuáles restringir.
   excludedMerchants?: string[];
   allowedMerchants?: string[];
+  // Directorio curado de tiendas que venden por Instagram (config admin).
+  tiendasInstagram?: TiendaInstagram[];
 };
 
 type Props = {

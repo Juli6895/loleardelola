@@ -57,19 +57,50 @@ export type PerfilSilueta = {
   personalidad_fuente: string | null;
 };
 
+// Desglose completo de UNA prenda detectada en la foto. Los campos
+// descriptivos son para mostrarle el detalle a la usuaria; los dos
+// searchTerm son para buscar:
+//   - searchTerm: corto (≤5 palabras). Trae MÁS resultados en Google
+//     Shopping. Es el que se usa por defecto.
+//   - searchTermEspecifico: largo, con todo el detalle. Más preciso pero
+//     puede devolver pocos resultados — por eso va como opción aparte.
+// Campos null = Claude no pudo determinarlo, o el análisis vino del
+// fallback de Google Vision (que no tiene esta finura).
+export type PrendaDetalle = {
+  categoria: ClosetCategory | null;
+  tipo: string | null;
+  color: string | null;
+  // Textura, estampado o acabado (pedrería, rayas, cuero...)
+  detalle: string | null;
+  // Corte o silueta (mini, midi, wide leg, oversize, entallado...)
+  corte: string | null;
+  tela: string | null;
+  ocasion: string | null;
+  searchTerm: string;
+  searchTermEspecifico: string | null;
+};
+
+// Tienda colombiana que vende por Instagram. Directorio curado por
+// administración en config/tiendas-instagram.txt — ver
+// lib/tiendas-instagram.ts.
+export type TiendaInstagram = {
+  // Sin la arroba, en minúsculas (ej: "mitienda")
+  handle: string;
+  nombre: string;
+  categorias: ClosetCategory[];
+  ciudad: string | null;
+};
+
 export type VisionResult = {
-  // Etiquetas ya traducidas y pensadas para búsqueda de moda (ej: "vestido rojo floral")
+  // Términos cortos de búsqueda, uno por prenda — mismo orden que
+  // `prendas`. Se mantiene aparte porque es lo que se guarda como tags
+  // del outfit y lo que consumen las URLs de Google Shopping.
   searchTerms: string[];
-  // Precio máximo en COP por cada término (mismo orden que searchTerms).
-  // null cuando no hay presupuesto definido o no aplica al término.
+  // Precio máximo en COP por cada prenda (mismo orden que searchTerms).
+  // null cuando no hay presupuesto definido o no aplica.
   priceMaxCop: (number | null)[];
-  // Desglose por prenda (mismo orden/largo que searchTerms) para mostrar
-  // el detalle claro en la UI, no solo el texto de búsqueda combinado.
-  // null cuando Claude no lo determina para esa prenda, o cuando el
-  // análisis vino del fallback de Google Vision (no tiene esta finura).
-  tipoPrenda: (string | null)[];
-  colores: (string | null)[];
-  detalles: (string | null)[];
+  // Desglose descriptivo por prenda, mismo orden que searchTerms.
+  prendas: PrendaDetalle[];
   // Etiquetas crudas que devolvió Vision (útiles para debug)
   rawLabels: string[];
   // Colores dominantes detectados

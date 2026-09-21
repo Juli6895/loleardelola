@@ -5,9 +5,12 @@ import toast from "react-hot-toast";
 import TagChip from "./TagChip";
 import {
   abrirOutfitEnGoogleShopping,
+  googleShoppingUrl,
   type ShoppingItem,
 } from "@/lib/shopping";
 import { colorAHex } from "@/lib/color-swatch";
+import TiendasInstagram from "./TiendasInstagram";
+import type { ClosetCategory } from "@/types";
 import { useSession, signIn } from "next-auth/react";
 import type { SearchResult as Result } from "./SearchBox";
 
@@ -22,9 +25,7 @@ export default function SearchResult({ data }: { data: Result }) {
 
   const terms = data.result.searchTerms;
   const prices = data.result.priceMaxCop ?? [];
-  const tipos = data.result.tipoPrenda ?? [];
-  const colores = data.result.colores ?? [];
-  const detalles = data.result.detalles ?? [];
+  const prendas = data.result.prendas ?? [];
   const excluded = data.excludedMerchants ?? [];
   // Lista cerrada de comercios permitidos (ajuste de administración). Si
   // tiene datos, restringe la búsqueda y le gana a `excluded`.
@@ -110,10 +111,20 @@ export default function SearchResult({ data }: { data: Result }) {
           ) : visibleIndices.length > 0 ? (
             <div className="mt-5 flex flex-wrap gap-4">
               {visibleIndices.map((i) => {
-                const tipo = tipos[i];
-                const color = colores[i];
-                const detalle = detalles[i];
-                const tieneDetalle = tipo || color || detalle;
+                const p = prendas[i];
+                // Facetas descriptivas que sí se pudieron determinar, sin
+                // repetir: es común que Claude devuelva lo mismo en dos
+                // campos (ej. detalle="cuero" y tela="cuero" en un bolso),
+                // y mostrarlo dos veces se ve a error.
+                const facetas = p
+                  ? Array.from(
+                      new Map(
+                        [p.corte, p.detalle, p.tela, p.ocasion]
+                          .filter((f): f is string => !!f)
+                          .map((f) => [f.toLowerCase(), f])
+                      ).values()
+                    )
+                  : [];
                 return (
                   <div key={i} className="flex flex-col items-start gap-1.5">
                     <TagChip
@@ -123,20 +134,42 @@ export default function SearchResult({ data }: { data: Result }) {
                       includeMerchants={allowed}
                       onRemove={() => removeTerm(i)}
                     />
-                    {tieneDetalle && (
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 pl-1 text-[11px] text-noche/50">
-                        {tipo && <span className="font-medium text-noche/70">{tipo}</span>}
-                        {color && (
-                          <span className="inline-flex items-center gap-1">
-                            <span
-                              className="h-2.5 w-2.5 rounded-full border border-noche/10"
-                              style={{ backgroundColor: colorAHex(color) }}
-                              aria-hidden
-                            />
-                            {color}
-                          </span>
+                    {p && (
+                      <div className="flex flex-col gap-0.5 pl-1">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-noche/50">
+                          {p.tipo && (
+                            <span className="font-medium text-noche/70">
+                              {p.tipo}
+                            </span>
+                          )}
+                          {p.color && (
+                            <span className="inline-flex items-center gap-1">
+                              <span
+                                className="h-2.5 w-2.5 rounded-full border border-noche/10"
+                                style={{ backgroundColor: colorAHex(p.color) }}
+                                aria-hidden
+                              />
+                              {p.color}
+                            </span>
+                          )}
+                          {facetas.map((f) => (
+                            <span key={f}>· {f}</span>
+                          ))}
+                        </div>
+                        {p.searchTermEspecifico && (
+                          <a
+                            href={googleShoppingUrl(p.searchTermEspecifico, {
+                              excludeMerchants: excluded,
+                              includeMerchants: allowed,
+                            })}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] text-rosa-600 underline-offset-2 hover:underline"
+                            title={`Buscar exactamente "${p.searchTermEspecifico}" — más preciso, pero puede dar menos resultados`}
+                          >
+                            Búsqueda específica →
+                          </a>
                         )}
-                        {detalle && <span>· {detalle}</span>}
                       </div>
                     )}
                   </div>
@@ -198,6 +231,18 @@ export default function SearchResult({ data }: { data: Result }) {
               {saved ? "Guardado ✓" : saving ? "Guardando..." : "Guardar outfit"}
             </button>
           </div>
+
+          <TiendasInstagram
+            tiendas={data.tiendasInstagram ?? []}
+            categorias={
+              // Solo las categorías de las prendas que siguen visibles —
+              // si quitó el vestido, no tiene sentido seguir mostrando
+              // tiendas de vestidos.
+              visibleIndices
+                .map((i) => prendas[i]?.categoria)
+                .filter((c): c is ClosetCategory => !!c)
+            }
+          />
         </div>
       </div>
     </div>

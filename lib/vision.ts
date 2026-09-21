@@ -303,9 +303,17 @@ export async function analyzeImage(
   return {
     searchTerms,
     priceMaxCop: searchTerms.map(() => null),
-    tipoPrenda: searchTerms.map(() => null),
-    colores: searchTerms.map(() => null),
-    detalles: searchTerms.map(() => null),
+    prendas: searchTerms.map((term) => ({
+      categoria: null,
+      tipo: null,
+      color: null,
+      detalle: null,
+      corte: null,
+      tela: null,
+      ocasion: null,
+      searchTerm: term,
+      searchTermEspecifico: null,
+    })),
     rawLabels,
     dominantColors: colors,
   };

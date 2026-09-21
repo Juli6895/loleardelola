@@ -43,8 +43,16 @@ export type { Silueta } from "@/lib/image-consulting/morfologia";
 import type { Silueta } from "@/lib/image-consulting/morfologia";
 export type { Personalidad } from "@/lib/image-consulting/personalidad";
 import type { Personalidad } from "@/lib/image-consulting/personalidad";
-export type { Subtono, Estacion } from "@/lib/image-consulting/colorimetria";
-import type { Subtono, Estacion } from "@/lib/image-consulting/colorimetria";
+export type {
+  Subtono,
+  Estacion,
+  TonoPiel,
+} from "@/lib/image-consulting/colorimetria";
+import type {
+  Subtono,
+  Estacion,
+  TonoPiel,
+} from "@/lib/image-consulting/colorimetria";
 
 // Perfil de medidas de la usuaria — base para la asesoría de figura hoy,
 // y para el Avatar (Fase 3 del roadmap) más adelante.
@@ -58,7 +66,10 @@ export type PerfilSilueta = {
   // las proporciones del Avatar más adelante.
   peso_kg: number | null;
   silueta: Silueta | null;
-  // Datos de colorimetría (Pilar 1 del manual)
+  // Datos de colorimetría (Pilar 1 del manual). `contraste` y `estacion`
+  // NO se preguntan: se deducen del tono de piel, el color de cabello y
+  // el subtono — ver lib/image-consulting/colorimetria.ts.
+  tono_piel: TonoPiel | null;
   color_cabello: string | null;
   largo_cabello: string | null;
   subtono: Subtono | null;

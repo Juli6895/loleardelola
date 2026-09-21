@@ -20,6 +20,7 @@ const PERFIL_VACIO: PerfilSilueta = {
   color_cabello: null,
   largo_cabello: null,
   subtono: null,
+  tono_piel: null,
   contraste: null,
   estacion: null,
   personalidad: null,
@@ -43,7 +44,7 @@ export default function MiPerfilPage() {
   const [colorCabello, setColorCabello] = useState("");
   const [largoCabello, setLargoCabello] = useState("");
   const [subtono, setSubtono] = useState("");
-  const [contraste, setContraste] = useState("");
+  const [tonoPiel, setTonoPiel] = useState("");
 
   const [referencia, setReferencia] = useState("");
   const [analizandoPersonalidad, setAnalizandoPersonalidad] = useState(false);
@@ -66,7 +67,7 @@ export default function MiPerfilPage() {
           if (p.color_cabello) setColorCabello(p.color_cabello);
           if (p.largo_cabello) setLargoCabello(p.largo_cabello);
           if (p.subtono) setSubtono(p.subtono);
-          if (p.contraste) setContraste(p.contraste);
+          if (p.tono_piel) setTonoPiel(p.tono_piel);
         }
       })
       .finally(() => setLoadingInicial(false));
@@ -88,7 +89,7 @@ export default function MiPerfilPage() {
           colorCabello: colorCabello || null,
           largoCabello: largoCabello || null,
           subtono: subtono || null,
-          contraste: contraste || null,
+          tonoPiel: tonoPiel || null,
         }),
       });
       const json = await res.json();
@@ -351,10 +352,30 @@ export default function MiPerfilPage() {
             </div>
             <div>
               <label
+                htmlFor="tonoPiel"
+                className="text-sm font-medium text-noche/80"
+              >
+                Tono de piel
+              </label>
+              <select
+                id="tonoPiel"
+                value={tonoPiel}
+                onChange={(e) => setTonoPiel(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">Sin responder</option>
+                <option value="blanca">Blanca</option>
+                <option value="canela">Canela</option>
+                <option value="morena">Morena</option>
+                <option value="negra">Negra / oscura</option>
+              </select>
+            </div>
+            <div>
+              <label
                 htmlFor="subtono"
                 className="text-sm font-medium text-noche/80"
               >
-                Subtono de piel
+                ¿Qué joyería te luce más?
               </label>
               <select
                 id="subtono"
@@ -362,35 +383,17 @@ export default function MiPerfilPage() {
                 onChange={(e) => setSubtono(e.target.value)}
                 className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
               >
-                <option value="">No sé</option>
-                <option value="frio">Frío — venas azuladas, me luce la plata</option>
-                <option value="calido">Cálido — venas verdosas, me luce el oro</option>
-                <option value="neutro">Neutro — me lucen los dos</option>
-              </select>
-            </div>
-            <div>
-              <label
-                htmlFor="contraste"
-                className="text-sm font-medium text-noche/80"
-              >
-                Contraste entre piel, pelo y ojos
-              </label>
-              <select
-                id="contraste"
-                value={contraste}
-                onChange={(e) => setContraste(e.target.value)}
-                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
-              >
-                <option value="">No sé</option>
-                <option value="alto">Alto — piel clara con pelo/ojos oscuros</option>
-                <option value="medio">Medio</option>
-                <option value="bajo">Bajo — todo en tonos parecidos</option>
+                <option value="">Sin responder</option>
+                <option value="frio">La plata</option>
+                <option value="calido">El dorado</option>
+                <option value="neutro">Las dos por igual</option>
               </select>
             </div>
           </div>
           <p className="mt-3 text-xs text-noche/40">
-            Mírate las venas de la muñeca con luz natural: azuladas o
-            moradas = subtono frío, verdosas = cálido.
+            Lo de la joyería no es capricho: es la forma más fácil de saber
+            si tu piel tiene subtono frío o cálido, que es lo que de verdad
+            define qué colores te favorecen.
           </p>
         </div>
 

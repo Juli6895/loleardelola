@@ -2,8 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateUserId } from "@/lib/device-user";
 import { inferirSiluetaPorMedidas } from "@/lib/image-consulting/morfologia";
-import { inferirEstacion } from "@/lib/image-consulting/colorimetria";
-import type { Subtono } from "@/types";
+import {
+  inferirContraste,
+  inferirEstacion,
+} from "@/lib/image-consulting/colorimetria";
+import type { Subtono, TonoPiel } from "@/types";
 
 // GET /api/perfil → medidas y silueta guardadas de este dispositivo
 export async function GET(req: Request) {
@@ -16,7 +19,7 @@ export async function GET(req: Request) {
   const { data, error } = await sb
     .from("users")
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .eq("id", userId)
     .single();
@@ -58,13 +61,21 @@ export async function POST(req: Request) {
   // contraste. Solo se calcula si la usuaria respondió las dos cosas —
   // si dejó alguna en blanco, se guarda null en vez de adivinar.
   const SUBTONOS_VALIDOS: Subtono[] = ["frio", "calido", "neutro"];
-  const CONTRASTES_VALIDOS = ["alto", "medio", "bajo"] as const;
+  const TONOS_VALIDOS: TonoPiel[] = ["blanca", "canela", "morena", "negra"];
   const subtono = SUBTONOS_VALIDOS.includes(body.subtono)
     ? (body.subtono as Subtono)
     : null;
-  const contraste = CONTRASTES_VALIDOS.includes(body.contraste)
-    ? (body.contraste as (typeof CONTRASTES_VALIDOS)[number])
+  const tonoPiel = TONOS_VALIDOS.includes(body.tonoPiel)
+    ? (body.tonoPiel as TonoPiel)
     : null;
+  const colorCabello =
+    typeof body.colorCabello === "string" && body.colorCabello.trim()
+      ? body.colorCabello.trim()
+      : null;
+
+  // El contraste ya no se pregunta: se deduce del tono de piel y el
+  // color de cabello. La estación sale de subtono + contraste.
+  const contraste = inferirContraste(tonoPiel, colorCabello);
   const estacion = subtono && contraste ? inferirEstacion(subtono, contraste) : null;
 
   const pesoKg =
@@ -85,7 +96,8 @@ export async function POST(req: Request) {
       height_cm: heightCm,
       peso_kg: pesoKg,
       silueta,
-      color_cabello: texto(body.colorCabello),
+      tono_piel: tonoPiel,
+      color_cabello: colorCabello,
       largo_cabello: texto(body.largoCabello),
       subtono,
       contraste,
@@ -93,7 +105,7 @@ export async function POST(req: Request) {
     })
     .eq("id", userId)
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .single();
 

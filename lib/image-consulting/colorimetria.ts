@@ -151,6 +151,60 @@ export const ESTACIONES: Record<Estacion, EstacionInfo> = {
   },
 };
 
+export type TonoPiel = "blanca" | "canela" | "morena" | "negra";
+
+export const TONOS_PIEL: Record<TonoPiel, { label: string }> = {
+  blanca: { label: "Blanca" },
+  canela: { label: "Canela" },
+  morena: { label: "Morena" },
+  negra: { label: "Negra / oscura" },
+};
+
+// Qué tan claro u oscuro es cada tono de piel y cada color de cabello,
+// en una misma escala 0 (más claro) a 3 (más oscuro), para poder
+// compararlos entre sí.
+const NIVEL_PIEL: Record<TonoPiel, number> = {
+  blanca: 0,
+  canela: 1,
+  morena: 2,
+  negra: 3,
+};
+
+const NIVEL_CABELLO: Record<string, number> = {
+  rubio: 0,
+  canoso: 0,
+  "castaño claro": 1.5,
+  cobrizo: 1.5,
+  teñido: 1.5,
+  "castaño oscuro": 3,
+  negro: 3,
+};
+
+/**
+ * Deduce el contraste piel-pelo a partir de dos datos que la usuaria sí
+ * sabe responder sin pensarlo (su tono de piel y su color de cabello),
+ * en vez de preguntárselo directamente.
+ *
+ * Es una aproximación: la asesoría presencial también mira el color de
+ * ojos y la intensidad del cabello. Devuelve null si falta alguno de
+ * los dos datos, para no inventar un contraste.
+ */
+export function inferirContraste(
+  tonoPiel: TonoPiel | null,
+  colorCabello: string | null
+): "alto" | "medio" | "bajo" | null {
+  if (!tonoPiel) return null;
+  const nivelCabello = colorCabello
+    ? NIVEL_CABELLO[colorCabello.toLowerCase()]
+    : undefined;
+  if (nivelCabello === undefined) return null;
+
+  const diferencia = Math.abs(NIVEL_PIEL[tonoPiel] - nivelCabello);
+  if (diferencia >= 2.5) return "alto";
+  if (diferencia >= 1.2) return "medio";
+  return "bajo";
+}
+
 /**
  * Dado un subtono y un nivel de contraste piel-pelo-ojos, sugiere la
  * estación más probable. Simplificado — la asesoría real usa más

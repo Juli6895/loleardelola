@@ -106,6 +106,7 @@ alter table public.users add column if not exists peso_kg numeric;
 -- Colorimetría (Pilar 1 del manual). `estacion` se calcula a partir de
 -- subtono + contraste (ver lib/image-consulting/colorimetria.ts); se
 -- guardan también las respuestas crudas para poder recalcular.
+alter table public.users add column if not exists tono_piel text;
 alter table public.users add column if not exists color_cabello text;
 alter table public.users add column if not exists largo_cabello text;
 alter table public.users add column if not exists subtono text;

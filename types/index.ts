@@ -43,6 +43,8 @@ export type { Silueta } from "@/lib/image-consulting/morfologia";
 import type { Silueta } from "@/lib/image-consulting/morfologia";
 export type { Personalidad } from "@/lib/image-consulting/personalidad";
 import type { Personalidad } from "@/lib/image-consulting/personalidad";
+export type { Subtono, Estacion } from "@/lib/image-consulting/colorimetria";
+import type { Subtono, Estacion } from "@/lib/image-consulting/colorimetria";
 
 // Perfil de medidas de la usuaria — base para la asesoría de figura hoy,
 // y para el Avatar (Fase 3 del roadmap) más adelante.
@@ -51,7 +53,17 @@ export type PerfilSilueta = {
   waist_cm: number | null;
   hip_cm: number | null;
   height_cm: number | null;
+  // El peso NO entra en el cálculo de la silueta (esa sale de las
+  // proporciones busto/cintura/cadera). Se guarda para la talla y para
+  // las proporciones del Avatar más adelante.
+  peso_kg: number | null;
   silueta: Silueta | null;
+  // Datos de colorimetría (Pilar 1 del manual)
+  color_cabello: string | null;
+  largo_cabello: string | null;
+  subtono: Subtono | null;
+  contraste: "alto" | "medio" | "bajo" | null;
+  estacion: Estacion | null;
   personalidad: Personalidad | null;
   personalidad_secundaria: Personalidad | null;
   personalidad_fuente: string | null;
@@ -72,8 +84,16 @@ export type PrendaDetalle = {
   color: string | null;
   // Textura, estampado o acabado (pedrería, rayas, cuero...)
   detalle: string | null;
-  // Corte o silueta (mini, midi, wide leg, oversize, entallado...)
+  // Corte o silueta, sin el largo (entallado, línea A, wide leg...)
   corte: string | null;
+  // Largo de la prenda (mini, midi, maxi, a la rodilla, cropped...)
+  largo: string | null;
+  // Escote / cuello (en V, halter, strapless, barco, redondo...)
+  escote: string | null;
+  // Manga (sin mangas, tirantes, corta, 3/4, larga, abullonada...)
+  manga: string | null;
+  // Abertura o cierre (abertura lateral, botones, cremallera atrás...)
+  abertura: string | null;
   tela: string | null;
   ocasion: string | null;
   searchTerm: string;

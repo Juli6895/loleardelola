@@ -24,7 +24,7 @@ export default function Navbar() {
             <span className="font-display text-xl">L</span>
           </span>
           <span className="font-display text-xl tracking-tight sm:text-2xl">
-            LolearDeLola
+            LoleardLola
           </span>
         </Link>
 

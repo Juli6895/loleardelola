@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateUserId } from "@/lib/device-user";
 import { inferirSiluetaPorMedidas } from "@/lib/image-consulting/morfologia";
+import { inferirEstacion } from "@/lib/image-consulting/colorimetria";
+import type { Subtono } from "@/types";
 
 // GET /api/perfil → medidas y silueta guardadas de este dispositivo
 export async function GET(req: Request) {
@@ -14,7 +16,7 @@ export async function GET(req: Request) {
   const { data, error } = await sb
     .from("users")
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, silueta, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .eq("id", userId)
     .single();
@@ -52,6 +54,27 @@ export async function POST(req: Request) {
 
   const silueta = inferirSiluetaPorMedidas(bustCm, waistCm, hipCm);
 
+  // Colorimetría (Pilar 1 del manual): la estación sale del subtono y el
+  // contraste. Solo se calcula si la usuaria respondió las dos cosas —
+  // si dejó alguna en blanco, se guarda null en vez de adivinar.
+  const SUBTONOS_VALIDOS: Subtono[] = ["frio", "calido", "neutro"];
+  const CONTRASTES_VALIDOS = ["alto", "medio", "bajo"] as const;
+  const subtono = SUBTONOS_VALIDOS.includes(body.subtono)
+    ? (body.subtono as Subtono)
+    : null;
+  const contraste = CONTRASTES_VALIDOS.includes(body.contraste)
+    ? (body.contraste as (typeof CONTRASTES_VALIDOS)[number])
+    : null;
+  const estacion = subtono && contraste ? inferirEstacion(subtono, contraste) : null;
+
+  const pesoKg =
+    body.pesoKg != null && body.pesoKg !== "" && Number.isFinite(Number(body.pesoKg))
+      ? Number(body.pesoKg)
+      : null;
+
+  const texto = (v: unknown) =>
+    typeof v === "string" && v.trim() ? v.trim() : null;
+
   const sb = supabaseAdmin();
   const { data, error } = await sb
     .from("users")
@@ -60,11 +83,17 @@ export async function POST(req: Request) {
       waist_cm: waistCm,
       hip_cm: hipCm,
       height_cm: heightCm,
+      peso_kg: pesoKg,
       silueta,
+      color_cabello: texto(body.colorCabello),
+      largo_cabello: texto(body.largoCabello),
+      subtono,
+      contraste,
+      estacion,
     })
     .eq("id", userId)
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, silueta, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .single();
 

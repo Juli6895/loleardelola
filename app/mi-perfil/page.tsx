@@ -6,7 +6,26 @@ import SiluetaIcon from "@/components/SiluetaIcon";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
+import { ESTACIONES, SUBTONOS } from "@/lib/image-consulting/colorimetria";
+import { colorAHex } from "@/lib/color-swatch";
 import type { PerfilSilueta } from "@/types";
+
+const PERFIL_VACIO: PerfilSilueta = {
+  bust_cm: null,
+  waist_cm: null,
+  hip_cm: null,
+  height_cm: null,
+  peso_kg: null,
+  silueta: null,
+  color_cabello: null,
+  largo_cabello: null,
+  subtono: null,
+  contraste: null,
+  estacion: null,
+  personalidad: null,
+  personalidad_secundaria: null,
+  personalidad_fuente: null,
+};
 
 // Página "Mi Perfil": la usuaria ingresa sus medidas (busto, cintura,
 // cadera, estatura opcional) y recibe su silueta + asesoría del manual de
@@ -20,6 +39,11 @@ export default function MiPerfilPage() {
   const [waist, setWaist] = useState("");
   const [hip, setHip] = useState("");
   const [height, setHeight] = useState("");
+  const [peso, setPeso] = useState("");
+  const [colorCabello, setColorCabello] = useState("");
+  const [largoCabello, setLargoCabello] = useState("");
+  const [subtono, setSubtono] = useState("");
+  const [contraste, setContraste] = useState("");
 
   const [referencia, setReferencia] = useState("");
   const [analizandoPersonalidad, setAnalizandoPersonalidad] = useState(false);
@@ -38,6 +62,11 @@ export default function MiPerfilPage() {
           if (p.waist_cm != null) setWaist(String(p.waist_cm));
           if (p.hip_cm != null) setHip(String(p.hip_cm));
           if (p.height_cm != null) setHeight(String(p.height_cm));
+          if (p.peso_kg != null) setPeso(String(p.peso_kg));
+          if (p.color_cabello) setColorCabello(p.color_cabello);
+          if (p.largo_cabello) setLargoCabello(p.largo_cabello);
+          if (p.subtono) setSubtono(p.subtono);
+          if (p.contraste) setContraste(p.contraste);
         }
       })
       .finally(() => setLoadingInicial(false));
@@ -55,6 +84,11 @@ export default function MiPerfilPage() {
           waistCm: waist,
           hipCm: hip,
           heightCm: height || null,
+          pesoKg: peso || null,
+          colorCabello: colorCabello || null,
+          largoCabello: largoCabello || null,
+          subtono: subtono || null,
+          contraste: contraste || null,
         }),
       });
       const json = await res.json();
@@ -78,12 +112,10 @@ export default function MiPerfilPage() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No se pudo analizar");
+      // Spread en vez de reconstruir campo por campo: así agregar un dato
+      // nuevo al perfil no rompe esto silenciosamente.
       setPerfil((prev) => ({
-        bust_cm: prev?.bust_cm ?? null,
-        waist_cm: prev?.waist_cm ?? null,
-        hip_cm: prev?.hip_cm ?? null,
-        height_cm: prev?.height_cm ?? null,
-        silueta: prev?.silueta ?? null,
+        ...(prev ?? PERFIL_VACIO),
         personalidad: json.resultado.personalidad,
         personalidad_secundaria: json.resultado.personalidadSecundaria,
         personalidad_fuente: json.fuente,
@@ -221,30 +253,146 @@ export default function MiPerfilPage() {
           </div>
         </div>
 
-        <div className="mt-4 max-w-[calc(33%-0.67rem)]">
-          <label
-            htmlFor="height"
-            className="text-sm font-medium text-noche/80"
-          >
-            Estatura (cm) <span className="text-noche/40">(opcional)</span>
-          </label>
-          <input
-            id="height"
-            type="number"
-            inputMode="decimal"
-            min={100}
-            max={230}
-            value={height}
-            onChange={(e) => setHeight(e.target.value)}
-            placeholder="165"
-            className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition placeholder:text-noche/30 focus:border-rosa-400 focus:bg-white"
-          />
+        <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div>
+            <label
+              htmlFor="height"
+              className="text-sm font-medium text-noche/80"
+            >
+              Estatura (cm) <span className="text-noche/40">(opcional)</span>
+            </label>
+            <input
+              id="height"
+              type="number"
+              inputMode="decimal"
+              min={100}
+              max={230}
+              value={height}
+              onChange={(e) => setHeight(e.target.value)}
+              placeholder="165"
+              className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition placeholder:text-noche/30 focus:border-rosa-400 focus:bg-white"
+            />
+          </div>
+          <div>
+            <label htmlFor="peso" className="text-sm font-medium text-noche/80">
+              Peso (kg) <span className="text-noche/40">(opcional)</span>
+            </label>
+            <input
+              id="peso"
+              type="number"
+              inputMode="decimal"
+              min={30}
+              max={250}
+              value={peso}
+              onChange={(e) => setPeso(e.target.value)}
+              placeholder="60"
+              className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition placeholder:text-noche/30 focus:border-rosa-400 focus:bg-white"
+            />
+          </div>
         </div>
 
         <p className="mt-3 text-xs text-noche/40">
           Mide sobre tu ropa interior, en la parte más ancha del busto,
-          la más angosta de la cintura, y la más ancha de la cadera.
+          la más angosta de la cintura, y la más ancha de la cadera. El peso
+          no cambia tu silueta (esa sale de las proporciones) — lo usamos
+          para recomendarte tallas más adelante.
         </p>
+
+        <div className="mt-6 border-t border-rosa-100 pt-5">
+          <h2 className="font-display text-xl text-noche">Tu color</h2>
+          <p className="mt-1 text-xs text-noche/50">
+            Con esto te decimos qué paleta de colores te favorece.
+          </p>
+
+          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label
+                htmlFor="colorCabello"
+                className="text-sm font-medium text-noche/80"
+              >
+                Color de cabello
+              </label>
+              <select
+                id="colorCabello"
+                value={colorCabello}
+                onChange={(e) => setColorCabello(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">Sin responder</option>
+                <option value="negro">Negro</option>
+                <option value="castaño oscuro">Castaño oscuro</option>
+                <option value="castaño claro">Castaño claro</option>
+                <option value="rubio">Rubio</option>
+                <option value="cobrizo">Cobrizo / rojizo</option>
+                <option value="canoso">Canoso / gris</option>
+                <option value="teñido">Teñido (color fantasía)</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="largoCabello"
+                className="text-sm font-medium text-noche/80"
+              >
+                Largo de cabello
+              </label>
+              <select
+                id="largoCabello"
+                value={largoCabello}
+                onChange={(e) => setLargoCabello(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">Sin responder</option>
+                <option value="muy corto">Muy corto</option>
+                <option value="corto">Corto (tipo bob)</option>
+                <option value="media melena">Media melena</option>
+                <option value="largo">Largo</option>
+                <option value="muy largo">Muy largo</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="subtono"
+                className="text-sm font-medium text-noche/80"
+              >
+                Subtono de piel
+              </label>
+              <select
+                id="subtono"
+                value={subtono}
+                onChange={(e) => setSubtono(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">No sé</option>
+                <option value="frio">Frío — venas azuladas, me luce la plata</option>
+                <option value="calido">Cálido — venas verdosas, me luce el oro</option>
+                <option value="neutro">Neutro — me lucen los dos</option>
+              </select>
+            </div>
+            <div>
+              <label
+                htmlFor="contraste"
+                className="text-sm font-medium text-noche/80"
+              >
+                Contraste entre piel, pelo y ojos
+              </label>
+              <select
+                id="contraste"
+                value={contraste}
+                onChange={(e) => setContraste(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">No sé</option>
+                <option value="alto">Alto — piel clara con pelo/ojos oscuros</option>
+                <option value="medio">Medio</option>
+                <option value="bajo">Bajo — todo en tonos parecidos</option>
+              </select>
+            </div>
+          </div>
+          <p className="mt-3 text-xs text-noche/40">
+            Mírate las venas de la muñeca con luz natural: azuladas o
+            moradas = subtono frío, verdosas = cálido.
+          </p>
+        </div>
 
         <button
           type="submit"
@@ -302,6 +450,44 @@ export default function MiPerfilPage() {
               </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {perfil?.estacion && (
+        <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
+            Tu colorimetría
+          </p>
+          <h2 className="mt-1 font-display text-2xl text-noche">
+            {ESTACIONES[perfil.estacion].label}
+          </h2>
+          <p className="mt-2 text-sm text-noche/70">
+            {ESTACIONES[perfil.estacion].descripcion}
+          </p>
+
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-noche/50">
+            Tu paleta
+          </p>
+          <div className="mt-3 flex flex-wrap gap-3">
+            {ESTACIONES[perfil.estacion].paletaRecomendada.map((c) => (
+              <div key={c} className="flex w-16 flex-col items-center gap-1.5">
+                <span
+                  className="h-10 w-10 rounded-full border border-noche/10"
+                  style={{ backgroundColor: colorAHex(c) }}
+                  aria-hidden
+                />
+                <span className="text-center text-[10px] leading-tight text-noche/60">
+                  {c}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-4 text-xs text-noche/40">
+            Mejor evita: {ESTACIONES[perfil.estacion].coloresEvitar.join(", ")}.
+            {" "}Te favorecen los metales en{" "}
+            {SUBTONOS[ESTACIONES[perfil.estacion].subtono].metalesQueFavorecen.join(", ")}.
+          </p>
         </div>
       )}
 

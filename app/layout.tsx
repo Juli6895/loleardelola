@@ -17,11 +17,11 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "LolearDeLola — Encuentra dónde comprar el outfit que te enamoró",
+  title: "LoleardLola — Encuentra dónde comprar el outfit que te enamoró",
   description:
     "Conecta tu Pinterest, sube una inspiración y te decimos dónde comprar prendas similares online. Moda para Colombia.",
   openGraph: {
-    title: "LolearDeLola",
+    title: "LoleardLola",
     description:
       "Encuentra dónde comprar los outfits que te inspiran en Pinterest.",
     type: "website",
@@ -43,7 +43,7 @@ export default function RootLayout({
             {children}
           </main>
           <footer className="border-t border-rosa-100 bg-white/60 px-4 py-8 text-center text-sm text-noche/60">
-            <p className="font-display italic">LolearDeLola</p>
+            <p className="font-display italic">LoleardLola</p>
             <p className="mt-1">
               Hecho con amor en Colombia · {new Date().getFullYear()}
             </p>

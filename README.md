@@ -1,4 +1,4 @@
-# LolearDeLola 💕
+# LoleardLola 💕
 
 Plataforma de moda para el mercado colombiano: conecta tu Pinterest, sube una
 inspiración y te decimos **dónde comprar prendas similares online** usando

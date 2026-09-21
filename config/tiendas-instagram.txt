@@ -1,5 +1,5 @@
 # =========================================================
-# LolearDeLola - Directorio de tiendas en Instagram
+# LoleardLola - Directorio de tiendas en Instagram
 # =========================================================
 # Tiendas/boutiques colombianas que venden por Instagram. Se muestran
 # al final de los resultados de búsqueda, filtradas según el tipo de

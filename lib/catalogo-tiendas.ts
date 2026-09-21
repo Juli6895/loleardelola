@@ -3,18 +3,19 @@
 // =====================================================================
 // Hasta ahora los resultados eran enlaces a Google: la usuaria veía el
 // nombre de la prenda y tenía que salir de la página para ver una foto.
-// Varias de las tiendas de la lista publican su catálogo completo en una
-// dirección abierta que la propia plataforma (Shopify) sirve —
-// `tienda.com/products.json`— con título, precio, foto y enlace.
+// Varias de las tiendas de la lista publican su catálogo completo en
+// una dirección abierta que su propia plataforma sirve —Shopify en
+// `tienda.com/products.json`, VTEX en `/api/catalog_system/...`— con
+// título, precio, foto y enlace.
 //
 // Eso nos deja mostrar productos REALES con imagen, sin raspar nada ni
 // pagar una API de terceros: es el mismo archivo que la tienda expone
 // para que se la pueda integrar.
 //
-// Lo que NO cubre: Zara, H&M, Mango y demás marcas grandes no son
-// Shopify y no publican nada equivalente. Para esas seguimos mandando a
-// Google. Por eso esto se muestra como "también puedes ver", debajo, y
-// no reemplaza la búsqueda.
+// Lo que NO cubre: Zara, H&M, Mango, Koaj, Arturo Calle, Bimba y Lola,
+// American Eagle y Rapsodia no publican nada equivalente. Para esas
+// seguimos mandando a Google. Por eso esto se muestra debajo, como
+// complemento, y no reemplaza la búsqueda.
 // =====================================================================
 
 export type ProductoTienda = {
@@ -26,38 +27,53 @@ export type ProductoTienda = {
   dominio: string;
 };
 
-type TiendaConCatalogo = { dominio: string; nombre: string; host?: string };
+// Lo que se busca, ya desglosado. Llega así y no como una frase suelta
+// porque el color pesa mucho más que los demás rasgos al decidir si dos
+// prendas se parecen — una usuaria que buscó un vestido rojo no quiere
+// ver uno verde de primero por más que los dos sean midi y florales.
+export type ConsultaPrenda = {
+  // Tipo de prenda. Obligatorio: sin esto no hay parecido que valga.
+  tipo: string;
+  color: string | null;
+  // Largo, corte, escote, manga, tela, estampado... en frases sueltas.
+  rasgos: string[];
+};
 
-// Solo tiendas verificadas: se comprobó que responden products.json.
-// Si una deja de responder, se salta sin romper la búsqueda.
-const TIENDAS: TiendaConCatalogo[] = [
-  { dominio: "especia.com.co", nombre: "Especia" },
-  { dominio: "julianasanchez.co", nombre: "Juliana Sánchez" },
-  { dominio: "inmaculadavj.com", nombre: "Inmaculada VJ" },
-  { dominio: "gracies.com.co", nombre: "Gracies" },
-  { dominio: "bybla.com.co", nombre: "Bybla" },
-  { dominio: "navissi.com", nombre: "Navissi" },
-  { dominio: "jeansandblouses.com", nombre: "Jeans and Blouses" },
-  // colorblue.com responde a /products.json pero devuelve HTML, no el
-  // catálogo — no está en Shopify. Queda fuera para no gastar una
-  // petición en cada búsqueda a algo que nunca va a servir.
+type TiendaShopify = {
+  plataforma: "shopify";
+  dominio: string;
+  nombre: string;
+  host?: string;
+};
+type TiendaVtex = {
+  plataforma: "vtex";
+  dominio: string;
+  nombre: string;
+  host?: string;
+};
+type Tienda = TiendaShopify | TiendaVtex;
+
+// Verificadas una por una: responden con catálogo de verdad.
+const TIENDAS: Tienda[] = [
+  { plataforma: "shopify", dominio: "especia.com.co", nombre: "Especia" },
+  { plataforma: "shopify", dominio: "julianasanchez.co", nombre: "Juliana Sánchez" },
+  { plataforma: "shopify", dominio: "inmaculadavj.com", nombre: "Inmaculada VJ" },
+  { plataforma: "shopify", dominio: "gracies.com.co", nombre: "Gracies" },
+  { plataforma: "shopify", dominio: "bybla.com.co", nombre: "Bybla" },
+  { plataforma: "shopify", dominio: "navissi.com", nombre: "Navissi" },
+  { plataforma: "shopify", dominio: "jeansandblouses.com", nombre: "Jeans and Blouses" },
+  { plataforma: "shopify", dominio: "esprit.com.co", nombre: "Esprit" },
+  { plataforma: "shopify", dominio: "ticketstores.co", nombre: "Ticket Stores" },
+  { plataforma: "shopify", dominio: "malvaonline.com", nombre: "Malva" },
+  // VTEX no entrega el catálogo entero: se le pregunta por término. Por
+  // eso va por otro camino, sin caché de catálogo.
+  { plataforma: "vtex", dominio: "colorblue.com", nombre: "Color Blue" },
 ];
 
-// Palabras que no aportan nada al emparejar: el género lo agregamos
-// nosotros al término de búsqueda para Google, y en el catálogo de una
-// tienda de mujer aparecería en todo o en nada.
+// Palabras que no ayudan a distinguir una prenda de otra.
 const IGNORADAS = new Set([
-  "mujer",
-  "hombre",
-  "niño",
-  "niña",
-  "de",
-  "la",
-  "el",
-  "con",
-  "y",
-  "para",
-  "talla",
+  "mujer", "hombre", "niño", "niña", "de", "la", "el", "los", "las",
+  "con", "sin", "y", "para", "talla", "una", "un", "muy", "tipo",
 ]);
 
 /** Minúsculas y sin tildes, para que "satén" empareje con "saten". */
@@ -68,10 +84,33 @@ function normalizar(texto: string): string {
     .replace(/\p{Diacritic}/gu, "");
 }
 
-function palabras(texto: string): string[] {
-  return normalizar(texto)
-    .split(/[^a-z0-9]+/)
-    .filter((p) => p.length > 2 && !IGNORADAS.has(p));
+function limpiarHtml(html: string): string {
+  return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ");
+}
+
+// ---------------------------------------------------------------------
+// Dónde buscar cada palabra, y cuánto vale encontrarla ahí
+// ---------------------------------------------------------------------
+// Las tiendas no escriben igual: Bybla pone el color en el título
+// ("Vestido Corto Floral Camel"), Especia lo deja en la descripción
+// ("estampado en tonos rojos") y el largo en las etiquetas ("vestido
+// midi"). Buscar solo en el título —como se hacía antes— dejaba a casi
+// todos los productos empatados en cero y el orden salía al azar.
+type Indexado = ProductoTienda & {
+  titulo_n: string;
+  // product_type, tags, categorías: lo que la tienda usa para clasificar.
+  meta_n: string;
+  descripcion_n: string;
+};
+
+const PESO = { titulo: 3, meta: 2, descripcion: 1 };
+
+/** Dónde aparece la frase, y cuánto vale. 0 si no está en ningún lado. */
+function pesoDe(p: Indexado, frase: string): number {
+  if (p.titulo_n.includes(frase)) return PESO.titulo;
+  if (p.meta_n.includes(frase)) return PESO.meta;
+  if (p.descripcion_n.includes(frase)) return PESO.descripcion;
+  return 0;
 }
 
 // ---------------------------------------------------------------------
@@ -82,49 +121,63 @@ function palabras(texto: string): string[] {
 // media hora; en Vercel el caché vive mientras viva la instancia, así
 // que tras un arranque en frío se vuelve a bajar y ya.
 const CACHE_MS = 30 * 60 * 1000;
-type Entrada = { productos: ProductoTienda[]; expira: number };
-const cache = new Map<string, Entrada>();
+const cache = new Map<string, { productos: Indexado[]; expira: number }>();
 
-async function catalogoDe(t: TiendaConCatalogo): Promise<ProductoTienda[]> {
+async function pedir(url: string, ms = 9000): Promise<Response> {
+  const control = new AbortController();
+  const corte = setTimeout(() => control.abort(), ms);
+  try {
+    return await fetch(url, {
+      signal: control.signal,
+      headers: {
+        "user-agent": "LoleardLola/1.0 (+https://loleardelola.vercel.app)",
+      },
+    });
+  } finally {
+    clearTimeout(corte);
+  }
+}
+
+async function catalogoShopify(t: TiendaShopify): Promise<Indexado[]> {
+  const host = t.host ?? t.dominio;
+  const res = await pedir(`https://${host}/products.json?limit=250`);
+  if (!res.ok) throw new Error(`http ${res.status}`);
+  const data = (await res.json()) as {
+    products?: Array<{
+      title?: string;
+      handle?: string;
+      product_type?: string;
+      tags?: string[];
+      body_html?: string;
+      images?: Array<{ src?: string }>;
+      variants?: Array<{ price?: string }>;
+    }>;
+  };
+
+  return (data.products ?? [])
+    .filter((p) => p.title && p.handle && p.images?.[0]?.src)
+    .map((p) => {
+      const precio = Number(p.variants?.[0]?.price);
+      return {
+        titulo: p.title!.trim(),
+        precioCop: Number.isFinite(precio) && precio > 0 ? Math.round(precio) : null,
+        imagen: p.images![0].src!,
+        url: `https://${host}/products/${p.handle}`,
+        tienda: t.nombre,
+        dominio: t.dominio,
+        titulo_n: normalizar(p.title!),
+        meta_n: normalizar(`${p.product_type ?? ""} ${(p.tags ?? []).join(" ")}`),
+        descripcion_n: normalizar(limpiarHtml(p.body_html ?? "")),
+      };
+    });
+}
+
+async function catalogoDe(t: Tienda): Promise<Indexado[]> {
   const guardado = cache.get(t.dominio);
   if (guardado && guardado.expira > Date.now()) return guardado.productos;
-
-  const host = t.host ?? t.dominio;
-  const control = new AbortController();
-  const corte = setTimeout(() => control.abort(), 8000);
   try {
-    const res = await fetch(`https://${host}/products.json?limit=250`, {
-      signal: control.signal,
-      headers: { "user-agent": "LoleardLola/1.0 (+https://loleardelola.vercel.app)" },
-    });
-    if (!res.ok) throw new Error(`http ${res.status}`);
-    const data = (await res.json()) as {
-      products?: Array<{
-        title?: string;
-        handle?: string;
-        product_type?: string;
-        tags?: string[];
-        images?: Array<{ src?: string }>;
-        variants?: Array<{ price?: string; available?: boolean }>;
-      }>;
-    };
-
-    const productos: ProductoTienda[] = (data.products ?? [])
-      .filter((p) => p.title && p.handle)
-      .map((p) => {
-        const precio = Number(p.variants?.[0]?.price);
-        return {
-          titulo: p.title!.trim(),
-          precioCop: Number.isFinite(precio) && precio > 0 ? Math.round(precio) : null,
-          imagen: p.images?.[0]?.src ?? null,
-          url: `https://${host}/products/${p.handle}`,
-          tienda: t.nombre,
-          dominio: t.dominio,
-        };
-      })
-      // Sin foto no aporta nada: el punto de esto es ver la prenda.
-      .filter((p) => p.imagen);
-
+    const productos =
+      t.plataforma === "shopify" ? await catalogoShopify(t) : [];
     cache.set(t.dominio, { productos, expira: Date.now() + CACHE_MS });
     return productos;
   } catch (e) {
@@ -132,54 +185,142 @@ async function catalogoDe(t: TiendaConCatalogo): Promise<ProductoTienda[]> {
     // Se guarda el fallo un rato para no reintentar en cada búsqueda.
     cache.set(t.dominio, { productos: [], expira: Date.now() + 5 * 60 * 1000 });
     return [];
-  } finally {
-    clearTimeout(corte);
   }
 }
 
 /**
- * Busca en los catálogos las prendas que más se parecen al término.
+ * VTEX no publica el catálogo completo, pero sí responde búsquedas. Se
+ * le pregunta directamente por tipo + color, que es lo que más pesa.
+ */
+async function buscarVtex(t: TiendaVtex, c: ConsultaPrenda): Promise<Indexado[]> {
+  const host = t.host ?? t.dominio;
+  const q = encodeURIComponent([c.tipo, c.color].filter(Boolean).join(" "));
+  try {
+    const res = await pedir(
+      `https://${host}/api/catalog_system/pub/products/search?ft=${q}&_from=0&_to=19`
+    );
+    if (!res.ok) throw new Error(`http ${res.status}`);
+    const data = (await res.json()) as Array<{
+      productName?: string;
+      linkText?: string;
+      description?: string;
+      categories?: string[];
+      items?: Array<{
+        images?: Array<{ imageUrl?: string }>;
+        sellers?: Array<{ commertialOffer?: { Price?: number } }>;
+      }>;
+    }>;
+
+    return (data ?? [])
+      .filter((p) => p.productName && p.linkText && p.items?.[0]?.images?.[0]?.imageUrl)
+      .map((p) => {
+        const precio = p.items?.[0]?.sellers?.[0]?.commertialOffer?.Price;
+        return {
+          titulo: p.productName!.trim(),
+          precioCop: typeof precio === "number" && precio > 0 ? Math.round(precio) : null,
+          imagen: p.items![0].images![0].imageUrl!,
+          url: `https://${host}/${p.linkText}/p`,
+          tienda: t.nombre,
+          dominio: t.dominio,
+          titulo_n: normalizar(p.productName!),
+          // El linkText trae el color al final ("...-614705-rojo"), así
+          // que entra como metadato.
+          meta_n: normalizar(`${(p.categories ?? []).join(" ")} ${p.linkText}`),
+          descripcion_n: normalizar(limpiarHtml(p.description ?? "")),
+        };
+      });
+  } catch (e) {
+    console.warn(`[catalogo] ${t.dominio} (vtex) no respondió:`, e);
+    return [];
+  }
+}
+
+/** Frases a buscar por cada rasgo, de la más precisa a la más suelta. */
+function frasesDe(rasgo: string): string[] {
+  const completa = normalizar(rasgo).trim();
+  if (!completa) return [];
+  const sueltas = completa
+    .split(/[^a-z0-9]+/)
+    .filter((p) => p.length > 3 && !IGNORADAS.has(p));
+  // La frase entera primero: "sin mangas" es mucho más preciso que
+  // "mangas", que emparejaría con "manga larga" — lo contrario de lo
+  // que se buscaba.
+  return sueltas.length > 1 || sueltas[0] !== completa
+    ? [completa, ...sueltas]
+    : [completa];
+}
+
+/**
+ * Busca en los catálogos las prendas que más se parecen.
  *
- * El emparejamiento es a propósito estricto con la PRIMERA palabra (el
- * tipo de prenda): si se busca "vestido floral rojo", un pantalón rojo
- * no sirve por más que comparta dos palabras. Las demás palabras suman
- * puntos pero no son obligatorias, porque casi ninguna tienda escribe
- * "floral" en el título aunque la prenda lo sea.
+ * El tipo de prenda es obligatorio: un pantalón rojo no sirve para
+ * "vestido rojo" por más que compartan el color. De ahí en adelante
+ * suman el color (que pesa el doble que el resto, porque es lo primero
+ * que la usuaria compara con el ojo) y los demás rasgos.
  */
 export async function buscarEnCatalogos(
-  termino: string,
+  c: ConsultaPrenda,
   maximo = 8
 ): Promise<ProductoTienda[]> {
-  const terminos = palabras(termino);
-  if (terminos.length === 0) return [];
-  const tipo = terminos[0];
-  const resto = terminos.slice(1);
+  const tipo = normalizar(c.tipo).trim();
+  if (!tipo) return [];
 
-  const catalogos = await Promise.all(TIENDAS.map(catalogoDe));
+  const shopify = TIENDAS.filter((t): t is TiendaShopify => t.plataforma === "shopify");
+  const vtex = TIENDAS.filter((t): t is TiendaVtex => t.plataforma === "vtex");
 
-  const puntuados: Array<{ p: ProductoTienda; punto: number }> = [];
-  for (const catalogo of catalogos) {
-    for (const p of catalogo) {
-      const texto = normalizar(p.titulo);
-      // El tipo de prenda tiene que estar; se acepta el plural simple
-      // ("vestido" contra "vestidos") sin meternos en lematización.
-      if (!texto.includes(tipo) && !texto.includes(tipo + "s")) continue;
-      let punto = 2;
-      for (const w of resto) if (texto.includes(w)) punto += 1;
+  const [catalogos, busquedas] = await Promise.all([
+    Promise.all(shopify.map(catalogoDe)),
+    Promise.all(vtex.map((t) => buscarVtex(t, c))),
+  ]);
+
+  const color = c.color ? normalizar(c.color).trim() : null;
+  const rasgos = c.rasgos.map(frasesDe).filter((f) => f.length > 0);
+
+  const puntuados: Array<{ p: Indexado; punto: number }> = [];
+  for (const lote of [...catalogos, ...busquedas]) {
+    for (const p of lote) {
+      // El tipo tiene que estar en el título o en la clasificación de
+      // la tienda; en la descripción no vale, porque ahí aparece
+      // mencionado de pasada ("combínalo con un vestido").
+      const enTitulo = p.titulo_n.includes(tipo) || p.titulo_n.includes(tipo + "s");
+      const enMeta = p.meta_n.includes(tipo) || p.meta_n.includes(tipo + "s");
+      if (!enTitulo && !enMeta) continue;
+
+      let punto = enTitulo ? 2 : 1;
+      // El color vale doble: es lo que más se nota al comparar fotos.
+      if (color) punto += pesoDe(p, color) * 2;
+      for (const frases of rasgos) {
+        // De cada rasgo cuenta solo su mejor coincidencia, para que una
+        // prenda no sume tres veces por decir "midi" en tres campos.
+        let mejor = 0;
+        for (let i = 0; i < frases.length; i++) {
+          // La frase completa vale entero; las palabras sueltas, la
+          // mitad, porque son una coincidencia más floja.
+          const factor = i === 0 ? 1 : 0.5;
+          mejor = Math.max(mejor, pesoDe(p, frases[i]) * factor);
+        }
+        punto += mejor;
+      }
       puntuados.push({ p, punto });
     }
   }
 
-  // Más puntos primero; a igualdad, se reparte entre tiendas para que
-  // una sola no se lleve toda la fila.
   puntuados.sort((a, b) => b.punto - a.punto);
+
+  // Máximo 3 por tienda, para que una no se lleve toda la fila.
   const porTienda = new Map<string, number>();
+  const yaVistos = new Set<string>();
   const salida: ProductoTienda[] = [];
   for (const { p } of puntuados) {
+    // Algunos catálogos repiten el mismo producto (una entrada por
+    // color, por ejemplo). Se muestra una sola vez.
+    if (yaVistos.has(p.url)) continue;
+    yaVistos.add(p.url);
     const n = porTienda.get(p.dominio) ?? 0;
     if (n >= 3) continue;
     porTienda.set(p.dominio, n + 1);
-    salida.push(p);
+    const { titulo_n, meta_n, descripcion_n, ...limpio } = p;
+    salida.push(limpio);
     if (salida.length >= maximo) break;
   }
   return salida;

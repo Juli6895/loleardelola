@@ -29,3 +29,34 @@
 # @accesoriosejemplo | Accesorios Ejemplo | accesorio
 #
 # Agrega tus tiendas debajo de esta línea:
+
+# Los @ NO están inventados: se sacaron del enlace a Instagram que cada
+# tienda publica en su propia página. Las categorías tampoco: salen de
+# contar qué vende cada una en su catálogo (products.json), no de
+# suponer. Juliana: revísalas y corrige lo que no cuadre.
+navissiclothing | Navissi | top,bottom
+sjulianasanchez | Juliana Sánchez | top,bottom,abrigo
+gracies_a | Gracies | top,bottom,accesorio
+inmaculada_vj | Inmaculada VJ | vestido,abrigo,top,bottom,calzado,accesorio
+
+# --- PENDIENTES DE CONFIRMAR ---
+# Estas tienen la cuenta ambigua o no se pudo derivar qué venden.
+# Quedan comentadas para no publicar un dato del que no estoy segura.
+#
+# Especia: en su página aparecen 3 cuentas (@especiaofficial parece la
+# propia; @marialuisabula y @caroaraujor serían marcas relacionadas).
+# Categorías sí verificadas en su catálogo.
+# especiaofficial | Especia | vestido,top,bottom,accesorio
+#
+# Bybla: aparecen @bybla_boutique y @bybla.co, no sé cuál es la vigente.
+# bybla_boutique | Bybla | top,bottom,vestido,accesorio
+#
+# Jeans and Blouses: su página no enlaza ninguna cuenta de Instagram.
+# Categorías sí verificadas en su catálogo.
+# ??? | Jeans and Blouses | top,bottom,vestido
+#
+# Estas tres no publican catálogo, así que no sé qué venden:
+# complicity_ | Complicity | ?
+# ticket_co | Ticket Stores | ?
+# pepita_perez | Pepita Pérez | ?
+# colorblue1984 | Color Blue | ?

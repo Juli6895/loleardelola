@@ -10,6 +10,7 @@ import {
 } from "@/lib/shopping";
 import { colorAHex } from "@/lib/color-swatch";
 import TiendasInstagram from "./TiendasInstagram";
+import ProductosSugeridos from "./ProductosSugeridos";
 import type { ClosetCategory } from "@/types";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { SearchResult as Result } from "./SearchBox";
@@ -247,6 +248,14 @@ export default function SearchResult({ data }: { data: Result }) {
             }
           />
         </div>
+      </div>
+
+      {/* Prendas reales con foto y precio, del catálogo de las tiendas.
+          Va después de la tarjeta principal y se pide aparte, para que
+          bajar los catálogos no demore los resultados. Ocupa las 5
+          columnas: es una fila propia debajo, no una columna al lado. */}
+      <div className="lg:col-span-5">
+        <ProductosSugeridos terminos={visibleIndices.map((i) => terms[i])} />
       </div>
     </div>
   );

@@ -6,7 +6,11 @@ import SiluetaIcon from "@/components/SiluetaIcon";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
-import { ESTACIONES, SUBTONOS } from "@/lib/image-consulting/colorimetria";
+import {
+  CONTRASTES,
+  ESTACIONES,
+  SUBTONOS,
+} from "@/lib/image-consulting/colorimetria";
 import { colorAHex } from "@/lib/color-swatch";
 import type { PerfilSilueta } from "@/types";
 
@@ -43,7 +47,6 @@ export default function MiPerfilPage() {
   const [peso, setPeso] = useState("");
   const [colorCabello, setColorCabello] = useState("");
   const [largoCabello, setLargoCabello] = useState("");
-  const [subtono, setSubtono] = useState("");
   const [tonoPiel, setTonoPiel] = useState("");
 
   const [referencia, setReferencia] = useState("");
@@ -66,7 +69,6 @@ export default function MiPerfilPage() {
           if (p.peso_kg != null) setPeso(String(p.peso_kg));
           if (p.color_cabello) setColorCabello(p.color_cabello);
           if (p.largo_cabello) setLargoCabello(p.largo_cabello);
-          if (p.subtono) setSubtono(p.subtono);
           if (p.tono_piel) setTonoPiel(p.tono_piel);
         }
       })
@@ -88,12 +90,22 @@ export default function MiPerfilPage() {
           pesoKg: peso || null,
           colorCabello: colorCabello || null,
           largoCabello: largoCabello || null,
-          subtono: subtono || null,
           tonoPiel: tonoPiel || null,
         }),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "No se pudo guardar");
+      // Si el servidor cae feo puede responder con el cuerpo vacío, y
+      // ahí res.json() revienta con "Unexpected end of JSON input" — un
+      // mensaje que no le sirve a nadie. Parseamos a mano.
+      const texto = await res.text();
+      let json: any = null;
+      try {
+        json = texto ? JSON.parse(texto) : null;
+      } catch {
+        json = null;
+      }
+      if (!res.ok || !json?.perfil) {
+        throw new Error(json?.error ?? "No pudimos guardar tu perfil. Intenta de nuevo.");
+      }
       setPerfil(json.perfil);
       toast.success("¡Perfil actualizado!");
     } catch (err: any) {
@@ -302,7 +314,8 @@ export default function MiPerfilPage() {
         <div className="mt-6 border-t border-rosa-100 pt-5">
           <h2 className="font-display text-xl text-noche">Tu color</h2>
           <p className="mt-1 text-xs text-noche/50">
-            Con esto te decimos qué paleta de colores te favorece.
+            Con esto te decimos cómo combinar los colores para que te
+            favorezcan.
           </p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -370,30 +383,11 @@ export default function MiPerfilPage() {
                 <option value="negra">Negra / oscura</option>
               </select>
             </div>
-            <div>
-              <label
-                htmlFor="subtono"
-                className="text-sm font-medium text-noche/80"
-              >
-                ¿Qué joyería te luce más?
-              </label>
-              <select
-                id="subtono"
-                value={subtono}
-                onChange={(e) => setSubtono(e.target.value)}
-                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
-              >
-                <option value="">Sin responder</option>
-                <option value="frio">La plata</option>
-                <option value="calido">El dorado</option>
-                <option value="neutro">Las dos por igual</option>
-              </select>
-            </div>
           </div>
           <p className="mt-3 text-xs text-noche/40">
-            Lo de la joyería no es capricho: es la forma más fácil de saber
-            si tu piel tiene subtono frío o cálido, que es lo que de verdad
-            define qué colores te favorecen.
+            Con tu tono de piel y tu color de cabello calculamos tu nivel de
+            contraste, que es lo que define cómo te favorece combinar los
+            colores entre sí.
           </p>
         </div>
 
@@ -456,6 +450,51 @@ export default function MiPerfilPage() {
         </div>
       )}
 
+      {perfil?.contraste && (
+        <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
+          <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
+            Tu color
+          </p>
+          <h2 className="mt-1 font-display text-2xl text-noche">
+            {CONTRASTES[perfil.contraste].label}
+          </h2>
+          <p className="mt-2 text-sm text-noche/70">
+            {CONTRASTES[perfil.contraste].descripcion}
+          </p>
+
+          <div className="mt-5 grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">
+                Cómo combinar
+              </p>
+              <ul className="mt-2 space-y-1.5 text-sm text-noche/70">
+                {CONTRASTES[perfil.contraste].comoVestir.map((c) => (
+                  <li key={c} className="flex gap-2">
+                    <span className="text-rosa-400">·</span>
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">
+                Evita
+              </p>
+              <ul className="mt-2 space-y-1.5 text-sm text-noche/50">
+                {CONTRASTES[perfil.contraste].evitar.map((c) => (
+                  <li key={c} className="flex gap-2">
+                    <span className="text-noche/30">·</span>
+                    {c}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Paleta por estación: necesita el subtono, que por ahora no se
+          pregunta. Queda listo para cuando lo volvamos a pedir. */}
       {perfil?.estacion && (
         <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
           <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">

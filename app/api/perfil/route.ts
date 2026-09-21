@@ -33,6 +33,21 @@ export async function GET(req: Request) {
 // POST /api/perfil → guarda medidas (cm) y calcula la silueta
 // Body: { bustCm, waistCm, hipCm, heightCm? }
 export async function POST(req: Request) {
+  try {
+    return await guardarPerfil(req);
+  } catch (e) {
+    // Sin este catch, un error inesperado sale como 500 con cuerpo
+    // vacío y el navegador muestra "Unexpected end of JSON input", que
+    // no le dice nada a nadie. Mejor un JSON con el motivo.
+    console.error("[api/perfil] POST falló:", e);
+    return NextResponse.json(
+      { error: "No pudimos guardar tu perfil. Intenta de nuevo." },
+      { status: 500 }
+    );
+  }
+}
+
+async function guardarPerfil(req: Request) {
   const userId = await getOrCreateUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
@@ -57,14 +72,9 @@ export async function POST(req: Request) {
 
   const silueta = inferirSiluetaPorMedidas(bustCm, waistCm, hipCm);
 
-  // Colorimetría (Pilar 1 del manual): la estación sale del subtono y el
-  // contraste. Solo se calcula si la usuaria respondió las dos cosas —
-  // si dejó alguna en blanco, se guarda null en vez de adivinar.
-  const SUBTONOS_VALIDOS: Subtono[] = ["frio", "calido", "neutro"];
+  // Colorimetría (Pilar 1 del manual). El contraste no se pregunta: se
+  // deduce del tono de piel + el color de cabello.
   const TONOS_VALIDOS: TonoPiel[] = ["blanca", "canela", "morena", "negra"];
-  const subtono = SUBTONOS_VALIDOS.includes(body.subtono)
-    ? (body.subtono as Subtono)
-    : null;
   const tonoPiel = TONOS_VALIDOS.includes(body.tonoPiel)
     ? (body.tonoPiel as TonoPiel)
     : null;
@@ -73,10 +83,18 @@ export async function POST(req: Request) {
       ? body.colorCabello.trim()
       : null;
 
-  // El contraste ya no se pregunta: se deduce del tono de piel y el
-  // color de cabello. La estación sale de subtono + contraste.
   const contraste = inferirContraste(tonoPiel, colorCabello);
-  const estacion = subtono && contraste ? inferirEstacion(subtono, contraste) : null;
+
+  // El subtono (frío/cálido) quedó fuera del cuestionario — ver
+  // types/index.ts. Se sigue aceptando si llega, para no romper nada y
+  // para cuando lo volvamos a preguntar de otra forma. Sin él no hay
+  // estación, y eso está bien: el consejo de contraste no la necesita.
+  const SUBTONOS_VALIDOS: Subtono[] = ["frio", "calido", "neutro"];
+  const subtono = SUBTONOS_VALIDOS.includes(body.subtono)
+    ? (body.subtono as Subtono)
+    : null;
+  const estacion =
+    subtono && contraste ? inferirEstacion(subtono, contraste) : null;
 
   const pesoKg =
     body.pesoKg != null && body.pesoKg !== "" && Number.isFinite(Number(body.pesoKg))

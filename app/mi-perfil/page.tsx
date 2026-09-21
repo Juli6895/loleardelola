@@ -404,7 +404,9 @@ export default function MiPerfilPage() {
         <div className="grid grid-cols-1 gap-6 rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:grid-cols-[auto_1fr] sm:p-8">
           <SiluetaIcon
             silueta={perfil.silueta}
-            className="h-32 w-20 text-rosa-400 sm:h-40 sm:w-24"
+            // El ancho va atado al alto (el lienzo es 120x300), para que
+            // la figura no quede flotando con aire a los lados.
+            className="h-44 w-[70px] text-rosa-400 sm:h-56 sm:w-[90px]"
           />
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">

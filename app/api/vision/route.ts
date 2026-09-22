@@ -5,6 +5,7 @@ import { uploadImage } from "@/lib/cloudinary";
 import { getExcludedMerchants } from "@/lib/merchant-exclusions";
 import { getAllowedMerchants } from "@/lib/merchant-allowlist";
 import { getTiendasInstagram } from "@/lib/tiendas-instagram";
+import { revisarTope, registrarBusqueda } from "@/lib/limites";
 import type { VisionResult } from "@/types";
 
 // Endpoint: POST /api/vision
@@ -27,6 +28,17 @@ import type { VisionResult } from "@/types";
 // Loguea qué motor se usó para poder evaluar calidad en producción.
 export async function POST(req: Request) {
   try {
+    // El tope se revisa ANTES de analizar: si ya no le quedan
+    // búsquedas, no tiene sentido gastar una llamada a Claude (que
+    // cuesta plata) para después negarle el resultado.
+    const tope = await revisarTope(req, "busquedas");
+    if (!tope.permitido) {
+      return NextResponse.json(
+        { error: tope.mensaje, destrabaCon: tope.destrabaCon, limite: true },
+        { status: 402 }
+      );
+    }
+
     const body = await req.json();
 
     let imageUrl: string | null = null;
@@ -58,6 +70,10 @@ export async function POST(req: Request) {
         : null;
 
     const result = await analyzeWithFallback(imageUrl!, budgetCop);
+
+    // Se cuenta solo si el análisis salió bien: una foto que falló no
+    // le debe gastar una búsqueda a nadie.
+    await registrarBusqueda(tope.usuario.id, result.data.searchTerms);
 
     return NextResponse.json({
       imageUrl,

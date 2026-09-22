@@ -5,8 +5,11 @@ import ClosetUpload from "@/components/ClosetUpload";
 import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
+import { TOPES } from "@/lib/planes";
 
-const FREE_CLOSET_LIMIT = 15;
+// El tope vive en lib/planes.ts, junto con los de búsquedas y outfits.
+// Acá solo se muestra; quien lo hace cumplir es la API.
+const TOPE_GRATIS = TOPES.gratis.prendasCloset ?? 2;
 
 // Página "Mi Clóset": la usuaria sube fotos de sus prendas y las ve
 // organizadas por categoría. Fase 1 del roadmap premium — base de datos
@@ -22,8 +25,7 @@ export default function MiClosetPage() {
   }, []);
 
   const count = items?.length ?? 0;
-  const nearLimit = count >= FREE_CLOSET_LIMIT - 3 && count < FREE_CLOSET_LIMIT;
-  const atLimit = count >= FREE_CLOSET_LIMIT;
+  const atLimit = count >= TOPE_GRATIS;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -45,13 +47,27 @@ export default function MiClosetPage() {
         <ClosetUpload
           onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
         />
-        <p className="mt-2 text-center text-xs text-noche/40">
-          {atLimit
-            ? `Llegaste al límite de ${FREE_CLOSET_LIMIT} prendas del plan gratis.`
-            : nearLimit
-              ? `${count}/${FREE_CLOSET_LIMIT} prendas del plan gratis.`
-              : `Plan gratis: hasta ${FREE_CLOSET_LIMIT} prendas.`}
-        </p>
+        {atLimit ? (
+          <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
+            <p className="text-sm font-medium text-noche">
+              Ya subiste tus {TOPE_GRATIS} prendas gratis.
+            </p>
+            <p className="mt-1 text-xs text-noche/60">
+              Con la membresía subes las que quieras y armamos tu manual de
+              estilo completo.
+            </p>
+            <a
+              href="/membresia"
+              className="mt-3 inline-block rounded-full bg-noche px-5 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
+            >
+              Ver la membresía
+            </a>
+          </div>
+        ) : (
+          <p className="mt-2 text-center text-xs text-noche/40">
+            {count}/{TOPE_GRATIS} prendas gratis.
+          </p>
+        )}
       </div>
 
       {items === null ? (

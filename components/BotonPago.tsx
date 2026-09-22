@@ -9,21 +9,40 @@ import type { TipoPlan } from "@/lib/planes";
 
 // Botón de pago de Bold.
 //
-// El botón no se puede escribir directo en el HTML: hay que pedirle al
-// servidor una orden firmada primero (la firma lleva la llave secreta,
-// que no puede bajar al navegador). Por eso esto es un botón normal que,
-// al tocarlo, pide la orden, inyecta el script de Bold con los datos
-// firmados y lo dispara.
+// El botón no se puede escribir directo en el HTML: primero hay que
+// pedirle al servidor una orden firmada, porque la firma lleva la llave
+// secreta y esa no puede bajar al navegador.
+//
+// Cómo se abre el pago: la librería de Bold expone `window.BoldCheckout`
+// y con eso basta. El primer intento fue distinto —insertar un
+// <script data-bold-button> al vuelo y hacerle clic al botón que Bold
+// dibujara— y no funcionó: su librería busca esos scripts UNA SOLA VEZ
+// al cargar (no tiene MutationObserver), así que lo que se agregue
+// después lo ignora por completo. De ahí salía "El pago no abrió".
 
 const SCRIPT_BOLD = "https://checkout.bold.co/library/boldPaymentButton.js";
 
-function cargarScript(): Promise<void> {
+declare global {
+  interface Window {
+    BoldCheckout?: new (config: Record<string, string>) => { open: () => void };
+  }
+}
+
+function cargarLibreria(): Promise<void> {
   return new Promise((resolve, reject) => {
-    if (document.querySelector(`script[src="${SCRIPT_BOLD}"]`)) return resolve();
+    if (window.BoldCheckout) return resolve();
+    const existente = document.querySelector<HTMLScriptElement>(
+      `script[src="${SCRIPT_BOLD}"]`
+    );
+    if (existente) {
+      existente.addEventListener("load", () => resolve());
+      existente.addEventListener("error", () => reject(new Error("carga")));
+      return;
+    }
     const s = document.createElement("script");
     s.src = SCRIPT_BOLD;
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error("No pudimos cargar el pago de Bold"));
+    s.onerror = () => reject(new Error("carga"));
     document.head.appendChild(s);
   });
 }
@@ -64,45 +83,33 @@ export default function BotonPago({
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No pudimos preparar el pago");
 
+      await cargarLibreria();
+      if (!window.BoldCheckout) {
+        throw new Error("No pudimos cargar el pago de Bold. Revisa tu conexión.");
+      }
+
       const b = json.boton;
-      await cargarScript();
-
-      // Bold lee los datos de los atributos de un <script>, así que se
-      // arma uno al vuelo dentro de un contenedor propio y se deja que
-      // su librería lo convierta en el botón real.
-      const caja = document.createElement("div");
-      caja.style.display = "none";
-      const tag = document.createElement("script");
-      tag.setAttribute("data-bold-button", "dark-L");
-      tag.setAttribute("data-api-key", b.apiKey);
-      tag.setAttribute("data-order-id", b.orden);
-      tag.setAttribute("data-amount", String(b.montoCop));
-      tag.setAttribute("data-currency", b.divisa);
-      tag.setAttribute("data-integrity-signature", b.firma);
-      tag.setAttribute("data-description", b.descripcion);
-      tag.setAttribute("data-redirection-url", b.urlRetorno);
-      tag.setAttribute("data-render-mode", "embedded");
-      caja.appendChild(tag);
-      document.body.appendChild(caja);
-
-      // La librería tarda un instante en reemplazar el script por el
-      // botón; cuando aparece, se le hace clic para abrir el pago sin
-      // que la usuaria tenga que tocar dos botones seguidos.
-      const desde = Date.now();
-      const buscar = setInterval(() => {
-        const real = caja.querySelector("button, a") as HTMLElement | null;
-        if (real) {
-          clearInterval(buscar);
-          real.click();
-          setOcupado(false);
-        } else if (Date.now() - desde > 8000) {
-          clearInterval(buscar);
-          setOcupado(false);
-          toast.error("El pago no abrió. Recarga la página e intenta de nuevo.");
-        }
-      }, 120);
+      // Las claves van en camelCase: la librería las convierte a
+      // api-key, order-id, etc. antes de armar la URL del checkout.
+      //
+      // Sin `renderMode` se va a la página de Bold y vuelve a la
+      // nuestra al terminar. Se prefiere sobre el modo incrustado
+      // porque no depende de que el navegador permita el iframe, y
+      // acá lo que importa es que el cobro no se caiga.
+      new window.BoldCheckout({
+        apiKey: b.apiKey,
+        orderId: b.orden,
+        amount: String(b.montoCop),
+        currency: b.divisa,
+        integritySignature: b.firma,
+        description: b.descripcion,
+        redirectionUrl: b.urlRetorno,
+      }).open();
+      // No se apaga `ocupado`: el navegador se va a ir a Bold. Dejarlo
+      // encendido evita que alguien alcance a hacer doble clic y se
+      // creen dos órdenes.
     } catch (err: any) {
-      toast.error(err.message);
+      toast.error(err.message ?? "No pudimos abrir el pago");
       setOcupado(false);
     }
   }

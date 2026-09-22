@@ -10,6 +10,7 @@ const LINKS = [
   { href: "/mi-closet", label: "Mi clóset" },
   { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/mis-outfits", label: "Mis outfits" },
+  { href: "/manual", label: "Mi manual" },
   { href: "/membresia", label: "Membresía" },
 ];
 

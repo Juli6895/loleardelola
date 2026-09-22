@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { PRECIOS, TOPES } from "@/lib/planes";
+import BotonPago from "@/components/BotonPago";
 
-// Página de la membresía. El botón de pago todavía no está conectado:
-// falta decidir el plan de precios frente a las comisiones (ver la
-// conversación sobre Bold/Wompi) y cargar las llaves de Bold.
+// Página de la membresía: qué da cada plan y los botones de pago.
 //
-// Se publica igual, sin botón, porque sirve desde ya para explicar qué
-// da la membresía cuando alguien se topa con un límite.
+// Bold no hace cobros recurrentes, así que la membresía es una fecha de
+// vencimiento y no una suscripción — ver lib/bold.ts. Eso se dice al
+// pie de la página para no prometer una renovación que no existe.
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
@@ -84,42 +84,36 @@ export default function MembresiaPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-2xl border border-rosa-100 bg-white p-6 text-center shadow-sm">
+        <div className="flex flex-col rounded-2xl border border-rosa-100 bg-white p-6 text-center shadow-sm">
           <p className="text-xs font-medium uppercase tracking-widest text-noche/50">
             Mensual
           </p>
           <p className="mt-2 font-display text-3xl text-noche">
             {pesos(PRECIOS.mensual)}
           </p>
-          <p className="mt-1 text-xs text-noche/50">al mes</p>
+          <p className="mt-1 mb-5 text-xs text-noche/50">al mes</p>
+          <div className="mt-auto">
+            <BotonPago plan="mensual" etiqueta="Pagar el mes" />
+          </div>
         </div>
-        <div className="rounded-2xl border border-rosa-300 bg-rosa-50/50 p-6 text-center shadow-sm">
+        <div className="flex flex-col rounded-2xl border border-rosa-300 bg-rosa-50/50 p-6 text-center shadow-sm">
           <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
             Anual
           </p>
           <p className="mt-2 font-display text-3xl text-noche">
             {pesos(PRECIOS.anual)}
           </p>
-          <p className="mt-1 text-xs text-noche/50">al año</p>
+          <p className="mt-1 mb-5 text-xs text-noche/50">al año</p>
+          <div className="mt-auto">
+            <BotonPago plan="anual" etiqueta="Pagar el año" />
+          </div>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-rosa-100 bg-white p-6 text-center shadow-sm">
-        <p className="text-sm font-medium text-noche">
-          El pago todavía no está habilitado
-        </p>
-        <p className="mx-auto mt-2 max-w-md text-sm text-noche/60">
-          Estamos terminando de conectarlo. Mientras tanto, crea tu cuenta
-          gratis: así no pierdes tu clóset ni tus outfits, y te avisamos
-          apenas la membresía esté lista.
-        </p>
-        <Link
-          href="/entrar?volver=/membresia"
-          className="mt-4 inline-block rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
-        >
-          Crear mi cuenta gratis
-        </Link>
-      </div>
+      <p className="text-center text-xs text-noche/40">
+        El pago lo procesa Bold. La membresía no se renueva sola: cuando se
+        acerque el vencimiento te avisamos por correo.
+      </p>
     </div>
   );
 }

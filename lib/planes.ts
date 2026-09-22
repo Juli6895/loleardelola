@@ -43,9 +43,13 @@ export const TOPES: Record<Plan, Topes> = {
   },
 };
 
+// El anual sale a $4.000 por mes: un 20% de descuento frente a pagar
+// mes a mes. Es a propósito — Bold cobra un fijo de $900 por
+// transacción, así que doce cobros de $5.000 dejan mucho menos que uno
+// solo de $48.000.
 export const PRECIOS = {
-  mensual: 3000,
-  anual: 36000,
+  mensual: 5000,
+  anual: 48000,
 } as const;
 
 export type TipoPlan = keyof typeof PRECIOS;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
@@ -11,7 +11,18 @@ import { fetchConDispositivo } from "@/lib/device-id";
 // La petición va con fetchConDispositivo para que el servidor sepa qué
 // navegador es y pueda unir lo que la usuaria ya tenía sin cuenta —el
 // clóset, los outfits, el perfil— con la cuenta del correo.
+// useSearchParams() obliga a renderizar en el navegador, y Next se
+// niega a prerenderizar la página si eso no está envuelto en Suspense.
+// El formulario va adentro; esto de afuera solo pone el límite.
 export default function EntrarPage() {
+  return (
+    <Suspense fallback={<div className="mx-auto max-w-md py-10" />}>
+      <Formulario />
+    </Suspense>
+  );
+}
+
+function Formulario() {
   const router = useRouter();
   const params = useSearchParams();
   const volverA = params.get("volver") ?? "/";

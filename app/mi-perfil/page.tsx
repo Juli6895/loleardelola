@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SiluetaIcon from "@/components/SiluetaIcon";
+import CabeceraCuenta from "@/components/CabeceraCuenta";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
@@ -198,6 +199,9 @@ export default function MiPerfilPage() {
           esto también va a ser la base de tu Avatar más adelante.
         </p>
       </header>
+
+      {/* Quién eres, tu nombre, y qué destraba la membresía. */}
+      <CabeceraCuenta />
 
       <form
         onSubmit={guardarPerfil}

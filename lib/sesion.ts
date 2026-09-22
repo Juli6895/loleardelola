@@ -205,6 +205,9 @@ export async function cerrarSesion() {
 export type UsuarioActual = {
   id: string;
   email: string | null;
+  // Cómo quiere que la llamemos. Se pide después de entrar, no antes:
+  // pedir el nombre en el ingreso es un campo más que abandonar.
+  nombre: string | null;
   premiumUntil: string | null;
   plan: Plan;
   // true si entró con su correo; false si solo es este navegador.
@@ -230,13 +233,14 @@ export async function usuarioActual(req: Request): Promise<UsuarioActual | null>
     if (sesion && new Date(sesion.expires_at) > new Date()) {
       const { data: u } = await sb
         .from("users")
-        .select("id, email, premium_until")
+        .select("id, email, name, premium_until")
         .eq("id", sesion.user_id)
         .maybeSingle();
       if (u) {
         return {
           id: u.id,
           email: u.email,
+          nombre: u.name,
           premiumUntil: u.premium_until,
           plan: planDe(u),
           conSesion: true,
@@ -249,13 +253,14 @@ export async function usuarioActual(req: Request): Promise<UsuarioActual | null>
   if (!idDispositivo) return null;
   const { data: u } = await sb
     .from("users")
-    .select("id, email, premium_until")
+    .select("id, email, name, premium_until")
     .eq("id", idDispositivo)
     .maybeSingle();
   if (!u) return null;
 
   return {
     id: u.id,
+    nombre: null,
     // Sin sesión abierta no se reporta el correo aunque la fila lo
     // tenga: tener el navegador no prueba ser la dueña del buzón.
     email: null,

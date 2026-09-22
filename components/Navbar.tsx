@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 
 const LINKS = [
   { href: "/buscar", label: "Buscar" },
@@ -17,6 +19,18 @@ const LINKS = [
 // clóset desde otro dispositivo, y para pasarse a la membresía.
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const { usuario, recargar } = useUsuario();
+  const router = useRouter();
+  const dentro = !!usuario?.conSesion;
+  const nombre = comoSeLlama(usuario);
+
+  async function salir() {
+    await fetch("/api/auth/salir", { method: "POST" });
+    setMenuOpen(false);
+    await recargar();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <nav className="sticky top-0 z-20 border-b border-rosa-100 bg-white/80 backdrop-blur">
@@ -41,12 +55,32 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
-          <Link
-            href="/entrar"
-            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
-          >
-            Entrar
-          </Link>
+          {dentro ? (
+            <div className="flex items-center gap-3">
+              <Link
+                href="/mi-perfil"
+                className="flex items-center gap-2 text-sm font-medium text-noche transition hover:text-rosa-500"
+              >
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rosa-200 text-xs font-semibold uppercase text-rosa-600">
+                  {nombre.slice(0, 1)}
+                </span>
+                {nombre}
+              </Link>
+              <button
+                onClick={salir}
+                className="text-xs text-noche/40 underline transition hover:text-rosa-500"
+              >
+                Salir
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/entrar"
+              className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+            >
+              Entrar
+            </Link>
+          )}
           <Link
             href="/buscar"
             className="rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
@@ -81,13 +115,22 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
-          <Link
-            href="/entrar"
-            onClick={() => setMenuOpen(false)}
-            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
-          >
-            Entrar
-          </Link>
+          {dentro ? (
+            <button
+              onClick={salir}
+              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-noche/80 hover:bg-rosa-50"
+            >
+              Salir ({nombre})
+            </button>
+          ) : (
+            <Link
+              href="/entrar"
+              onClick={() => setMenuOpen(false)}
+              className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       )}
     </nav>

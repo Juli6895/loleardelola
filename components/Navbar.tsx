@@ -8,11 +8,13 @@ const LINKS = [
   { href: "/mi-closet", label: "Mi clóset" },
   { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/mis-outfits", label: "Mis outfits" },
+  { href: "/membresia", label: "Membresía" },
 ];
 
-// Navbar responsive. Sin login por ahora — el ingreso con Pinterest
-// quedó para una fase siguiente, así que todas las secciones están
-// abiertas y los datos viven por dispositivo (ver lib/device-id.ts).
+// Navbar responsive. Todas las secciones siguen abiertas sin cuenta —
+// se puede usar la app sin registrarse, con topes (ver lib/planes.ts).
+// El enlace de "Entrar" es para que quien ya tenga cuenta recupere su
+// clóset desde otro dispositivo, y para pasarse a la membresía.
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
@@ -39,6 +41,12 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/entrar"
+            className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+          >
+            Entrar
+          </Link>
           <Link
             href="/buscar"
             className="rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
@@ -73,6 +81,13 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          <Link
+            href="/entrar"
+            onClick={() => setMenuOpen(false)}
+            className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+          >
+            Entrar
+          </Link>
         </div>
       )}
     </nav>

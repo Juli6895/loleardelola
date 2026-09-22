@@ -1,24 +1,21 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateUserId } from "@/lib/device-user";
+import { revisarTope } from "@/lib/limites";
 import { uploadImage } from "@/lib/cloudinary";
 import { analyzeClosetItem } from "@/lib/garment-ai";
 
-// Límite de prendas en el plan gratis. Placeholder de la Fase de
-// monetización (ver roadmap) — cuando exista el cobro, se salta este límite
-// para usuarias con is_premium = true.
-const FREE_CLOSET_LIMIT = 15;
+// El tope de prendas ya no vive acá: está en lib/planes.ts junto con
+// los de búsquedas y outfits, y se aplica con revisarTope().
 
-// Helper: resuelve el usuario del dispositivo y si es premium.
-async function getUser(
-  req: Request
-): Promise<{ id: string; is_premium: boolean } | null> {
+// Helper: resuelve el usuario de este dispositivo.
+async function getUser(req: Request): Promise<{ id: string } | null> {
   const userId = await getOrCreateUserId(req);
   if (!userId) return null;
   const sb = supabaseAdmin();
   const { data } = await sb
     .from("users")
-    .select("id, is_premium")
+    .select("id")
     .eq("id", userId)
     .maybeSingle();
   return data ?? null;
@@ -62,25 +59,15 @@ export async function POST(req: Request) {
 
   const sb = supabaseAdmin();
 
-  // Límite del plan gratis. Se cuenta antes de subir para no gastar
-  // Cloudinary/Claude en una prenda que no vamos a poder guardar.
-  if (!user.is_premium) {
-    const { count, error: countError } = await sb
-      .from("closet_items")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", user.id);
-    if (countError) {
-      return NextResponse.json({ error: countError.message }, { status: 500 });
-    }
-    if ((count ?? 0) >= FREE_CLOSET_LIMIT) {
-      return NextResponse.json(
-        {
-          error: `Llegaste al límite de ${FREE_CLOSET_LIMIT} prendas del plan gratis.`,
-          limitReached: true,
-        },
-        { status: 403 }
-      );
-    }
+  // Tope de prendas según el plan (ver lib/planes.ts). Se revisa antes
+  // de subir para no gastar Cloudinary ni Claude en una prenda que no
+  // vamos a poder guardar.
+  const tope = await revisarTope(req, "prendasCloset");
+  if (!tope.permitido) {
+    return NextResponse.json(
+      { error: tope.mensaje, destrabaCon: tope.destrabaCon, limite: true },
+      { status: 402 }
+    );
   }
 
   try {

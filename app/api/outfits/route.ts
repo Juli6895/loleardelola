@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { getOrCreateUserId } from "@/lib/device-user";
+import { revisarTope } from "@/lib/limites";
 
 // GET /api/outfits → lista los outfits guardados en este dispositivo
 export async function GET(req: Request) {

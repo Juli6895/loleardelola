@@ -129,6 +129,69 @@ alter table public.users add column if not exists personalidad_fuente text;
 -- Ver lib/device-id.ts (cliente) y lib/device-user.ts (servidor).
 alter table public.users add column if not exists device_id text;
 
+-- =========================================================
+-- Cuentas: ingreso por código al correo
+-- =========================================================
+-- No hay contraseña. La usuaria escribe su correo, le llega un código
+-- de 6 dígitos y con eso entra. Menos pasos para ella y nada que
+-- olvidar — por eso tampoco existe un flujo de "recuperar clave".
+--
+-- El código se guarda HASHEADO, igual que una contraseña: si alguien
+-- llegara a leer la tabla, no puede usar los códigos vigentes.
+create table if not exists public.login_codes (
+  id uuid primary key default uuid_generate_v4(),
+  email text not null,
+  code_hash text not null,
+  expires_at timestamptz not null,
+  -- Intentos fallidos de este código. Al llegar al tope se invalida,
+  -- para que nadie pueda probar los 10.000 códigos posibles.
+  attempts int not null default 0,
+  used_at timestamptz,
+  created_at timestamptz default now()
+);
+create index if not exists idx_login_codes_email
+  on public.login_codes(email, created_at desc);
+
+-- Sesiones abiertas. Se guarda el hash del token, no el token: la
+-- cookie del navegador es el único lugar donde existe en claro.
+create table if not exists public.sessions (
+  token_hash text primary key,
+  user_id uuid references public.users(id) on delete cascade,
+  created_at timestamptz default now(),
+  expires_at timestamptz not null
+);
+create index if not exists idx_sessions_user on public.sessions(user_id);
+
+alter table public.login_codes enable row level security;
+alter table public.sessions enable row level security;
+-- Sin políticas a propósito: estas dos tablas solo se tocan desde el
+-- servidor con la llave de servicio. Nadie más debe poder leerlas.
+
+-- =========================================================
+-- Membresía
+-- =========================================================
+-- Bold no hace cobros recurrentes automáticos: cada pago es único. Por
+-- eso la membresía no es un booleano sino una FECHA DE VENCIMIENTO —
+-- se paga, se suma un mes o un año, y cuando llega la fecha se vuelve
+-- a cobrar. `is_premium` queda para no romper nada viejo, pero la
+-- verdad la tiene premium_until.
+alter table public.users add column if not exists premium_until timestamptz;
+
+-- Pagos recibidos. Se guarda la referencia con la que se le pidió el
+-- pago a Bold, para poder verificarla contra su API y para no acreditar
+-- dos veces el mismo pago si Bold notifica más de una vez.
+create table if not exists public.pagos (
+  order_id text primary key,
+  user_id uuid references public.users(id) on delete set null,
+  plan text not null,
+  monto_cop integer not null,
+  estado text not null default 'pendiente',
+  acreditado_at timestamptz,
+  created_at timestamptz default now()
+);
+create index if not exists idx_pagos_user on public.pagos(user_id);
+alter table public.pagos enable row level security;
+
 -- Índice único recomendado (no obligatorio): evita filas duplicadas si
 -- dos requests simultáneos del mismo dispositivo nuevo llegan a la vez.
 -- El código (lib/device-user.ts) igual funciona sin él — hace select →

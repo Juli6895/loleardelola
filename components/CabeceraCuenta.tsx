@@ -16,7 +16,7 @@ import { comoSeLlama, tieneMembresia, useUsuario } from "@/lib/use-usuario";
 const LO_DE_LA_MEMBRESIA = [
   {
     titulo: "Manual de estilo completo",
-    detalle: "Tus medidas, tu paleta, las prendas que te favorecen y outfits armados para ti, en un documento.",
+    detalle: "Tus cuatro pilares cruzados en un documento: figura, color, sello y lo que quieres proyectar, con tres outfits armados para ti.",
   },
   {
     titulo: "Clóset sin tope",

@@ -7,6 +7,7 @@ import {
   inferirEstacion,
 } from "@/lib/image-consulting/colorimetria";
 import type { Subtono, TonoPiel } from "@/types";
+import { PROYECCIONES, type Proyeccion } from "@/lib/image-consulting/proyeccion";
 
 // GET /api/perfil → medidas y silueta guardadas de este dispositivo
 export async function GET(req: Request) {
@@ -19,7 +20,7 @@ export async function GET(req: Request) {
   const { data, error } = await sb
     .from("users")
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .eq("id", userId)
     .single();
@@ -96,6 +97,12 @@ async function guardarPerfil(req: Request) {
   const estacion =
     subtono && contraste ? inferirEstacion(subtono, contraste) : null;
 
+  // Pilar 4: lo que quiere proyectar. Manda sobre el gusto cuando
+  // los pilares se contradicen — ver lib/manual-estilo.ts.
+  const proyeccion = Object.keys(PROYECCIONES).includes(body.proyeccion)
+    ? (body.proyeccion as Proyeccion)
+    : null;
+
   const pesoKg =
     body.pesoKg != null && body.pesoKg !== "" && Number.isFinite(Number(body.pesoKg))
       ? Number(body.pesoKg)
@@ -117,13 +124,14 @@ async function guardarPerfil(req: Request) {
       tono_piel: tonoPiel,
       color_cabello: colorCabello,
       largo_cabello: texto(body.largoCabello),
+      proyeccion,
       subtono,
       contraste,
       estacion,
     })
     .eq("id", userId)
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente"
     )
     .single();
 

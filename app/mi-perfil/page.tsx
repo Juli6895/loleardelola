@@ -13,6 +13,7 @@ import {
   SUBTONOS,
 } from "@/lib/image-consulting/colorimetria";
 import { colorAHex } from "@/lib/color-swatch";
+import { PROYECCIONES } from "@/lib/image-consulting/proyeccion";
 import type { PerfilSilueta } from "@/types";
 
 const PERFIL_VACIO: PerfilSilueta = {
@@ -31,6 +32,7 @@ const PERFIL_VACIO: PerfilSilueta = {
   personalidad: null,
   personalidad_secundaria: null,
   personalidad_fuente: null,
+  proyeccion: null,
 };
 
 // Página "Mi Perfil": la usuaria ingresa sus medidas (busto, cintura,
@@ -49,6 +51,7 @@ export default function MiPerfilPage() {
   const [colorCabello, setColorCabello] = useState("");
   const [largoCabello, setLargoCabello] = useState("");
   const [tonoPiel, setTonoPiel] = useState("");
+  const [proyeccion, setProyeccion] = useState("");
 
   const [referencia, setReferencia] = useState("");
   const [analizandoPersonalidad, setAnalizandoPersonalidad] = useState(false);
@@ -71,6 +74,7 @@ export default function MiPerfilPage() {
           if (p.color_cabello) setColorCabello(p.color_cabello);
           if (p.largo_cabello) setLargoCabello(p.largo_cabello);
           if (p.tono_piel) setTonoPiel(p.tono_piel);
+          if (p.proyeccion) setProyeccion(p.proyeccion);
         }
       })
       .finally(() => setLoadingInicial(false));
@@ -92,6 +96,7 @@ export default function MiPerfilPage() {
           colorCabello: colorCabello || null,
           largoCabello: largoCabello || null,
           tonoPiel: tonoPiel || null,
+          proyeccion: proyeccion || null,
         }),
       });
       // Si el servidor cae feo puede responder con el cuerpo vacío, y
@@ -393,6 +398,43 @@ export default function MiPerfilPage() {
             contraste, que es lo que define cómo te favorece combinar los
             colores entre sí.
           </p>
+        </div>
+
+        <div className="mt-6 border-t border-rosa-100 pt-5">
+          <h2 className="font-display text-xl text-noche">
+            Qué quieres proyectar
+          </h2>
+          <p className="mt-1 text-xs text-noche/50">
+            Lo demás describe cómo eres. Esto describe lo que buscas — y es
+            lo que manda cuando tu figura y tu gusto piden cosas distintas.
+          </p>
+          <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {(Object.keys(PROYECCIONES) as Array<keyof typeof PROYECCIONES>).map(
+              (k) => {
+                const p = PROYECCIONES[k];
+                const elegida = proyeccion === k;
+                return (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => setProyeccion(elegida ? "" : k)}
+                    className={`rounded-xl border p-3 text-left transition ${
+                      elegida
+                        ? "border-rosa-400 bg-rosa-50"
+                        : "border-rosa-100 hover:border-rosa-300"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium text-noche">
+                      {p.label}
+                    </span>
+                    <span className="mt-0.5 block text-xs leading-snug text-noche/55">
+                      &ldquo;{p.enSusPalabras}&rdquo;
+                    </span>
+                  </button>
+                );
+              }
+            )}
+          </div>
         </div>
 
         <button

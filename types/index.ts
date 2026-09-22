@@ -42,6 +42,8 @@ export type ClosetItem = {
 export type { Silueta } from "@/lib/image-consulting/morfologia";
 import type { Silueta } from "@/lib/image-consulting/morfologia";
 export type { Personalidad } from "@/lib/image-consulting/personalidad";
+export type { Proyeccion } from "@/lib/image-consulting/proyeccion";
+import type { Proyeccion } from "@/lib/image-consulting/proyeccion";
 import type { Personalidad } from "@/lib/image-consulting/personalidad";
 export type {
   Subtono,
@@ -79,6 +81,9 @@ export type PerfilSilueta = {
   // la usuaria. La columna y el cálculo siguen en pie, sin preguntarse.
   subtono: Subtono | null;
   estacion: Estacion | null;
+  // Pilar 4: qué quiere proyectar. Es el único que dice lo que BUSCA,
+  // no lo que es — por eso manda cuando los pilares se contradicen.
+  proyeccion: Proyeccion | null;
   personalidad: Personalidad | null;
   personalidad_secundaria: Personalidad | null;
   personalidad_fuente: string | null;

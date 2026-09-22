@@ -26,10 +26,15 @@ export async function GET(req: Request) {
 // POST /api/outfits → guarda un outfit
 // Body: { imageUrl, tags: string[], pinterestUrl? }
 export async function POST(req: Request) {
-  const userId = await getOrCreateUserId(req);
-  if (!userId) {
-    return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
+  // Tope de outfits guardados según el plan (ver lib/planes.ts).
+  const tope = await revisarTope(req, "outfits");
+  if (!tope.permitido) {
+    return NextResponse.json(
+      { error: tope.mensaje, destrabaCon: tope.destrabaCon, limite: true },
+      { status: 402 }
+    );
   }
+  const userId = tope.usuario.id;
 
   const body = await req.json();
   if (!body.imageUrl || !Array.isArray(body.tags)) {

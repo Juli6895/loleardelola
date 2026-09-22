@@ -27,7 +27,17 @@ export async function POST(req: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, expiraEn: resultado.expiraEn });
+    // En local y sin servicio de correo configurado, el código se
+    // devuelve para poder probar el ingreso de punta a punta. Las dos
+    // condiciones importan: en producción NUNCA se devuelve, aunque
+    // falte la llave, porque sería regalarle la cuenta a cualquiera
+    // que sepa un correo ajeno.
+    const soloEnLocal =
+      process.env.NODE_ENV !== "production" && !envio.enviado
+        ? { codigoDePrueba: resultado.codigo }
+        : {};
+
+    return NextResponse.json({ ok: true, expiraEn: resultado.expiraEn, ...soloEnLocal });
   } catch (e) {
     console.error("[auth/codigo] falló:", e);
     return NextResponse.json({ error: "No pudimos enviarte el código." }, { status: 500 });

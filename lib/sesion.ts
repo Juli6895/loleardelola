@@ -87,11 +87,27 @@ export async function crearCodigo(correo: string): Promise<ResultadoEnvio> {
  * navegador. Si ese correo ya tenía cuenta desde otro dispositivo, hay
  * DOS filas y hay que fundirlas sin perderle nada a ninguna.
  */
+// Versión del documento de privacidad. Si el texto de app/privacy
+// cambia de fondo, sube este valor — eso hace que a todo el mundo se le
+// vuelva a pedir el consentimiento, aunque ya hubiera aceptado antes.
+export const VERSION_POLITICA = "2026-09-24";
+
 export async function verificarCodigo(
   req: Request,
   correo: string,
-  codigo: string
+  codigo: string,
+  aceptaPolitica: boolean
 ): Promise<{ ok: true; userId: string } | { ok: false; motivo: string }> {
+  // Se exige acá, no solo en la pantalla: un checkbox deshabilitado en
+  // el navegador no impide llamar esta función directo. Sin esto,
+  // "obligatorio para crear cuenta" sería solo una sugerencia visual.
+  if (!aceptaPolitica) {
+    return {
+      ok: false,
+      motivo: "Tienes que aceptar la política de privacidad para entrar.",
+    };
+  }
+
   const sb = supabaseAdmin();
 
   const { data: fila } = await sb
@@ -125,6 +141,18 @@ export async function verificarCodigo(
 
   const userId = await unirIdentidades(req, correo);
   if (!userId) return { ok: false, motivo: "No pudimos abrir tu cuenta." };
+
+  // Queda registrado CUÁNDO y QUÉ VERSIÓN aceptó — no solo que aceptó
+  // alguna vez. Se actualiza en cada entrada exitosa: si la política
+  // cambia y sube VERSION_POLITICA, el próximo ingreso vuelve a marcar
+  // la fecha con la versión nueva.
+  await sb
+    .from("users")
+    .update({
+      politica_aceptada_at: new Date().toISOString(),
+      politica_version: VERSION_POLITICA,
+    })
+    .eq("id", userId);
 
   await abrirSesion(userId);
   return { ok: true, userId };

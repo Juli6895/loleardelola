@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import SiluetaIcon from "@/components/SiluetaIcon";
 import CabeceraCuenta from "@/components/CabeceraCuenta";
+import SubNavCuenta from "@/components/SubNavCuenta";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
@@ -195,6 +196,7 @@ export default function MiPerfilPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8">
+      <SubNavCuenta />
       <header className="text-center">
         <h1 className="font-display text-4xl text-noche sm:text-5xl">
           Mi perfil de silueta
@@ -620,35 +622,32 @@ export default function MiPerfilPage() {
           <span className="h-px flex-1 bg-rosa-100" />
         </div>
 
-        <div
-          tabIndex={0}
-          onClick={(e) => e.currentTarget.focus()}
-          className="flex cursor-text flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-6 text-center outline-none transition hover:border-rosa-400 hover:bg-rosa-50 focus:border-rosa-400 focus:bg-rosa-50 focus:ring-2 focus:ring-rosa-200"
-        >
+        {/* Toda la caja es un <label>: en el celular tocar cualquier
+            parte abre la cámara/galería. Antes solo el texto "sube un
+            archivo" abría algo, y el resto de la caja solo pedía
+            Ctrl+V — que no existe en el celular. */}
+        <label className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-6 text-center outline-none transition hover:border-rosa-400 hover:bg-rosa-50 focus-within:border-rosa-400 focus-within:bg-rosa-50 focus-within:ring-2 focus-within:ring-rosa-200">
+          <input
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            disabled={analizandoPersonalidad}
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) analizarPorFoto(f);
+              e.target.value = "";
+            }}
+          />
           <span className="text-sm font-medium text-noche">
             {analizandoPersonalidad
               ? "Analizando tu estilo..."
-              : "Haz clic aquí y pega una foto con Ctrl+V"}
+              : "Toca aquí para subir una foto"}
           </span>
           <span className="text-xs text-noche/50">
-            o{" "}
-            <label className="cursor-pointer font-medium text-rosa-600 underline-offset-2 hover:underline">
-              sube un archivo
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                disabled={analizandoPersonalidad}
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) analizarPorFoto(f);
-                  e.target.value = "";
-                }}
-              />
-            </label>{" "}
-            · tuya o de una referencia de estilo
+            <span className="hidden sm:inline">También puedes pegarla con Ctrl+V · </span>
+            tuya o de una referencia de estilo
           </span>
-        </div>
+        </label>
 
         {perfil?.personalidad && (
           <div className="mt-6 rounded-2xl border border-rosa-100 bg-rosa-50/40 p-5">

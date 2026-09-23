@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getOrCreateUserId } from "@/lib/device-user";
+import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
 import { uploadImage } from "@/lib/cloudinary";
 import { analyzeClosetItem } from "@/lib/garment-ai";
@@ -10,7 +10,7 @@ import { analyzeClosetItem } from "@/lib/garment-ai";
 
 // Helper: resuelve el usuario de este dispositivo.
 async function getUser(req: Request): Promise<{ id: string } | null> {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) return null;
   const sb = supabaseAdmin();
   const { data } = await sb

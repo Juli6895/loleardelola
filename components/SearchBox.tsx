@@ -205,14 +205,27 @@ export default function SearchBox({ onResult }: Props) {
         <span className="h-px flex-1 bg-rosa-100" />
       </div>
 
-      {/* Zona de pegado: enfocable con clic o tab. No abre el selector de
-          archivos — eso vive aparte en el link "sube un archivo" de abajo,
-          así ambas acciones (pegar y subir) quedan claras y separadas. */}
-      <div
-        tabIndex={0}
-        onClick={(e) => e.currentTarget.focus()}
-        className="flex cursor-text flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-8 text-center outline-none transition hover:border-rosa-400 hover:bg-rosa-50 focus:border-rosa-400 focus:bg-rosa-50 focus:ring-2 focus:ring-rosa-200"
+      {/* Zona de subir/pegar. Es un <label> completo envolviendo el input
+          de archivo: TODA la caja es tocable, no solo el texto "sube un
+          archivo" de antes. En el celular no hay Ctrl+V — al tocar la
+          caja no pasaba nada visible, y por eso parecía que no
+          funcionaba. Ahora tocar en cualquier parte abre la cámara o la
+          galería; el pegado con Ctrl+V se mantiene como atajo extra en
+          computador, por el listener de "paste" de más abajo. */}
+      <label
+        className="flex cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-rosa-200 bg-rosa-50/50 px-4 py-8 text-center outline-none transition hover:border-rosa-400 hover:bg-rosa-50 focus-within:border-rosa-400 focus-within:bg-rosa-50 focus-within:ring-2 focus-within:ring-rosa-200"
       >
+        <input
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={loading}
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) analyzeFile(f);
+            e.target.value = "";
+          }}
+        />
         <svg
           className="h-8 w-8 text-rosa-400"
           fill="none"
@@ -227,27 +240,15 @@ export default function SearchBox({ onResult }: Props) {
           />
         </svg>
         <span className="text-sm font-medium text-noche">
-          Haz clic aquí y pega tu foto con Ctrl+V
+          Toca aquí para subir una foto
         </span>
         <span className="text-xs text-noche/50">
-          o{" "}
-          <label className="cursor-pointer font-medium text-rosa-600 underline-offset-2 hover:underline">
-            sube un archivo
-            <input
-              type="file"
-              accept="image/*"
-              className="hidden"
-              disabled={loading}
-              onChange={(e) => {
-                const f = e.target.files?.[0];
-                if (f) analyzeFile(f);
-                e.target.value = "";
-              }}
-            />
-          </label>{" "}
-          · PNG, JPG hasta 8MB
+          {/* En computador se puede pegar directo con Ctrl+V; en el
+              celular esa parte no aplica, así que se oculta ahí. */}
+          <span className="hidden sm:inline">También puedes pegarla con Ctrl+V · </span>
+          PNG, JPG hasta 8MB
         </span>
-      </div>
+      </label>
 
       {loading && (
         <div className="mt-4 flex items-center justify-center gap-2 text-sm text-rosa-600">

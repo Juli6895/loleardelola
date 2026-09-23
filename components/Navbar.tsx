@@ -18,6 +18,11 @@ const LINKS = [
 // se puede usar la app sin registrarse, con topes (ver lib/planes.ts).
 // El enlace de "Entrar" es para que quien ya tenga cuenta recupere su
 // clóset desde otro dispositivo, y para pasarse a la membresía.
+//
+// Con sesión iniciada la barra pasa a fondo oscuro (noche, ya un color
+// de marca) en vez del blanco de siempre — así se nota de un vistazo
+// que se está "dentro" de la cuenta, sin inventar un color nuevo fuera
+// de la paleta.
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const { usuario, recargar } = useUsuario();
@@ -34,13 +39,21 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="sticky top-0 z-20 border-b border-rosa-100 bg-white/80 backdrop-blur">
+    <nav
+      className={`sticky top-0 z-20 border-b backdrop-blur transition-colors ${
+        dentro ? "border-noche bg-noche/95" : "border-rosa-100 bg-white/80"
+      }`}
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-rosa-400 text-white">
             <span className="font-display text-xl">L</span>
           </span>
-          <span className="font-display text-xl tracking-tight sm:text-2xl">
+          <span
+            className={`font-display text-xl tracking-tight sm:text-2xl ${
+              dentro ? "text-white" : "text-noche"
+            }`}
+          >
             LoleardLola
           </span>
         </Link>
@@ -51,7 +64,11 @@ export default function Navbar() {
             <Link
               key={l.href}
               href={l.href}
-              className="text-sm font-medium text-noche/70 transition hover:text-rosa-500"
+              className={`text-sm font-medium transition ${
+                dentro
+                  ? "text-white/70 hover:text-rosa-300"
+                  : "text-noche/70 hover:text-rosa-500"
+              }`}
             >
               {l.label}
             </Link>
@@ -60,16 +77,16 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/mi-perfil"
-                className="flex items-center gap-2 text-sm font-medium text-noche transition hover:text-rosa-500"
+                className="flex items-center gap-2 text-sm font-medium text-white transition hover:text-rosa-300"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rosa-200 text-xs font-semibold uppercase text-rosa-600">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rosa-300 text-xs font-semibold uppercase text-noche">
                   {nombre.slice(0, 1)}
                 </span>
                 {nombre}
               </Link>
               <button
                 onClick={salir}
-                className="text-xs text-noche/40 underline transition hover:text-rosa-500"
+                className="text-xs text-white/40 underline transition hover:text-rosa-300"
               >
                 Salir
               </button>
@@ -84,7 +101,11 @@ export default function Navbar() {
           )}
           <Link
             href="/buscar"
-            className="rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
+            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              dentro
+                ? "bg-rosa-400 text-white hover:bg-rosa-300"
+                : "bg-noche text-white hover:bg-rosa-500"
+            }`}
           >
             Buscar un outfit
           </Link>
@@ -97,21 +118,27 @@ export default function Navbar() {
           onClick={() => setMenuOpen((v) => !v)}
         >
           <span className="space-y-1">
-            <span className="block h-0.5 w-6 bg-noche"></span>
-            <span className="block h-0.5 w-6 bg-noche"></span>
-            <span className="block h-0.5 w-6 bg-noche"></span>
+            <span className={`block h-0.5 w-6 ${dentro ? "bg-white" : "bg-noche"}`}></span>
+            <span className={`block h-0.5 w-6 ${dentro ? "bg-white" : "bg-noche"}`}></span>
+            <span className={`block h-0.5 w-6 ${dentro ? "bg-white" : "bg-noche"}`}></span>
           </span>
         </button>
       </div>
 
       {menuOpen && (
-        <div className="border-t border-rosa-100 bg-white px-4 pb-4 pt-2 sm:hidden">
+        <div
+          className={`border-t px-4 pb-4 pt-2 sm:hidden ${
+            dentro ? "border-white/10 bg-noche" : "border-rosa-100 bg-white"
+          }`}
+        >
           {LINKS.map((l) => (
             <Link
               key={l.href}
               href={l.href}
               onClick={() => setMenuOpen(false)}
-              className="block rounded-lg px-3 py-2 text-sm font-medium text-noche/80 hover:bg-rosa-50"
+              className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
+              }`}
             >
               {l.label}
             </Link>
@@ -119,7 +146,7 @@ export default function Navbar() {
           {dentro ? (
             <button
               onClick={salir}
-              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-noche/80 hover:bg-rosa-50"
+              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/80 transition hover:bg-white/10"
             >
               Salir ({nombre})
             </button>

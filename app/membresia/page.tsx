@@ -1,17 +1,28 @@
-import Link from "next/link";
+"use client";
+
 import { PRECIOS, TOPES } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
+import SubNavCuenta from "@/components/SubNavCuenta";
+import { tieneMembresia, useUsuario } from "@/lib/use-usuario";
 
 // Página de la membresía: qué da cada plan y los botones de pago.
 //
 // Bold no hace cobros recurrentes, así que la membresía es una fecha de
 // vencimiento y no una suscripción — ver lib/bold.ts. Eso se dice al
 // pie de la página para no prometer una renovación que no existe.
+//
+// Es cliente (antes era servidor) porque necesita saber si YA tiene
+// membresía para mostrar el aviso de arriba y cambiar el texto de los
+// botones — antes se veía igual para todo el mundo, así que alguien con
+// membresía activa no tenía forma de saber que ya la tenía.
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
 export default function MembresiaPage() {
+  const { usuario } = useUsuario();
+  const conMembresia = tieneMembresia(usuario);
+
   const filas = [
     {
       que: "Búsquedas de outfits",
@@ -32,6 +43,7 @@ export default function MembresiaPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-6">
+      <SubNavCuenta />
       {/* Paso 1 del embudo de pago. */}
       <AnotarVista nombre="membresia_vista" />
       <header className="text-center">
@@ -44,6 +56,24 @@ export default function MembresiaPage() {
           para ti.
         </p>
       </header>
+
+      {conMembresia && usuario?.premiumUntil && (
+        <div className="rounded-2xl border border-rosa-300 bg-rosa-50/70 p-5 text-center">
+          <p className="font-display text-xl text-noche">
+            Ya tienes membresía activa
+          </p>
+          <p className="mt-1 text-sm text-noche/60">
+            Vence el{" "}
+            {new Date(usuario.premiumUntil).toLocaleDateString("es-CO", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
+            . Si compras de nuevo, los días se suman a lo que te queda — no
+            los reemplazan.
+          </p>
+        </div>
+      )}
 
       <div className="overflow-hidden rounded-2xl border border-rosa-100 bg-white shadow-sm">
         <table className="w-full text-sm">
@@ -86,29 +116,43 @@ export default function MembresiaPage() {
         </table>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="flex flex-col rounded-2xl border border-rosa-100 bg-white p-6 text-center shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-widest text-noche/50">
-            Mensual
+      <div>
+        {conMembresia && (
+          <p className="mb-3 text-center text-xs text-noche/50">
+            Comprar de nuevo te suma tiempo — no hace falta esperar a que se
+            venza.
           </p>
-          <p className="mt-2 font-display text-3xl text-noche">
-            {pesos(PRECIOS.mensual)}
-          </p>
-          <p className="mt-1 mb-5 text-xs text-noche/50">al mes</p>
-          <div className="mt-auto">
-            <BotonPago plan="mensual" etiqueta="Pagar el mes" />
+        )}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div className="flex flex-col rounded-2xl border border-rosa-100 bg-white p-6 text-center shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-widest text-noche/50">
+              Mensual
+            </p>
+            <p className="mt-2 font-display text-3xl text-noche">
+              {pesos(PRECIOS.mensual)}
+            </p>
+            <p className="mt-1 mb-5 text-xs text-noche/50">al mes</p>
+            <div className="mt-auto">
+              <BotonPago
+                plan="mensual"
+                etiqueta={conMembresia ? "Sumar un mes más" : "Pagar el mes"}
+              />
+            </div>
           </div>
-        </div>
-        <div className="flex flex-col rounded-2xl border border-rosa-300 bg-rosa-50/50 p-6 text-center shadow-sm">
-          <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
-            Anual
-          </p>
-          <p className="mt-2 font-display text-3xl text-noche">
-            {pesos(PRECIOS.anual)}
-          </p>
-          <p className="mt-1 mb-5 text-xs text-noche/50">al año</p>
-          <div className="mt-auto">
-            <BotonPago plan="anual" etiqueta="Pagar el año" />
+          <div className="flex flex-col rounded-2xl border border-rosa-300 bg-rosa-50/50 p-6 text-center shadow-sm">
+            <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
+              Anual
+            </p>
+            <p className="mt-2 font-display text-3xl text-noche">
+              {pesos(PRECIOS.anual)}
+            </p>
+            <p className="mt-1 mb-5 text-xs text-noche/50">al año</p>
+            <div className="mt-auto">
+              <BotonPago
+                plan="anual"
+                etiqueta={conMembresia ? "Sumar un año más" : "Pagar el año"}
+              />
+            </div>
           </div>
         </div>
       </div>

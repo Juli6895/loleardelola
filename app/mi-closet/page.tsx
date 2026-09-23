@@ -5,6 +5,7 @@ import ClosetUpload from "@/components/ClosetUpload";
 import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
+import SubNavCuenta from "@/components/SubNavCuenta";
 import { TOPES } from "@/lib/planes";
 
 // El tope vive en lib/planes.ts, junto con los de búsquedas y outfits.
@@ -29,6 +30,7 @@ export default function MiClosetPage() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      <SubNavCuenta />
       <header className="text-center">
         <h1 className="font-display text-4xl text-noche sm:text-5xl">
           Mi clóset

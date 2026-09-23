@@ -215,6 +215,35 @@ export type UsuarioActual = {
 };
 
 /**
+ * El id de quién debe ver estos datos: si hay sesión abierta, la cuenta
+ * de la sesión — así el clóset, el perfil y los outfits viajan entre
+ * dispositivos. Si no, el navegador, como antes de que existiera login.
+ *
+ * Existe aparte de usuarioActual() para los endpoints de más tráfico
+ * (clóset, perfil, outfits), donde no hace falta el resto del objeto
+ * (correo, plan) y una consulta menos importa.
+ *
+ * ⚠️ Antes de esto, clóset/perfil/outfits usaban SOLO getOrCreateUserId
+ * (el navegador), ignorando la sesión por completo: alguien con cuenta
+ * que entraba desde el celular no veía nada de lo que había hecho en la
+ * computadora, porque cada aparato tiene su propio device_id.
+ */
+export async function resolverUserId(req: Request): Promise<string | null> {
+  const token = cookies().get(COOKIE)?.value;
+  if (token) {
+    const { data: sesion } = await supabaseAdmin()
+      .from("sessions")
+      .select("user_id, expires_at")
+      .eq("token_hash", hash(token))
+      .maybeSingle();
+    if (sesion && new Date(sesion.expires_at) > new Date()) {
+      return sesion.user_id;
+    }
+  }
+  return getOrCreateUserId(req);
+}
+
+/**
  * Quién está usando la app ahora. Primero mira la sesión; si no hay,
  * cae en la identidad anónima del navegador, que es como funcionaba
  * todo hasta ahora.

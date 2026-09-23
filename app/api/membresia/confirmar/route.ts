@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { consultarPago } from "@/lib/bold";
 import { DIAS_DE_PLAN, type TipoPlan } from "@/lib/planes";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/membresia/confirmar  { orden }
 //
@@ -45,6 +46,11 @@ export async function POST(req: Request) {
   }
 
   if (voucher.estado !== "APPROVED") {
+    registrar("pago_rechazado", contextoDe(req, pago.user_id), {
+      estado: voucher.estado,
+      plan: pago.plan,
+      metodo: voucher.metodo ?? "",
+    });
     await sb
       .from("pagos")
       .update({ estado: voucher.estado.toLowerCase() })
@@ -92,5 +98,10 @@ export async function POST(req: Request) {
     .update({ estado: "acreditado", acreditado_at: new Date().toISOString() })
     .eq("order_id", orden);
 
+  registrar("pago_aprobado", contextoDe(req, pago.user_id), {
+    plan: pago.plan,
+    monto: pago.monto_cop,
+    metodo: voucher.metodo ?? "",
+  });
   return NextResponse.json({ ok: true, estado: "acreditado", hasta: hasta.toISOString() });
 }

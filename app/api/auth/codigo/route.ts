@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { crearCodigo, normalizarCorreo } from "@/lib/sesion";
 import { enviarCodigo } from "@/lib/email";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/auth/codigo  { email }
 // Manda un código de 6 dígitos al correo.
@@ -37,6 +38,7 @@ export async function POST(req: Request) {
         ? { codigoDePrueba: resultado.codigo }
         : {};
 
+    registrar("ingreso_codigo_pedido", contextoDe(req));
     return NextResponse.json({ ok: true, expiraEn: resultado.expiraEn, ...soloEnLocal });
   } catch (e) {
     console.error("[auth/codigo] falló:", e);

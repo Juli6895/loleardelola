@@ -5,6 +5,7 @@ import { useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { useUsuario } from "@/lib/use-usuario";
+import { anotar } from "@/lib/use-evento";
 import type { TipoPlan } from "@/lib/planes";
 
 // Botón de pago de Bold.
@@ -74,6 +75,9 @@ export default function BotonPago({
 
   async function pagar() {
     setOcupado(true);
+    // Se anota ANTES de pedir nada. La diferencia entre este evento y
+    // "pago_abierto" es la gente que tocó pagar y no llegó al checkout.
+    anotar("pago_intentado", { plan });
     try {
       const res = await fetchConDispositivo("/api/membresia/checkout", {
         method: "POST",
@@ -109,6 +113,7 @@ export default function BotonPago({
       // encendido evita que alguien alcance a hacer doble clic y se
       // creen dos órdenes.
     } catch (err: any) {
+      anotar("pago_error", { plan, motivo: String(err?.message ?? err).slice(0, 120) });
       toast.error(err.message ?? "No pudimos abrir el pago");
       setOcupado(false);
     }

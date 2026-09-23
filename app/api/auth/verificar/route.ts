@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { normalizarCorreo, verificarCodigo, usuarioActual } from "@/lib/sesion";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/auth/verificar  { email, codigo }
 // Valida el código y deja la sesión abierta (cookie).
@@ -18,9 +19,11 @@ export async function POST(req: Request) {
 
     const resultado = await verificarCodigo(req, correo, codigo);
     if (!resultado.ok) {
+      registrar("ingreso_error", contextoDe(req), { motivo: resultado.motivo });
       return NextResponse.json({ error: resultado.motivo }, { status: 401 });
     }
 
+    registrar("ingreso_ok", contextoDe(req, resultado.userId));
     const usuario = await usuarioActual(req);
     return NextResponse.json({ ok: true, usuario });
   } catch (e) {

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { PRECIOS, TOPES } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
+import AnotarVista from "@/components/AnotarVista";
 
 // Página de la membresía: qué da cada plan y los botones de pago.
 //
@@ -31,6 +32,8 @@ export default function MembresiaPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 py-6">
+      {/* Paso 1 del embudo de pago. */}
+      <AnotarVista nombre="membresia_vista" />
       <header className="text-center">
         <h1 className="font-display text-4xl text-noche sm:text-5xl">
           La membresía

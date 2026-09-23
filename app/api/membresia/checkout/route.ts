@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { armarBoton } from "@/lib/bold";
 import { PRECIOS, type TipoPlan } from "@/lib/planes";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/membresia/checkout  { plan: "mensual" | "anual" }
 //
@@ -45,5 +46,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
+  // Paso 3 del embudo: el checkout quedó listo. Si hay muchos de
+  // estos y pocos pago_aprobado, la gente se está cayendo EN Bold, no
+  // en nuestra página — que es una conclusión muy distinta.
+  registrar("pago_abierto", contextoDe(req, usuario.id), { plan, monto: PRECIOS[plan] });
   return NextResponse.json({ boton });
 }

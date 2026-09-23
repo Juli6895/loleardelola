@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
+import SubNavCuenta from "@/components/SubNavCuenta";
 
 // El manual de estilo: lo que da la membresía.
 //
@@ -19,7 +20,20 @@ type Estado = {
   desactualizado: boolean;
 };
 
+// Envoltorio: la pestaña de navegación tiene que verse en TODOS los
+// estados de abajo (sin membresía, perfil incompleto, sin generar,
+// listo) — y esos estados son "return" tempranos, no un solo árbol de
+// JSX. Más simple ponerla una vez acá afuera que repetirla cinco veces.
 export default function ManualPage() {
+  return (
+    <div>
+      <SubNavCuenta />
+      <Contenido />
+    </div>
+  );
+}
+
+function Contenido() {
   const [estado, setEstado] = useState<Estado | null>(null);
   const [generando, setGenerando] = useState(false);
 

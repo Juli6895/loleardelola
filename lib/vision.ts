@@ -331,10 +331,41 @@ export async function analyzeImage(
  * Admite URLs tipo https://www.pinterest.com/pin/12345/, https://co.pinterest.com/pin/...
  * y enlaces cortos https://pin.it/abc
  */
+// Antes esta función no tenía límite de tiempo: si Pinterest se
+// demoraba (o nunca respondía), la petición se quedaba colgada hasta
+// que la plataforma la cortara sola, y a la usuaria le salía un error
+// genérico sin explicación — probablemente lo que pasó "en la mañana".
+// Con el límite explícito, un enlace lento falla rápido y con un
+// motivo claro.
+const TIEMPO_LIMITE_MS = 12_000;
+
+export type ResultadoExtraccion =
+  | { ok: true; imageUrl: string }
+  | { ok: false; motivo: "url-invalida" | "tiempo-agotado" | "red" | "sin-imagen" };
+
 export async function extractPinterestImage(pinUrl: string): Promise<string | null> {
+  const r = await extraerConMotivo(pinUrl);
+  return r.ok ? r.imageUrl : null;
+}
+
+/** Igual que extractPinterestImage, pero dice POR QUÉ falló. */
+export async function extraerConMotivo(pinUrl: string): Promise<ResultadoExtraccion> {
+  let url: URL;
+  try {
+    url = new URL(pinUrl);
+  } catch {
+    return { ok: false, motivo: "url-invalida" };
+  }
+  if (!/pinterest\.|pin\.it/i.test(url.hostname)) {
+    return { ok: false, motivo: "url-invalida" };
+  }
+
+  const control = new AbortController();
+  const corte = setTimeout(() => control.abort(), TIEMPO_LIMITE_MS);
   try {
     const res = await fetch(pinUrl, {
       redirect: "follow",
+      signal: control.signal,
       headers: {
         // Pinterest a veces entrega HTML reducido si el UA no es de navegador real
         "User-Agent":
@@ -344,9 +375,21 @@ export async function extractPinterestImage(pinUrl: string): Promise<string | nu
       },
     });
     const html = await res.text();
-    return extractOgImage(html);
-  } catch {
-    return null;
+    const imagen = extractOgImage(html);
+    if (!imagen) {
+      console.warn("[vision] Pinterest sin og:image (¿bloqueó el request?):", pinUrl);
+      return { ok: false, motivo: "sin-imagen" };
+    }
+    return { ok: true, imageUrl: imagen };
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      console.warn("[vision] Pinterest tardó más de", TIEMPO_LIMITE_MS, "ms:", pinUrl);
+      return { ok: false, motivo: "tiempo-agotado" };
+    }
+    console.warn("[vision] no se pudo leer el pin:", pinUrl, e);
+    return { ok: false, motivo: "red" };
+  } finally {
+    clearTimeout(corte);
   }
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import SubNavCuenta from "@/components/SubNavCuenta";
 import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
 import { fetchConDispositivo } from "@/lib/device-id";

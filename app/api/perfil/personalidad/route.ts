@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getOrCreateUserId } from "@/lib/device-user";
+import { resolverUserId } from "@/lib/sesion";
 import { uploadImage } from "@/lib/cloudinary";
 import {
   inferirPersonalidadPorImagen,
@@ -11,7 +11,7 @@ import {
 // Body: { referencia: string } — nombre de celebridad/personaje, o
 //       { imageBase64: string } — foto propia o de inspiración
 export async function POST(req: Request) {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }

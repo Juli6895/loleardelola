@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { analyzeImage, extractPinterestImage } from "@/lib/vision";
+import { analyzeImage, extraerConMotivo } from "@/lib/vision";
 import { analyzeImageWithClaude } from "@/lib/garment-ai";
 import { uploadImage } from "@/lib/cloudinary";
 import { getExcludedMerchants } from "@/lib/merchant-exclusions";
@@ -45,13 +45,26 @@ export async function POST(req: Request) {
     let imageUrl: string | null = null;
 
     if (body.pinterestUrl) {
-      imageUrl = await extractPinterestImage(body.pinterestUrl);
-      if (!imageUrl) {
-        return NextResponse.json(
-          { error: "No pudimos leer la imagen del pin. Revisa el link." },
-          { status: 400 }
-        );
+      // Antes esto solo devolvía true/false, sin decir por qué falló —
+      // el mismo mensaje genérico salía si el link estaba mal escrito,
+      // si Pinterest se demoró, o si bloqueó el request. Con el motivo
+      // explícito, cada caso dice algo distinto y accionable.
+      const extraido = await extraerConMotivo(body.pinterestUrl);
+      if (!extraido.ok) {
+        const mensajes: Record<typeof extraido.motivo, string> = {
+          "url-invalida": "Ese link no parece de Pinterest. Revísalo.",
+          "tiempo-agotado":
+            "Pinterest se demoró en responder. Intenta de nuevo en un momento.",
+          red: "No pudimos conectarnos a Pinterest. Intenta de nuevo.",
+          "sin-imagen":
+            "No encontramos la foto en ese pin. Prueba subiéndola como archivo en vez del link.",
+        };
+        registrar("busqueda_error", contextoDe(req, tope.usuario?.id), {
+          motivo: `pinterest-${extraido.motivo}`,
+        });
+        return NextResponse.json({ error: mensajes[extraido.motivo] }, { status: 400 });
       }
+      imageUrl = extraido.imageUrl;
     } else if (body.imageUrl) {
       imageUrl = body.imageUrl;
     } else if (body.imageBase64) {

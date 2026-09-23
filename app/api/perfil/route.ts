@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getOrCreateUserId } from "@/lib/device-user";
+import { resolverUserId } from "@/lib/sesion";
 import { inferirSiluetaPorMedidas } from "@/lib/image-consulting/morfologia";
 import {
   inferirContraste,
@@ -11,7 +11,7 @@ import { PROYECCIONES, type Proyeccion } from "@/lib/image-consulting/proyeccion
 
 // GET /api/perfil → medidas y silueta guardadas de este dispositivo
 export async function GET(req: Request) {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
 }
 
 async function guardarPerfil(req: Request) {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }

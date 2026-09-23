@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { getOrCreateUserId } from "@/lib/device-user";
+import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
 
 // GET /api/outfits → lista los outfits guardados en este dispositivo
 export async function GET(req: Request) {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }
@@ -72,7 +72,7 @@ export async function POST(req: Request) {
 
 // DELETE /api/outfits?id=xxx
 export async function DELETE(req: Request) {
-  const userId = await getOrCreateUserId(req);
+  const userId = await resolverUserId(req);
   if (!userId) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
   }

@@ -95,3 +95,71 @@ from public.eventos
 where nombre like '%_error' or nombre = 'tope_alcanzado'
 group by nombre, props->>'motivo'
 order by veces desc;
+
+-- =========================================================
+-- Vistas del tablero de administración (/admin)
+-- =========================================================
+-- Van como vistas y no como consultas dentro del código para que la
+-- definición del embudo viva en un solo lugar. Si mañana cambia un
+-- paso, se corrige acá y la página no se entera.
+
+-- Embudo completo, de la primera búsqueda al pago.
+create or replace view public.v_embudo_general as
+with pasos as (
+  select 1 as orden, 'Buscó un outfit'    as paso, 'busqueda_ok'     as evento
+  union all select 2, 'Creó cuenta',         'ingreso_ok'
+  union all select 3, 'Completó su perfil',  'perfil_guardado'
+  union all select 4, 'Vio la membresía',    'membresia_vista'
+  union all select 5, 'Tocó pagar',          'pago_intentado'
+  union all select 6, 'Pagó',                'pago_aprobado'
+)
+select
+  p.orden,
+  p.paso,
+  count(distinct coalesce(e.user_id::text, e.device_id)) as personas
+from pasos p
+left join public.eventos e on e.nombre = p.evento
+group by p.orden, p.paso
+order by p.orden;
+
+-- Quién tocó pagar y no terminó. Separa los dos casos, que son
+-- problemas distintos: caerse en NUESTRA página o caerse en Bold.
+create or replace view public.v_se_quedaron_pagando as
+select
+  u.email,
+  u.name as nombre,
+  max(e.created_at) as ultimo_intento,
+  count(*) filter (where e.nombre = 'pago_intentado') as toco_pagar,
+  count(*) filter (where e.nombre = 'pago_abierto')   as abrio_checkout,
+  count(*) filter (where e.nombre = 'pago_rechazado') as rechazos,
+  case
+    when count(*) filter (where e.nombre = 'pago_abierto') = 0
+      then 'No llegó al checkout'
+    when count(*) filter (where e.nombre = 'pago_rechazado') > 0
+      then 'Le rechazaron el pago'
+    else 'Abandonó en Bold'
+  end as donde_se_quedo
+from public.eventos e
+join public.users u on u.id = e.user_id
+where e.nombre in ('pago_intentado','pago_abierto','pago_rechazado','pago_aprobado')
+group by u.id, u.email, u.name
+having count(*) filter (where e.nombre = 'pago_aprobado') = 0;
+
+-- Actividad por día, últimos 30.
+create or replace view public.v_actividad_diaria as
+select
+  date_trunc('day', created_at)::date as dia,
+  count(*) filter (where nombre = 'busqueda_ok')    as busquedas,
+  count(*) filter (where nombre = 'ingreso_ok')     as ingresos,
+  count(*) filter (where nombre = 'pago_intentado') as intentos_de_pago,
+  count(*) filter (where nombre = 'pago_aprobado')  as pagos
+from public.eventos
+where created_at > now() - interval '30 days'
+group by 1
+order by 1;
+
+-- Resumen de niveles, ya contado.
+create or replace view public.v_resumen_niveles as
+select nivel, count(*) as personas
+from public.v_usuarios_por_nivel
+group by nivel;

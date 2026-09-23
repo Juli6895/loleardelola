@@ -6,6 +6,12 @@ import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { comoSeLlama, tieneMembresia, useUsuario } from "@/lib/use-usuario";
 
+// El enlace al tablero solo aparece para administración. No es una
+// medida de seguridad —el permiso se revisa en el servidor, ver
+// lib/admin.ts— sino para no mostrarle a nadie una puerta que no
+// puede abrir.
+const CORREOS_ADMIN = ["contacto@lakaja.co"];
+
 // Cabecera de la cuenta, arriba de "Mi perfil".
 //
 // Hace dos cosas que faltaban después de entrar: saludar por el nombre
@@ -128,12 +134,22 @@ export default function CabeceraCuenta() {
                 {conMembresia ? " · Membresía activa" : " · Cuenta gratis"}
               </p>
             </div>
-            <button
-              onClick={() => setEditandoNombre(true)}
-              className="shrink-0 text-xs text-noche/40 underline transition hover:text-rosa-500"
-            >
-              Cambiar mi nombre
-            </button>
+            <div className="flex shrink-0 flex-col items-end gap-1">
+              <button
+                onClick={() => setEditandoNombre(true)}
+                className="text-xs text-noche/40 underline transition hover:text-rosa-500"
+              >
+                Cambiar mi nombre
+              </button>
+              {CORREOS_ADMIN.includes((usuario.email ?? "").toLowerCase()) && (
+                <Link
+                  href="/admin"
+                  className="text-xs text-rosa-500 underline transition hover:text-rosa-600"
+                >
+                  Ver el tablero
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </div>

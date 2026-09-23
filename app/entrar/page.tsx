@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
@@ -32,6 +33,9 @@ function Formulario() {
   const [correo, setCorreo] = useState("");
   const [codigo, setCodigo] = useState("");
   const [cargando, setCargando] = useState(false);
+  // Sin marcar por defecto: un consentimiento válido exige una acción
+  // explícita, no una casilla premarcada.
+  const [acepto, setAcepto] = useState(false);
 
   async function pedirCodigo(e: React.FormEvent) {
     e.preventDefault();
@@ -60,7 +64,7 @@ function Formulario() {
       const res = await fetchConDispositivo("/api/auth/verificar", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: correo, codigo }),
+        body: JSON.stringify({ email: correo, codigo, aceptaPolitica: acepto }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No pudimos validar el código");
@@ -110,9 +114,28 @@ function Formulario() {
                 className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
               />
             </div>
+            <label className="flex items-start gap-2.5 text-xs text-noche/60">
+              <input
+                type="checkbox"
+                checked={acepto}
+                onChange={(e) => setAcepto(e.target.checked)}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-rosa-300 text-rosa-500 focus:ring-rosa-400"
+              />
+              <span>
+                Acepto la{" "}
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  className="font-medium text-rosa-600 underline underline-offset-2"
+                >
+                  política de privacidad
+                </Link>
+                . Uso mi correo y mis datos de perfil según se explica ahí.
+              </span>
+            </label>
             <button
               type="submit"
-              disabled={cargando}
+              disabled={cargando || !acepto}
               className="w-full rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {cargando ? "Enviando..." : "Mandarme el código"}

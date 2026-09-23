@@ -17,7 +17,8 @@ export async function POST(req: Request) {
       );
     }
 
-    const resultado = await verificarCodigo(req, correo, codigo);
+    const aceptaPolitica = body.aceptaPolitica === true;
+    const resultado = await verificarCodigo(req, correo, codigo, aceptaPolitica);
     if (!resultado.ok) {
       registrar("ingreso_error", contextoDe(req), { motivo: resultado.motivo });
       return NextResponse.json({ error: resultado.motivo }, { status: 401 });

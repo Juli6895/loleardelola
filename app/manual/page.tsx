@@ -13,6 +13,7 @@ import { CONTRASTES } from "@/lib/image-consulting/colorimetria";
 import { PROYECCIONES } from "@/lib/image-consulting/proyeccion";
 import type { PerfilSilueta } from "@/types";
 import { construirInformeHtml } from "@/lib/informe-html";
+import { colorAHex } from "@/lib/color-swatch";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 
 // El manual de estilo: lo que da la membresía.
@@ -252,6 +253,39 @@ function describir(p: { tipo: string; color: string; rasgos: string[] }): string
   return [p.tipo, p.color, ...p.rasgos].filter(Boolean).join(" · ");
 }
 
+/**
+ * La paleta de un outfit, en puntos de color. Antes los colores solo se
+ * leían en el nombre de cada prenda ("blazer azul denim") y por eso no
+ * se veían como paleta — esto los saca como una fila de circulitos, en
+ * el mismo orden en que aparecen las prendas.
+ */
+function PaletaDeColores({ prendas }: { prendas: Array<{ color: string }> }) {
+  const vistos = new Set<string>();
+  const colores = prendas
+    .map((p) => p.color)
+    .filter((c) => {
+      const k = c.toLowerCase();
+      if (!c || vistos.has(k)) return false;
+      vistos.add(k);
+      return true;
+    });
+  if (colores.length === 0) return null;
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-2">
+      {colores.map((c) => (
+        <span key={c} className="flex items-center gap-1.5">
+          <span
+            className="h-4 w-4 rounded-full border border-noche/10"
+            style={{ backgroundColor: colorAHex(c) }}
+            aria-hidden
+          />
+          <span className="text-xs text-noche/50">{c}</span>
+        </span>
+      ))}
+    </div>
+  );
+}
+
 /** "Tres outfits para ti" — cada uno ya trae solo prendas confirmadas. */
 function SeccionOutfits({ outfits }: { outfits: OutfitListo[] }) {
   if (outfits.length === 0) return null;
@@ -273,6 +307,7 @@ function SeccionOutfits({ outfits }: { outfits: OutfitListo[] }) {
             {o.descripcion && (
               <p className="mt-1 text-sm text-noche/70">{o.descripcion}</p>
             )}
+            <PaletaDeColores prendas={o.prendas} />
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {o.prendas.map((p, j) => (
                 <FotosDePrenda key={j} fotos={p.fotos.slice(0, 2)} />
@@ -301,7 +336,14 @@ function SeccionPrendasClave({ prendas }: { prendas: PrendaClaveLista[] }) {
               {i + 1}
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-sm font-medium text-noche">{describir(p)}</p>
+              <p className="flex items-center gap-2 text-sm font-medium text-noche">
+                <span
+                  className="h-3.5 w-3.5 shrink-0 rounded-full border border-noche/10"
+                  style={{ backgroundColor: colorAHex(p.color) }}
+                  aria-hidden
+                />
+                {describir(p)}
+              </p>
               {p.porque && <p className="mt-0.5 text-sm text-noche/60">{p.porque}</p>}
               <div className="mt-3 grid grid-cols-4 gap-2">
                 <FotosDePrenda fotos={p.fotos.slice(0, 4)} soloFoto />

@@ -32,10 +32,40 @@ const COLOR_HEX: Record<string, string> = {
   coral: "#ff6f61",
   camel: "#c19a6b",
   terracota: "#c1603e",
+  chocolate: "#4a2c1a",
+  crudo: "#efe6d8",
+  marfil: "#f5f0e6",
+  caqui: "#8a7b5c",
+  khaki: "#8a7b5c",
+  "verde salvia": "#87a06b",
+  salvia: "#87a06b",
+  "rosa viejo": "#c98a99",
+  "rosa empolvado": "#c98a99",
+  borgoña: "#6e1423",
+  vino: "#6e1423",
+  "azul medio": "#3b6ea5",
+  "azul denim": "#3f5f7a",
+  denim: "#3f5f7a",
+  indigo: "#3a3f6b",
+  índigo: "#3a3f6b",
+  "gris perla": "#c9c9c9",
 };
 
-/** Devuelve un hex aproximado para un nombre de color en español (case
- * insensitive). Si no lo reconoce, cae a un gris neutro. */
+/**
+ * Devuelve un hex aproximado para un nombre de color en español. Si no
+ * hay coincidencia exacta, busca la clave conocida más larga que esté
+ * contenida en el nombre — así "mostaza pálido" o "azul denim oscuro"
+ * igual encuentran un color de referencia en vez de caer siempre al
+ * gris. Solo es para pintar un puntico junto al nombre, no necesita ser
+ * exacto.
+ */
 export function colorAHex(nombre: string): string {
-  return COLOR_HEX[nombre.trim().toLowerCase()] ?? "#a3a3a3";
+  const limpio = nombre.trim().toLowerCase();
+  if (COLOR_HEX[limpio]) return COLOR_HEX[limpio];
+
+  const claves = Object.keys(COLOR_HEX).sort((a, b) => b.length - a.length);
+  for (const clave of claves) {
+    if (limpio.includes(clave)) return COLOR_HEX[clave];
+  }
+  return "#a3a3a3";
 }

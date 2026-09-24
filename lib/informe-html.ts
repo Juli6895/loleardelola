@@ -1,5 +1,6 @@
 import type { ManualListo } from "./manual-estilo";
 import type { ProductoTienda } from "./catalogo-tiendas";
+import { colorAHex } from "./color-swatch";
 
 // =====================================================================
 // El manual, como página HTML descargable
@@ -53,6 +54,27 @@ function describir(p: { tipo: string; color: string; rasgos: string[] }): string
   return [p.tipo, p.color, ...p.rasgos].filter(Boolean).join(" · ");
 }
 
+function punto(color: string): string {
+  return `<span class="punto-color" style="background:${escapar(colorAHex(color))}"></span>`;
+}
+
+/** La paleta de un outfit, en puntos de color — sin repetir. */
+function paletaHtml(prendas: Array<{ color: string }>): string {
+  const vistos = new Set<string>();
+  const colores = prendas
+    .map((p) => p.color)
+    .filter((c) => {
+      const k = c.toLowerCase();
+      if (!c || vistos.has(k)) return false;
+      vistos.add(k);
+      return true;
+    });
+  if (colores.length === 0) return "";
+  return `<div class="paleta">${colores
+    .map((c) => `<span class="paleta-item">${punto(c)}<span>${escapar(c)}</span></span>`)
+    .join("")}</div>`;
+}
+
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
 function tarjetaProducto(p: ProductoTienda): string {
@@ -103,6 +125,7 @@ export function construirInformeHtml(datos: {
       <div class="outfit">
         <p class="outfit-titulo">${escapar(o.titulo)}</p>
         ${o.descripcion ? `<p class="outfit-desc">${escapar(o.descripcion)}</p>` : ""}
+        ${paletaHtml(o.prendas)}
         <div class="grid-4">${o.prendas.map((p) => p.fotos.slice(0, 2).map(tarjetaProducto).join("")).join("")}</div>
       </div>`
     )
@@ -114,7 +137,7 @@ export function construirInformeHtml(datos: {
       <div class="clave-item">
         <span class="clave-numero">${i + 1}</span>
         <div class="clave-texto">
-          <p class="clave-nombre">${escapar(describir(p))}</p>
+          <p class="clave-nombre">${punto(p.color)}${escapar(describir(p))}</p>
           ${p.porque ? `<p class="clave-porque">${escapar(p.porque)}</p>` : ""}
           <div class="grid-4 clave-fotos">${p.fotos.slice(0, 4).map(tarjetaProducto).join("")}</div>
         </div>
@@ -160,6 +183,9 @@ export function construirInformeHtml(datos: {
   .outfit:last-child { margin-bottom: 0; }
   .outfit-titulo { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--rosa-600); margin: 0 0 4px; }
   .outfit-desc { font-size: 13px; margin-bottom: 12px; }
+  .paleta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .paleta-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: rgba(17,17,17,0.5); }
+  .punto-color { display: inline-block; width: 13px; height: 13px; border-radius: 999px; border: 1px solid rgba(17,17,17,0.1); flex-shrink: 0; vertical-align: middle; margin-right: 6px; }
   .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
   @media (max-width: 480px) { .grid-4 { grid-template-columns: repeat(2, 1fr); } }
   .producto { display: flex; flex-direction: column; border: 1px solid var(--rosa-100); border-radius: 12px; overflow: hidden; text-decoration: none; color: inherit; background: #fff; }

@@ -2,11 +2,12 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import {
+  adjuntarFotos,
   generarManual,
   huella,
   loQueFalta,
   type DatosManual,
-  type ManualGenerado,
+  type ManualListo,
 } from "@/lib/manual-estilo";
 
 // GET  /api/manual → devuelve el manual guardado, o qué falta para armarlo
@@ -16,17 +17,18 @@ import {
 // en la pantalla: esconder un botón no impide que alguien llame la API.
 //
 // El manual se guarda como JSON en la misma columna de texto de
-// siempre (manual_md): { texto, outfits, prendasClave }. La página pide
-// aparte las fotos de esas prendas contra /api/catalogo, igual que los
-// resultados de búsqueda — este endpoint solo entrega los datos, no las
-// fotos.
+// siempre (manual_md): { texto, outfits, prendasClave }, con las fotos
+// YA adjuntas a cada prenda (ver adjuntarFotos en lib/manual-estilo.ts)
+// — se buscan una sola vez, al generar, y solo queda lo que sí existe
+// en el catálogo real. La página no vuelve a preguntarle nada a
+// /api/catalogo.
 
 /** Lee manual_md como el objeto estructurado. null si no hay o está mal. */
-function parsearManual(manualMd: string | null): ManualGenerado | null {
+function parsearManual(manualMd: string | null): ManualListo | null {
   if (!manualMd) return null;
   try {
     const obj = JSON.parse(manualMd);
-    if (obj && typeof obj.texto === "string") return obj as ManualGenerado;
+    if (obj && typeof obj.texto === "string") return obj as ManualListo;
     return null;
   } catch {
     return null;
@@ -111,7 +113,10 @@ export async function POST(req: Request) {
   }
 
   try {
-    const manual = await generarManual(r.datos);
+    const crudo = await generarManual(r.datos);
+    // Se filtra ANTES de guardar: lo que queda en manual_md ya es solo
+    // lo que de verdad existe en el catálogo, con sus fotos adjuntas.
+    const manual = await adjuntarFotos(crudo);
     await supabaseAdmin()
       .from("users")
       .update({

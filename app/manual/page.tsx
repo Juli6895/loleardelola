@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import { useCatalogo, type ConsultaPrenda, type GrupoProductos } from "@/lib/use-catalogo";
-import type { ManualGenerado, OutfitManual, PrendaClave, PrendaManual } from "@/lib/manual-estilo";
+import type { ManualListo, OutfitListo, PrendaClaveLista } from "@/lib/manual-estilo";
+import type { ProductoTienda } from "@/lib/catalogo-tiendas";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
 import { CONTRASTES } from "@/lib/image-consulting/colorimetria";
@@ -21,17 +21,17 @@ import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 // Esta pantalla solo decide qué mostrar; esconder un botón no impide
 // que alguien llame la API a mano.
 //
-// Desde que el manual dejó de ser solo texto: las prendas de "Tres
-// outfits para ti" y "Lo primero que compraría" llegan como datos
-// (tipo/color/rasgos), y esta página las busca en el catálogo de las
-// tiendas — el mismo sistema que ya usan los resultados de búsqueda —
-// para mostrar fotos reales en vez de solo la descripción. Las mismas
-// fotos alimentan el botón de descargar en HTML.
+// Las fotos YA vienen adjuntas en lo que guarda el servidor (ver
+// adjuntarFotos en lib/manual-estilo.ts): esta página no le pregunta
+// nada al catálogo, solo pinta lo que ya se decidió al generar el
+// manual. Eso también significa que solo se muestra lo que de verdad
+// existe en alguna de las tiendas — lo que no se encontró ni siquiera
+// llega hasta acá.
 
 type Estado = {
   conMembresia: boolean;
   falta: string[];
-  manual: ManualGenerado | null;
+  manual: ManualListo | null;
   generadoEl: string | null;
   desactualizado: boolean;
 };
@@ -88,41 +88,14 @@ function Contenido() {
     }
   }
 
-  // Todas las prendas del manual (outfits + prendas clave) en una sola
-  // lista de consultas, con una etiqueta única por prenda. Se pide UNA
-  // vez acá arriba y se reparte a las dos secciones de abajo — y al
-  // botón de descarga — para no duplicar las búsquedas al catálogo.
-  const consultas = useMemo<ConsultaPrenda[]>(() => {
-    if (!estado?.manual) return [];
-    const deOutfits = estado.manual.outfits.flatMap((o, i) =>
-      o.prendas.map((p, j) => ({
-        etiqueta: `outfit-${i}-${j}`,
-        tipo: p.tipo,
-        color: p.color || null,
-        rasgos: p.rasgos,
-      }))
-    );
-    const deClave = estado.manual.prendasClave.map((p, i) => ({
-      etiqueta: `clave-${i}`,
-      tipo: p.tipo,
-      color: p.color || null,
-      rasgos: p.rasgos,
-    }));
-    return [...deOutfits, ...deClave];
-  }, [estado?.manual]);
-
-  const { grupos, cargando: buscandoFotos } = useCatalogo(consultas);
-
-  async function descargarHtml() {
+  function descargarHtml() {
     if (!estado?.manual) return;
     setDescargando(true);
     try {
-      const perfilResumen = armarResumenPerfil(perfil);
       const html = construirInformeHtml({
         nombre: nombre || null,
         manual: estado.manual,
-        grupos,
-        perfilResumen,
+        perfilResumen: armarResumenPerfil(perfil),
         generadoEl: estado.generadoEl,
       });
       const blob = new Blob([html], { type: "text/html;charset=utf-8" });
@@ -209,7 +182,7 @@ function Contenido() {
         )}
         <button
           onClick={descargarHtml}
-          disabled={descargando || buscandoFotos}
+          disabled={descargando}
           className="mt-4 inline-flex items-center gap-2 rounded-full border border-rosa-300 px-5 py-2 text-sm font-medium text-noche transition hover:bg-rosa-50 disabled:cursor-not-allowed disabled:opacity-50"
         >
           <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
@@ -221,11 +194,7 @@ function Contenido() {
               strokeLinejoin="round"
             />
           </svg>
-          {buscandoFotos
-            ? "Buscando las fotos..."
-            : descargando
-              ? "Preparando..."
-              : "Descargar como página HTML"}
+          {descargando ? "Preparando..." : "Descargar como página HTML"}
         </button>
         <p className="mt-1.5 text-xs text-noche/40">
           Se guarda en tu celular o computador — lo puedes abrir sin internet,
@@ -237,8 +206,8 @@ function Contenido() {
         <Markdown texto={estado.manual.texto} />
       </article>
 
-      <SeccionOutfits outfits={estado.manual.outfits} grupos={grupos} cargando={buscandoFotos} />
-      <SeccionPrendasClave prendas={estado.manual.prendasClave} grupos={grupos} cargando={buscandoFotos} />
+      <SeccionOutfits outfits={estado.manual.outfits} />
+      <SeccionPrendasClave prendas={estado.manual.prendasClave} />
 
       <div className="text-center">
         <button
@@ -279,22 +248,12 @@ function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNo
   );
 }
 
-/** Arma la etiqueta descriptiva que se muestra si no hay foto. */
-function describir(p: PrendaManual): string {
-  const partes = [p.tipo, p.color, ...p.rasgos].filter(Boolean);
-  return partes.join(" · ");
+function describir(p: { tipo: string; color: string; rasgos: string[] }): string {
+  return [p.tipo, p.color, ...p.rasgos].filter(Boolean).join(" · ");
 }
 
-/** "Tres outfits para ti", cada prenda con su foto si la encontramos. */
-function SeccionOutfits({
-  outfits,
-  grupos,
-  cargando,
-}: {
-  outfits: OutfitManual[];
-  grupos: GrupoProductos[];
-  cargando: boolean;
-}) {
+/** "Tres outfits para ti" — cada uno ya trae solo prendas confirmadas. */
+function SeccionOutfits({ outfits }: { outfits: OutfitListo[] }) {
   if (outfits.length === 0) return null;
 
   return (
@@ -316,13 +275,7 @@ function SeccionOutfits({
             )}
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
               {o.prendas.map((p, j) => (
-                <PiezaConFoto
-                  key={j}
-                  prenda={p}
-                  grupos={grupos}
-                  etiqueta={`outfit-${i}-${j}`}
-                  cargando={cargando}
-                />
+                <FotosDePrenda key={j} fotos={p.fotos.slice(0, 2)} />
               ))}
             </div>
           </div>
@@ -333,15 +286,7 @@ function SeccionOutfits({
 }
 
 /** "Lo primero que compraría", con foto y el porqué de cada una. */
-function SeccionPrendasClave({
-  prendas,
-  grupos,
-  cargando,
-}: {
-  prendas: PrendaClave[];
-  grupos: GrupoProductos[];
-  cargando: boolean;
-}) {
+function SeccionPrendasClave({ prendas }: { prendas: PrendaClaveLista[] }) {
   if (prendas.length === 0) return null;
 
   return (
@@ -358,15 +303,8 @@ function SeccionPrendasClave({
             <div className="min-w-0 flex-1">
               <p className="text-sm font-medium text-noche">{describir(p)}</p>
               {p.porque && <p className="mt-0.5 text-sm text-noche/60">{p.porque}</p>}
-              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
-                <PiezaConFoto
-                  prenda={p}
-                  grupos={grupos}
-                  etiqueta={`clave-${i}`}
-                  cargando={cargando}
-                  soloFoto
-                  maximo={4}
-                />
+              <div className="mt-3 grid grid-cols-4 gap-2">
+                <FotosDePrenda fotos={p.fotos.slice(0, 4)} soloFoto />
               </div>
             </div>
           </div>
@@ -376,47 +314,16 @@ function SeccionPrendasClave({
   );
 }
 
-/**
- * Las fotos encontradas para UNA prenda. Si no hay ninguna (la tienda
- * no tiene nada parecido en catálogo), no se muestra nada roto — la
- * descripción de arriba ya dice de qué se trata.
- */
-function PiezaConFoto({
-  prenda,
-  grupos,
-  etiqueta,
-  cargando,
+function FotosDePrenda({
+  fotos,
   soloFoto = false,
-  maximo = 2,
 }: {
-  prenda: PrendaManual;
-  grupos: GrupoProductos[];
-  etiqueta: string;
-  cargando: boolean;
+  fotos: ProductoTienda[];
   soloFoto?: boolean;
-  maximo?: number;
 }) {
-  const productos = (grupos.find((g) => g.etiqueta === etiqueta)?.productos ?? []).slice(
-    0,
-    maximo
-  );
-
-  if (cargando) {
-    return <div className="aspect-[3/4] animate-pulse-rosa rounded-xl bg-rosa-50" />;
-  }
-
-  if (productos.length === 0) {
-    if (soloFoto) return null;
-    return (
-      <div className="flex aspect-[3/4] flex-col justify-end rounded-xl border border-dashed border-rosa-200 bg-rosa-50/40 p-2">
-        <p className="text-[11px] leading-snug text-noche/50">{describir(prenda)}</p>
-      </div>
-    );
-  }
-
   return (
     <>
-      {productos.map((p) => (
+      {fotos.map((p) => (
         <a
           key={p.url}
           href={p.url}

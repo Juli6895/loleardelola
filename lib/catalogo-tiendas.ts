@@ -64,7 +64,12 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "jeansandblouses.com", nombre: "Jeans and Blouses" },
   { plataforma: "shopify", dominio: "esprit.com.co", nombre: "Esprit" },
   { plataforma: "shopify", dominio: "ticketstores.co", nombre: "Ticket Stores" },
-  { plataforma: "shopify", dominio: "malvaonline.com", nombre: "Malva" },
+  // co.malvaonline.com y no malvaonline.com: la tienda tiene selector de
+  // país (Colombia/México/Perú) y cada uno sirve un catálogo DISTINTO
+  // — verificado: un producto de la versión Colombia ni existe en la
+  // global, y sus precios están en el rango de pesos colombianos. Sin
+  // el "co." se estaban sugiriendo prendas de otro país.
+  { plataforma: "shopify", dominio: "malvaonline.com", nombre: "Malva", host: "co.malvaonline.com" },
   // VTEX no entrega el catálogo entero: se le pregunta por término. Por
   // eso va por otro camino, sin caché de catálogo.
   { plataforma: "vtex", dominio: "colorblue.com", nombre: "Color Blue" },
@@ -75,6 +80,12 @@ const IGNORADAS = new Set([
   "mujer", "hombre", "niño", "niña", "de", "la", "el", "los", "las",
   "con", "sin", "y", "para", "talla", "una", "un", "muy", "tipo",
 ]);
+
+// Sin tildes porque se aplica sobre texto ya normalizado. \b exige que
+// sea la palabra completa: así "hombre" no descarta nada que solo
+// contenga esas letras por casualidad.
+const ES_DE_HOMBRE_O_NINO =
+  /\b(hombre|masculino|caballero|men|nino|nina|infantil|kids|bebe)\b/;
 
 /** Minúsculas y sin tildes, para que "satén" empareje con "saten". */
 function normalizar(texto: string): string {
@@ -156,6 +167,18 @@ async function catalogoShopify(t: TiendaShopify): Promise<Indexado[]> {
 
   return (data.products ?? [])
     .filter((p) => p.title && p.handle && p.images?.[0]?.src)
+    // Esprit mezcla hombre y mujer en el mismo catálogo, y NO escribe
+    // "hombre" en el título de sus prendas de hombre — solo marca las
+    // de mujer con "para mujer" y deja las otras sin decir nada, así
+    // que un filtro de palabras no las agarra. Sí tienen un código
+    // interno que las delata: comprobado contra 250 productos, la
+    // letra del código (ej. "912H012") es H en el 100% de las prendas
+    // de hombre (0 de 55 decían "para mujer") y G o F en las de mujer.
+    .filter((p) => {
+      if (t.dominio !== "esprit.com.co") return true;
+      const codigo = (p.tags ?? []).find((tag) => /^\d{3}[A-Z]\d{3}$/.test(tag));
+      return codigo ? codigo[3] !== "H" : true;
+    })
     .map((p) => {
       const precio = Number(p.variants?.[0]?.price);
       return {
@@ -285,6 +308,16 @@ export async function buscarEnCatalogos(
       const enTitulo = p.titulo_n.includes(tipo) || p.titulo_n.includes(tipo + "s");
       const enMeta = p.meta_n.includes(tipo) || p.meta_n.includes(tipo + "s");
       if (!enTitulo && !enMeta) continue;
+
+      // Casi todas las tiendas de la lista son solo de mujer, pero
+      // algunas (Esprit, por ejemplo) mezclan las dos secciones en el
+      // mismo catálogo — comprobado: "camisa" sin más trae camisas de
+      // hombre igual que de mujer. Se descarta cualquier prenda que
+      // mencione ropa de hombre o de niños, en cualquiera de los tres
+      // campos, para no sugerirle a nadie algo que no es de su talla.
+      if (ES_DE_HOMBRE_O_NINO.test(p.titulo_n + " " + p.meta_n + " " + p.descripcion_n)) {
+        continue;
+      }
 
       let punto = enTitulo ? 2 : 1;
       // El color vale doble: es lo que más se nota al comparar fotos.

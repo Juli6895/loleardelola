@@ -1,16 +1,17 @@
-import type { ManualGenerado, PrendaManual } from "./manual-estilo";
-import type { GrupoProductos } from "./use-catalogo";
+import type { ManualListo } from "./manual-estilo";
+import type { ProductoTienda } from "./catalogo-tiendas";
 
 // =====================================================================
 // El manual, como página HTML descargable
 // =====================================================================
-// Se arma en el navegador, con los mismos datos y fotos que ya se
-// pidieron para pintar la pantalla — no hay una segunda llamada al
-// servidor ni una segunda búsqueda en catálogos.
+// Se arma en el navegador con lo que ya trae el manual guardado — las
+// fotos ya están adjuntas desde que se generó (ver adjuntarFotos en
+// lib/manual-estilo.ts), así que esto no vuelve a preguntarle nada al
+// catálogo.
 //
 // Es un solo archivo autocontenido (CSS por dentro, sin nada externo
 // salvo las fotos, que son URLs de las propias tiendas): se puede abrir
-// sin internet — menos las fotos, que si necesitan conexión— guardar,
+// sin internet — menos las fotos, que si necesitan conexión—, guardar,
 // imprimir o mandar por WhatsApp como archivo.
 // =====================================================================
 
@@ -48,17 +49,13 @@ function negritas(s: string): string {
   return escapar(s).replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
 }
 
-function describir(p: PrendaManual): string {
+function describir(p: { tipo: string; color: string; rasgos: string[] }): string {
   return [p.tipo, p.color, ...p.rasgos].filter(Boolean).join(" · ");
-}
-
-function fotosDe(grupos: GrupoProductos[], etiqueta: string, maximo: number) {
-  return (grupos.find((g) => g.etiqueta === etiqueta)?.productos ?? []).slice(0, maximo);
 }
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
-function tarjetaProducto(p: { titulo: string; imagen: string | null; precioCop: number | null; tienda: string; url: string }): string {
+function tarjetaProducto(p: ProductoTienda): string {
   return `
     <a class="producto" href="${escapar(p.url)}" target="_blank" rel="noopener noreferrer">
       ${p.imagen ? `<img src="${escapar(p.imagen)}" alt="${escapar(p.titulo)}" loading="lazy" />` : `<div class="producto-sin-foto"></div>`}
@@ -80,12 +77,11 @@ export type ResumenPerfil = {
 
 export function construirInformeHtml(datos: {
   nombre: string | null;
-  manual: ManualGenerado;
-  grupos: GrupoProductos[];
+  manual: ManualListo;
   perfilResumen: ResumenPerfil;
   generadoEl: string | null;
 }): string {
-  const { nombre, manual, grupos, perfilResumen, generadoEl } = datos;
+  const { nombre, manual, perfilResumen, generadoEl } = datos;
 
   const fecha = generadoEl
     ? new Date(generadoEl).toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })
@@ -102,36 +98,28 @@ export function construirInformeHtml(datos: {
     : [];
 
   const outfitsHtml = manual.outfits
-    .map((o, i) => {
-      const piezas = o.prendas
-        .map((p, j) => {
-          const fotos = fotosDe(grupos, `outfit-${i}-${j}`, 2);
-          if (fotos.length > 0) return fotos.map(tarjetaProducto).join("");
-          return `<div class="producto producto-vacio"><p>${escapar(describir(p))}</p></div>`;
-        })
-        .join("");
-      return `
+    .map(
+      (o) => `
       <div class="outfit">
         <p class="outfit-titulo">${escapar(o.titulo)}</p>
         ${o.descripcion ? `<p class="outfit-desc">${escapar(o.descripcion)}</p>` : ""}
-        <div class="grid-4">${piezas}</div>
-      </div>`;
-    })
+        <div class="grid-4">${o.prendas.map((p) => p.fotos.slice(0, 2).map(tarjetaProducto).join("")).join("")}</div>
+      </div>`
+    )
     .join("");
 
   const claveHtml = manual.prendasClave
-    .map((p, i) => {
-      const fotos = fotosDe(grupos, `clave-${i}`, 4);
-      return `
+    .map(
+      (p, i) => `
       <div class="clave-item">
         <span class="clave-numero">${i + 1}</span>
         <div class="clave-texto">
           <p class="clave-nombre">${escapar(describir(p))}</p>
           ${p.porque ? `<p class="clave-porque">${escapar(p.porque)}</p>` : ""}
-          ${fotos.length > 0 ? `<div class="grid-4 clave-fotos">${fotos.map((f) => tarjetaProducto(f)).join("")}</div>` : ""}
+          <div class="grid-4 clave-fotos">${p.fotos.slice(0, 4).map(tarjetaProducto).join("")}</div>
         </div>
-      </div>`;
-    })
+      </div>`
+    )
     .join("");
 
   return `<!doctype html>
@@ -181,8 +169,6 @@ export function construirInformeHtml(datos: {
   .producto-titulo { font-size: 10px; line-height: 1.3; margin: 0; color: rgba(17,17,17,0.8); }
   .producto-precio { font-size: 11px; font-weight: 600; margin: 3px 0 0; color: var(--noche); }
   .producto-tienda { font-size: 9px; margin: 2px 0 0; color: rgba(17,17,17,0.4); }
-  .producto-vacio { justify-content: center; align-items: center; padding: 10px; aspect-ratio: 3/4; background: var(--rosa-50); border-style: dashed; }
-  .producto-vacio p { font-size: 10px; text-align: center; margin: 0; color: rgba(17,17,17,0.5); }
   .clave-item { display: flex; gap: 14px; margin-bottom: 20px; }
   .clave-item:last-child { margin-bottom: 0; }
   .clave-numero { flex-shrink: 0; width: 24px; height: 24px; border-radius: 999px; background: var(--rosa-100); color: var(--rosa-600); font-size: 12px; font-weight: 700; display: flex; align-items: center; justify-content: center; }

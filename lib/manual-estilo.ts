@@ -4,6 +4,7 @@ import { SILUETAS, type Silueta } from "./image-consulting/morfologia";
 import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalidad";
 import { CONTRASTES, TONOS_PIEL, type Contraste, type TonoPiel } from "./image-consulting/colorimetria";
 import { PROYECCIONES, type Proyeccion } from "./image-consulting/proyeccion";
+import { buscarEnCatalogos, type ProductoTienda } from "./catalogo-tiendas";
 
 // =====================================================================
 // Manual de estilo personal (lo que da la membresía)
@@ -190,6 +191,12 @@ REGLAS:
 
 7. NO MARCAS: nunca menciones marcas registradas. Las prendas se buscan después en tiendas reales — tu trabajo es describir la prenda, no decir dónde comprarla.
 
+8. TODAS las prendas son para ella, una mujer adulta. No sugieras ni describas ninguna prenda de ropa de hombre.
+
+9. EL COLOR DE CADA PRENDA TIENE QUE QUEDARLE BIEN A SU PIEL Y SU CABELLO PUNTUALES, no solo "un tono cualquiera de su nivel de contraste". Piensa como una colorista real: qué colores iluminan la combinación exacta de su tono de piel y el color de su cabello, y cuáles se la apagan. Dos personas con el mismo nivel de contraste pero distinto tono de piel casi nunca lucen el mismo color igual de bien.
+
+10. CADA OUTFIT TIENE QUE SER COHERENTE EN COLOR, no una lista de prendas sueltas de colores que no combinan entre sí. Antes de fijar los colores de un outfit, decide una paleta de 2-3 colores que se vean bien juntos (para su piel/cabello) y reparte esos colores entre las prendas del outfit — un color base, uno de apoyo, y como mucho un acento.
+
 EL CAMPO "texto" — markdown con estos títulos exactos, en este orden:
 
 ## Tu punto de partida
@@ -211,12 +218,19 @@ NO incluyas en "texto" los outfits ni las prendas para comprar — esos van en l
 
 Máximo 650 palabras en "texto". Prefiere frases cortas. Nada de listas de viñetas sueltas sin explicación.
 
-EL CAMPO "outfits" — tres conjuntos, para tres momentos distintos de su vida (ej. trabajo, plan casual, una salida de noche). Cada prenda de cada outfit necesita tipo/color/rasgos EXACTOS, en el mismo vocabulario con el que se buscaría en Google o en una tienda:
+EL CAMPO "outfits" — EXACTAMENTE estos tres, en este orden y con este título literal (no los cambies ni los inventes):
+1. "Trabajo casual"
+2. "Fin de semana casual"
+3. "Salida de noche"
+
+Cada outfit necesita 4 a 6 prendas, coherentes en color entre sí (regla 10) y en el vocabulario con el que se buscaría en Google o en una tienda:
 - tipo: SOLO el tipo de prenda, sin color ni estilo (ej. "vestido", "blazer", "jean", "top"). Una palabra o dos, nunca una frase.
 - color: UN color, en español, una palabra (ej. "verde oliva" como máximo dos).
 - rasgos: 2 a 4 palabras o frases MUY cortas que describan la prenda (ej. ["midi", "manga larga", "lino"], o ["wide leg", "tiro alto"]). Nada de oraciones acá.
 
-EL CAMPO "prendasClave" — las cinco prendas con las que empezaría, en el mismo formato de tipo/color/rasgos, más "porque": una frase de por qué esa prenda en particular, para ella.
+Pon 4 a 6 prendas por outfit y no 3, aunque el outfit "se vea completo" con menos: algunas de las que propongas no van a existir en las tiendas donde se buscan después, y las que sí existan son las únicas que la usuaria va a ver — más candidatas por outfit significa más probabilidad de que le quede un outfit completo y no una sola prenda suelta.
+
+EL CAMPO "prendasClave" — hasta 7 prendas candidatas, en el mismo formato de tipo/color/rasgos, en ORDEN DE PRIORIDAD (la primera es la más urgente), más "porque": una frase de por qué esa prenda en particular, para ella. Igual que con los outfits: pide más de las 5 que se van a mostrar al final, porque algunas no se van a encontrar después en las tiendas reales.
 
 Llama siempre a report_manual con los tres campos completos.`;
 
@@ -232,15 +246,19 @@ const REPORT_TOOL: Anthropic.Tool = {
       },
       outfits: {
         type: "array",
-        description: "Exactamente 3 outfits completos, para 3 momentos distintos.",
+        description: "EXACTAMENTE 3 outfits, con estos títulos literales en este orden: 'Trabajo casual', 'Fin de semana casual', 'Salida de noche'.",
         items: {
           type: "object",
           properties: {
-            titulo: { type: "string", description: "Para qué momento, corto (ej. 'Para el trabajo')." },
+            titulo: {
+              type: "string",
+              enum: ["Trabajo casual", "Fin de semana casual", "Salida de noche"],
+              description: "Uno de los tres títulos fijos, sin variarlo.",
+            },
             descripcion: { type: "string", description: "1-3 frases: cómo se ve puesto y por qué le funciona." },
             prendas: {
               type: "array",
-              description: "3 a 5 prendas del outfit.",
+              description: "4 a 6 prendas del outfit, coherentes en color entre sí.",
               items: {
                 type: "object",
                 properties: {
@@ -261,7 +279,7 @@ const REPORT_TOOL: Anthropic.Tool = {
       },
       prendasClave: {
         type: "array",
-        description: "Exactamente 5 prendas, en orden de prioridad de compra.",
+        description: "Hasta 7 prendas candidatas, en orden de prioridad de compra (la primera es la más urgente).",
         items: {
           type: "object",
           properties: {
@@ -349,4 +367,64 @@ export async function generarManual(d: DatosManual): Promise<ManualGenerado> {
     .filter((p): p is PrendaClave => p !== null);
 
   return { texto, outfits, prendasClave };
+}
+
+// =====================================================================
+// Solo lo que de verdad existe en las tiendas
+// =====================================================================
+// Claude no sabe qué hay hoy en el inventario real — solo describe una
+// prenda plausible según lo que aprendió de moda en general. Sin este
+// paso, "Lo primero que compraría" podía nombrar algo que ninguna de
+// las 11 tiendas tiene, y la usuaria se quedaba con una descripción de
+// texto sin poder verla ni comprarla en ningún lado.
+//
+// Este paso busca cada prenda en el catálogo real (lib/catalogo-tiendas)
+// justo después de generar el manual, ANTES de guardarlo — y descarta
+// cualquier prenda sin al menos una coincidencia. Lo que sí sobrevive
+// queda con sus fotos YA adjuntas: la página y el HTML descargable no
+// vuelven a preguntarle nada al catálogo, solo pintan lo guardado.
+// =====================================================================
+
+export type PrendaConFotos = PrendaManual & { fotos: ProductoTienda[] };
+export type OutfitListo = { titulo: string; descripcion: string; prendas: PrendaConFotos[] };
+export type PrendaClaveLista = PrendaClave & { fotos: ProductoTienda[] };
+
+export type ManualListo = {
+  texto: string;
+  outfits: OutfitListo[];
+  prendasClave: PrendaClaveLista[];
+};
+
+async function fotosPara(p: PrendaManual, maximo: number): Promise<ProductoTienda[]> {
+  try {
+    return await buscarEnCatalogos({ tipo: p.tipo, color: p.color || null, rasgos: p.rasgos }, maximo);
+  } catch (e) {
+    console.warn("[manual] no se pudo buscar en catálogo:", p.tipo, e);
+    return [];
+  }
+}
+
+export async function adjuntarFotos(manual: ManualGenerado): Promise<ManualListo> {
+  const outfits: OutfitListo[] = [];
+  for (const o of manual.outfits) {
+    const conFotos = await Promise.all(
+      o.prendas.map(async (p) => ({ ...p, fotos: await fotosPara(p, 2) }))
+    );
+    const prendas = conFotos.filter((p) => p.fotos.length > 0);
+    // Menos de dos prendas confirmadas ya no se ve como un outfit —
+    // mejor no mostrar ese momento que mostrar una prenda suelta.
+    if (prendas.length >= 2) {
+      outfits.push({ titulo: o.titulo, descripcion: o.descripcion, prendas });
+    }
+  }
+
+  const conFotosClave = await Promise.all(
+    manual.prendasClave.map(async (p) => ({ ...p, fotos: await fotosPara(p, 4) }))
+  );
+  // Se pidieron hasta 7 candidatas para tener de dónde escoger; acá se
+  // muestran como máximo 5, en el mismo orden de prioridad con que
+  // Claude las entregó.
+  const prendasClave = conFotosClave.filter((p) => p.fotos.length > 0).slice(0, 5);
+
+  return { texto: manual.texto, outfits, prendasClave };
 }

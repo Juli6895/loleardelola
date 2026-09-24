@@ -44,6 +44,28 @@ sjulianasanchez | Juliana Sánchez | top,bottom,abrigo | | julianasanchez.co
 gracies_a | Gracies | top,bottom,accesorio | | gracies.com.co
 inmaculada_vj | Inmaculada VJ | vestido,abrigo,top,bottom,calzado,accesorio | | inmaculadavj.com
 
+# Marcas internacionales con tienda en Colombia. Categorías amplias
+# (venden de todo un poco) — Juliana: ajústalas si alguna se especializa
+# más de lo que parece.
+modakoaj | Koaj | top,bottom,vestido,abrigo,calzado,accesorio | | koaj.co
+arturocalleoficial | Arturo Calle | top,bottom,abrigo,calzado,accesorio | | arturocalle.com
+bimbaylola | Bimba y Lola | top,bottom,vestido,calzado,accesorio | | bimbaylola.com
+espritcolombia | Esprit | top,bottom,vestido,abrigo | | esprit.com.co
+americaneaglecol | American Eagle | top,bottom,abrigo | | ae.com.co
+rapsodiaoficial | Rapsodia | top,bottom,vestido,accesorio | | rapsodia.com.co
+mango | Mango | top,bottom,vestido,abrigo,calzado,accesorio | | mango.com
+
+# --- PENDIENTES DE CONFIRMAR (handle dudoso, no publicado a propósito) ---
+# Zara: me pasaste un link de Threads (threads.com/@zara), no de
+# Instagram — son apps distintas de Meta. Es muy probable que el de
+# Instagram sea el mismo @zara, pero prefiero confirmarlo antes de
+# activarlo. Si me confirmas, lo subo:
+# zara | Zara | top,bottom,vestido,abrigo,calzado,accesorio | | zara.com
+#
+# H&M: escribiste @HYM, que no existe como usuario — el "&" seguro se
+# perdió al escribir. Creo que es @hm (así lo tengo yo), confírmamelo:
+# hm | H&M | top,bottom,vestido,abrigo,calzado,accesorio | | hm.com
+
 # --- PENDIENTES DE CONFIRMAR ---
 # Estas tienen la cuenta ambigua o no se pudo derivar qué venden.
 # Quedan comentadas para no publicar un dato del que no estoy segura.

@@ -42,7 +42,8 @@ julianasanchez.co
 ticketstores.co
 bybla.com.co
 gracies.com.co
-co.malvaonline.com
+# malvaonline.com — quitada a pedido de Juliana: precios muy por
+# encima de lo que quiere sugerir.
 inmaculadavj.com
 pepitaperez.co
 colorblue.com

@@ -64,12 +64,8 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "jeansandblouses.com", nombre: "Jeans and Blouses" },
   { plataforma: "shopify", dominio: "esprit.com.co", nombre: "Esprit" },
   { plataforma: "shopify", dominio: "ticketstores.co", nombre: "Ticket Stores" },
-  // co.malvaonline.com y no malvaonline.com: la tienda tiene selector de
-  // país (Colombia/México/Perú) y cada uno sirve un catálogo DISTINTO
-  // — verificado: un producto de la versión Colombia ni existe en la
-  // global, y sus precios están en el rango de pesos colombianos. Sin
-  // el "co." se estaban sugiriendo prendas de otro país.
-  { plataforma: "shopify", dominio: "malvaonline.com", nombre: "Malva", host: "co.malvaonline.com" },
+  // Malva (co.malvaonline.com) se quitó a pedido de Juliana: sus precios
+  // quedan muy por encima de lo que quiere sugerir en el manual.
   // VTEX no entrega el catálogo entero: se le pregunta por término. Por
   // eso va por otro camino, sin caché de catálogo.
   { plataforma: "vtex", dominio: "colorblue.com", nombre: "Color Blue" },

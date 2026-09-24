@@ -6,6 +6,7 @@ import {
   huella,
   loQueFalta,
   type DatosManual,
+  type ManualGenerado,
 } from "@/lib/manual-estilo";
 
 // GET  /api/manual → devuelve el manual guardado, o qué falta para armarlo
@@ -13,6 +14,24 @@ import {
 //
 // Es lo que da la membresía, así que el permiso se revisa acá y no solo
 // en la pantalla: esconder un botón no impide que alguien llame la API.
+//
+// El manual se guarda como JSON en la misma columna de texto de
+// siempre (manual_md): { texto, outfits, prendasClave }. La página pide
+// aparte las fotos de esas prendas contra /api/catalogo, igual que los
+// resultados de búsqueda — este endpoint solo entrega los datos, no las
+// fotos.
+
+/** Lee manual_md como el objeto estructurado. null si no hay o está mal. */
+function parsearManual(manualMd: string | null): ManualGenerado | null {
+  if (!manualMd) return null;
+  try {
+    const obj = JSON.parse(manualMd);
+    if (obj && typeof obj.texto === "string") return obj as ManualGenerado;
+    return null;
+  } catch {
+    return null;
+  }
+}
 
 async function cargar(req: Request) {
   const usuario = await usuarioActual(req);
@@ -61,7 +80,7 @@ export async function GET(req: Request) {
     conMembresia,
     falta,
     // El manual solo viaja si de verdad tiene membresía.
-    manual: conMembresia && alDia ? r.guardado.manual_md : null,
+    manual: conMembresia && alDia ? parsearManual(r.guardado.manual_md) : null,
     generadoEl: conMembresia ? r.guardado.manual_generado_at : null,
     // Hay manual guardado pero el perfil cambió desde entonces.
     desactualizado: conMembresia && !!r.guardado.manual_md && !alDia,
@@ -86,8 +105,9 @@ export async function POST(req: Request) {
 
   const h = huella(r.datos);
   // Si ya está al día, no se vuelve a generar: cuesta plata y tarda.
-  if (r.guardado.manual_hash === h && r.guardado.manual_md) {
-    return NextResponse.json({ manual: r.guardado.manual_md, reusado: true });
+  const yaGuardado = h === r.guardado.manual_hash ? parsearManual(r.guardado.manual_md) : null;
+  if (yaGuardado) {
+    return NextResponse.json({ manual: yaGuardado, reusado: true });
   }
 
   try {
@@ -95,7 +115,7 @@ export async function POST(req: Request) {
     await supabaseAdmin()
       .from("users")
       .update({
-        manual_md: manual,
+        manual_md: JSON.stringify(manual),
         manual_hash: h,
         manual_generado_at: new Date().toISOString(),
       })

@@ -1,24 +1,42 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import SubNavCuenta from "@/components/SubNavCuenta";
+import { useCatalogo, type ConsultaPrenda, type GrupoProductos } from "@/lib/use-catalogo";
+import type { ManualGenerado, OutfitManual, PrendaClave, PrendaManual } from "@/lib/manual-estilo";
+import { SILUETAS } from "@/lib/image-consulting/morfologia";
+import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
+import { CONTRASTES } from "@/lib/image-consulting/colorimetria";
+import { PROYECCIONES } from "@/lib/image-consulting/proyeccion";
+import type { PerfilSilueta } from "@/types";
+import { construirInformeHtml } from "@/lib/informe-html";
+import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 
 // El manual de estilo: lo que da la membresía.
 //
 // El permiso se revisa en el servidor (ver app/api/manual/route.ts).
 // Esta pantalla solo decide qué mostrar; esconder un botón no impide
 // que alguien llame la API a mano.
+//
+// Desde que el manual dejó de ser solo texto: las prendas de "Tres
+// outfits para ti" y "Lo primero que compraría" llegan como datos
+// (tipo/color/rasgos), y esta página las busca en el catálogo de las
+// tiendas — el mismo sistema que ya usan los resultados de búsqueda —
+// para mostrar fotos reales en vez de solo la descripción. Las mismas
+// fotos alimentan el botón de descargar en HTML.
 
 type Estado = {
   conMembresia: boolean;
   falta: string[];
-  manual: string | null;
+  manual: ManualGenerado | null;
   generadoEl: string | null;
   desactualizado: boolean;
 };
+
+const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
 // Envoltorio: la pestaña de navegación tiene que verse en TODOS los
 // estados de abajo (sin membresía, perfil incompleto, sin generar,
@@ -35,11 +53,20 @@ export default function ManualPage() {
 
 function Contenido() {
   const [estado, setEstado] = useState<Estado | null>(null);
+  const [perfil, setPerfil] = useState<PerfilSilueta | null>(null);
   const [generando, setGenerando] = useState(false);
+  const [descargando, setDescargando] = useState(false);
+  const { usuario } = useUsuario();
+  const nombre = comoSeLlama(usuario);
 
   async function cargar() {
-    const res = await fetchConDispositivo("/api/manual");
+    const [res, resPerfil] = await Promise.all([
+      fetchConDispositivo("/api/manual"),
+      fetchConDispositivo("/api/perfil"),
+    ]);
     setEstado(await res.json());
+    const jp = await resPerfil.json().catch(() => null);
+    setPerfil(jp?.perfil ?? null);
   }
 
   useEffect(() => {
@@ -61,6 +88,57 @@ function Contenido() {
     }
   }
 
+  // Todas las prendas del manual (outfits + prendas clave) en una sola
+  // lista de consultas, con una etiqueta única por prenda. Se pide UNA
+  // vez acá arriba y se reparte a las dos secciones de abajo — y al
+  // botón de descarga — para no duplicar las búsquedas al catálogo.
+  const consultas = useMemo<ConsultaPrenda[]>(() => {
+    if (!estado?.manual) return [];
+    const deOutfits = estado.manual.outfits.flatMap((o, i) =>
+      o.prendas.map((p, j) => ({
+        etiqueta: `outfit-${i}-${j}`,
+        tipo: p.tipo,
+        color: p.color || null,
+        rasgos: p.rasgos,
+      }))
+    );
+    const deClave = estado.manual.prendasClave.map((p, i) => ({
+      etiqueta: `clave-${i}`,
+      tipo: p.tipo,
+      color: p.color || null,
+      rasgos: p.rasgos,
+    }));
+    return [...deOutfits, ...deClave];
+  }, [estado?.manual]);
+
+  const { grupos, cargando: buscandoFotos } = useCatalogo(consultas);
+
+  async function descargarHtml() {
+    if (!estado?.manual) return;
+    setDescargando(true);
+    try {
+      const perfilResumen = armarResumenPerfil(perfil);
+      const html = construirInformeHtml({
+        nombre: nombre || null,
+        manual: estado.manual,
+        grupos,
+        perfilResumen,
+        generadoEl: estado.generadoEl,
+      });
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "manual-de-estilo-loleardlola.html";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    } finally {
+      setDescargando(false);
+    }
+  }
+
   if (!estado) {
     return <div className="mx-auto mt-20 h-8 w-48 animate-pulse-rosa rounded-full bg-rosa-100" />;
   }
@@ -69,9 +147,9 @@ function Contenido() {
     return (
       <Tarjeta titulo="Tu manual de estilo">
         <p className="text-sm text-noche/70">
-          Es lo que da la membresía: tus cuatro pilares cruzados en un solo
+          Es lo que da la membresía: tus cuatro pilares cruzados en un
           documento — tu figura, tu color, tu sello y lo que quieres
-          proyectar, con tres outfits armados para ti.
+          proyectar, con tres outfits armados y fotos reales de tiendas.
         </p>
         <Link
           href="/membresia"
@@ -129,11 +207,38 @@ function Contenido() {
             Armado el {new Date(estado.generadoEl).toLocaleDateString("es-CO")}
           </p>
         )}
+        <button
+          onClick={descargarHtml}
+          disabled={descargando || buscandoFotos}
+          className="mt-4 inline-flex items-center gap-2 rounded-full border border-rosa-300 px-5 py-2 text-sm font-medium text-noche transition hover:bg-rosa-50 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
+            <path
+              d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          {buscandoFotos
+            ? "Buscando las fotos..."
+            : descargando
+              ? "Preparando..."
+              : "Descargar como página HTML"}
+        </button>
+        <p className="mt-1.5 text-xs text-noche/40">
+          Se guarda en tu celular o computador — lo puedes abrir sin internet,
+          imprimirlo o mandarlo por WhatsApp.
+        </p>
       </header>
 
       <article className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
-        <Markdown texto={estado.manual} />
+        <Markdown texto={estado.manual.texto} />
       </article>
+
+      <SeccionOutfits outfits={estado.manual.outfits} grupos={grupos} cargando={buscandoFotos} />
+      <SeccionPrendasClave prendas={estado.manual.prendasClave} grupos={grupos} cargando={buscandoFotos} />
 
       <div className="text-center">
         <button
@@ -148,6 +253,21 @@ function Contenido() {
   );
 }
 
+/** Un resumen legible del perfil, para el encabezado del HTML descargable. */
+function armarResumenPerfil(perfil: PerfilSilueta | null) {
+  if (!perfil) return null;
+  return {
+    silueta: perfil.silueta ? SILUETAS[perfil.silueta].label : null,
+    contraste: perfil.contraste ? CONTRASTES[perfil.contraste].label : null,
+    personalidad: perfil.personalidad ? PERSONALIDADES[perfil.personalidad].label : null,
+    proyeccion: perfil.proyeccion ? PROYECCIONES[perfil.proyeccion].label : null,
+    medidas:
+      perfil.bust_cm && perfil.waist_cm && perfil.hip_cm
+        ? `${perfil.bust_cm} · ${perfil.waist_cm} · ${perfil.hip_cm} cm`
+        : null,
+  };
+}
+
 function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNode }) {
   return (
     <div className="mx-auto max-w-md py-12 text-center">
@@ -156,6 +276,181 @@ function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNo
         <div className="mt-3">{children}</div>
       </div>
     </div>
+  );
+}
+
+/** Arma la etiqueta descriptiva que se muestra si no hay foto. */
+function describir(p: PrendaManual): string {
+  const partes = [p.tipo, p.color, ...p.rasgos].filter(Boolean);
+  return partes.join(" · ");
+}
+
+/** "Tres outfits para ti", cada prenda con su foto si la encontramos. */
+function SeccionOutfits({
+  outfits,
+  grupos,
+  cargando,
+}: {
+  outfits: OutfitManual[];
+  grupos: GrupoProductos[];
+  cargando: boolean;
+}) {
+  if (outfits.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
+      <h2 className="font-display text-2xl text-noche">Tres outfits para ti</h2>
+      <p className="mt-1 text-sm text-noche/60">
+        Las fotos son de las tiendas de nuestra lista — el corte y el color son
+        una guía; la prenda exacta puede variar.
+      </p>
+
+      <div className="mt-6 space-y-8">
+        {outfits.map((o, i) => (
+          <div key={i}>
+            <p className="text-xs font-semibold uppercase tracking-wide text-rosa-500">
+              {o.titulo}
+            </p>
+            {o.descripcion && (
+              <p className="mt-1 text-sm text-noche/70">{o.descripcion}</p>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {o.prendas.map((p, j) => (
+                <PiezaConFoto
+                  key={j}
+                  prenda={p}
+                  grupos={grupos}
+                  etiqueta={`outfit-${i}-${j}`}
+                  cargando={cargando}
+                />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** "Lo primero que compraría", con foto y el porqué de cada una. */
+function SeccionPrendasClave({
+  prendas,
+  grupos,
+  cargando,
+}: {
+  prendas: PrendaClave[];
+  grupos: GrupoProductos[];
+  cargando: boolean;
+}) {
+  if (prendas.length === 0) return null;
+
+  return (
+    <div className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
+      <h2 className="font-display text-2xl text-noche">Lo primero que compraría</h2>
+      <p className="mt-1 text-sm text-noche/60">En orden de prioridad.</p>
+
+      <div className="mt-6 space-y-5">
+        {prendas.map((p, i) => (
+          <div key={i} className="flex gap-4">
+            <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-xs font-semibold text-rosa-600">
+              {i + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-medium text-noche">{describir(p)}</p>
+              {p.porque && <p className="mt-0.5 text-sm text-noche/60">{p.porque}</p>}
+              <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <PiezaConFoto
+                  prenda={p}
+                  grupos={grupos}
+                  etiqueta={`clave-${i}`}
+                  cargando={cargando}
+                  soloFoto
+                  maximo={4}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Las fotos encontradas para UNA prenda. Si no hay ninguna (la tienda
+ * no tiene nada parecido en catálogo), no se muestra nada roto — la
+ * descripción de arriba ya dice de qué se trata.
+ */
+function PiezaConFoto({
+  prenda,
+  grupos,
+  etiqueta,
+  cargando,
+  soloFoto = false,
+  maximo = 2,
+}: {
+  prenda: PrendaManual;
+  grupos: GrupoProductos[];
+  etiqueta: string;
+  cargando: boolean;
+  soloFoto?: boolean;
+  maximo?: number;
+}) {
+  const productos = (grupos.find((g) => g.etiqueta === etiqueta)?.productos ?? []).slice(
+    0,
+    maximo
+  );
+
+  if (cargando) {
+    return <div className="aspect-[3/4] animate-pulse-rosa rounded-xl bg-rosa-50" />;
+  }
+
+  if (productos.length === 0) {
+    if (soloFoto) return null;
+    return (
+      <div className="flex aspect-[3/4] flex-col justify-end rounded-xl border border-dashed border-rosa-200 bg-rosa-50/40 p-2">
+        <p className="text-[11px] leading-snug text-noche/50">{describir(prenda)}</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {productos.map((p) => (
+        <a
+          key={p.url}
+          href={p.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
+        >
+          <div className="aspect-[3/4] overflow-hidden bg-rosa-50">
+            {p.imagen && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={p.imagen}
+                alt={p.titulo}
+                loading="lazy"
+                className="h-full w-full object-cover transition group-hover:scale-105"
+              />
+            )}
+          </div>
+          {!soloFoto && (
+            <div className="flex flex-1 flex-col gap-0.5 p-2">
+              <p className="line-clamp-2 text-[11px] leading-snug text-noche/80">
+                {p.titulo}
+              </p>
+              {p.precioCop && (
+                <p className="mt-auto text-xs font-medium text-noche">
+                  {pesos(p.precioCop)}
+                </p>
+              )}
+              <p className="text-[10px] text-noche/40">{p.tienda}</p>
+            </div>
+          )}
+        </a>
+      ))}
+    </>
   );
 }
 

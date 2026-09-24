@@ -28,7 +28,7 @@ export default function TiendasInstagram({ tiendas, categorias, grupos }: Props)
   return (
     <div className="mt-8 border-t border-rosa-100 pt-6">
       <h3 className="font-display text-xl text-noche">
-        Tiendas colombianas en Instagram
+        Tiendas en Instagram
       </h3>
       <p className="mt-1 text-xs text-noche/50">
         Venden este tipo de prendas — no sabemos si tienen justo esta, pero

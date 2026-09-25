@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
-import type { ComboConFotos } from "@/lib/combinaciones";
+import type { OutfitDelCloset } from "@/lib/combinaciones";
 import { anotarClicComercio } from "@/lib/use-evento";
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
@@ -37,7 +38,11 @@ type Props = {
 export default function ClosetGrid({ items, onDelete }: Props) {
   const [filter, setFilter] = useState<ClosetCategory | "todas">("todas");
   const [combinando, setCombinando] = useState<string | null>(null);
-  const [modal, setModal] = useState<{ item: ClosetItem; combos: ComboConFotos[] } | null>(null);
+  const [modal, setModal] = useState<{
+    item: ClosetItem;
+    outfit: OutfitDelCloset;
+    perfilIncompleto: boolean;
+  } | null>(null);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -75,12 +80,12 @@ export default function ClosetGrid({ items, onDelete }: Props) {
         toast.error(json.error ?? "No pudimos buscar combinaciones.", { duration: 6000 });
         return;
       }
-      const combos: ComboConFotos[] = json.combinaciones ?? [];
-      if (combos.length === 0) {
-        toast("No encontramos combinaciones en las tiendas por ahora.");
+      const outfit: OutfitDelCloset | undefined = json.outfit;
+      if (!outfit || outfit.prendas.length === 0) {
+        toast("No encontramos en las tiendas las prendas para este outfit por ahora.");
         return;
       }
-      setModal({ item, combos });
+      setModal({ item, outfit, perfilIncompleto: !!json.perfilIncompleto });
     } catch {
       toast.error("No pudimos buscar combinaciones.");
     } finally {
@@ -164,26 +169,38 @@ export default function ClosetGrid({ items, onDelete }: Props) {
                 disabled={combinando === item.id}
                 className="mt-1 self-start rounded-full border border-rosa-200 px-3 py-1.5 text-xs font-medium text-rosa-600 transition hover:border-rosa-400 hover:bg-rosa-50 disabled:opacity-50"
               >
-                {combinando === item.id ? "Buscando…" : "Buscar combinaciones"}
+                {combinando === item.id ? "Armando tu outfit…" : "Buscar combinaciones"}
               </button>
             </div>
           </article>
         ))}
       </div>
 
-      {modal && <ModalCombinaciones item={modal.item} combos={modal.combos} onCerrar={() => setModal(null)} />}
+      {modal && (
+        <ModalCombinaciones
+          item={modal.item}
+          outfit={modal.outfit}
+          perfilIncompleto={modal.perfilIncompleto}
+          onCerrar={() => setModal(null)}
+        />
+      )}
     </div>
   );
 }
 
-/** Con qué combina UNA prenda del clóset, con fotos reales de tienda. */
+/**
+ * El outfit armado alrededor de UNA prenda del clóset: la prenda de ella
+ * de protagonista, y lo que le falta con fotos reales de tienda.
+ */
 function ModalCombinaciones({
   item,
-  combos,
+  outfit,
+  perfilIncompleto,
   onCerrar,
 }: {
   item: ClosetItem;
-  combos: ComboConFotos[];
+  outfit: OutfitDelCloset;
+  perfilIncompleto: boolean;
   onCerrar: () => void;
 }) {
   return (
@@ -196,19 +213,11 @@ function ModalCombinaciones({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-3">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={item.image_url}
-              alt={item.label ?? "Prenda del clóset"}
-              className="h-14 w-14 rounded-xl object-cover"
-            />
-            <div>
-              <p className="text-xs text-noche/50">Combina con</p>
-              <p className="font-display text-lg text-noche">
-                {item.label ?? "esta prenda"}
-              </p>
-            </div>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-rosa-600">Tu outfit</p>
+            <h2 className="mt-1 font-display text-2xl text-noche">
+              {outfit.titulo || item.label || "Tu outfit"}
+            </h2>
           </div>
           <button
             onClick={onCerrar}
@@ -221,8 +230,53 @@ function ModalCombinaciones({
           </button>
         </div>
 
-        <div className="mt-5 space-y-6">
-          {combos.map((c, i) => (
+        {(outfit.proyeccion || outfit.personalidad) && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {outfit.proyeccion && (
+              <span className="rounded-full bg-rosa-50 px-3 py-1 text-xs font-medium text-rosa-600">
+                Para proyectar: {outfit.proyeccion}
+              </span>
+            )}
+            {outfit.personalidad && (
+              <span className="rounded-full bg-rosa-50 px-3 py-1 text-xs font-medium text-rosa-600">
+                Tu estilo: {outfit.personalidad}
+              </span>
+            )}
+          </div>
+        )}
+
+        {outfit.descripcion && (
+          <p className="mt-3 text-sm leading-relaxed text-noche/70">{outfit.descripcion}</p>
+        )}
+
+        {perfilIncompleto && (
+          <p className="mt-3 rounded-xl bg-rosa-50/60 px-3 py-2 text-xs text-noche/60">
+            Para que el outfit se arme a tu medida, cuéntanos en{" "}
+            <Link href="/mi-perfil" className="font-medium text-rosa-600 underline">
+              Mi perfil
+            </Link>{" "}
+            qué quieres proyectar y cuál es tu personalidad de estilo.
+          </p>
+        )}
+
+        <div className="mt-5 flex items-center gap-3 rounded-xl border border-rosa-200 bg-rosa-50/40 p-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={item.image_url}
+            alt={item.label ?? "Tu prenda"}
+            className="h-16 w-16 rounded-lg object-cover"
+          />
+          <div>
+            <p className="text-sm font-medium text-noche">{item.label ?? "Tu prenda"}</p>
+            <p className="text-xs text-noche/50">Ya la tienes — es la protagonista.</p>
+          </div>
+        </div>
+
+        <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-noche/50">
+          Lo que le suma
+        </p>
+        <div className="mt-2 space-y-6">
+          {outfit.prendas.map((c, i) => (
             <div key={i}>
               <p className="text-sm font-medium text-noche">
                 {[c.tipo, c.color, ...c.rasgos].filter(Boolean).join(" · ")}
@@ -266,6 +320,13 @@ function ModalCombinaciones({
             </div>
           ))}
         </div>
+
+        {outfit.sinEncontrar.length > 0 && (
+          <p className="mt-5 text-xs text-noche/50">
+            Hoy no encontramos en las tiendas: {outfit.sinEncontrar.join(", ")}. Si ya tienes
+            algo así en tu clóset, úsalo.
+          </p>
+        )}
       </div>
     </div>
   );

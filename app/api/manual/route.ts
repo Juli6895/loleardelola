@@ -3,6 +3,8 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import {
   adjuntarFotos,
+  COLUMNAS_PERFIL,
+  datosDesdeFila,
   generarManual,
   huella,
   loQueFalta,
@@ -41,32 +43,13 @@ async function cargar(req: Request) {
 
   const { data } = await supabaseAdmin()
     .from("users")
-    .select(
-      "name, silueta, bust_cm, waist_cm, hip_cm, height_cm, tono_piel, color_cabello, largo_cabello, contraste, personalidad, personalidad_secundaria, proyeccion, rango_edad, manual_md, manual_hash, manual_generado_at"
-    )
+    .select(`${COLUMNAS_PERFIL}, manual_md, manual_hash, manual_generado_at`)
     .eq("id", usuario.id)
     .maybeSingle();
 
   if (!data) return { error: "No encontramos tu perfil.", status: 404 as const };
 
-  const datos: DatosManual = {
-    nombre: data.name,
-    silueta: data.silueta,
-    medidas: {
-      busto: data.bust_cm,
-      cintura: data.waist_cm,
-      cadera: data.hip_cm,
-      estatura: data.height_cm,
-    },
-    tonoPiel: data.tono_piel,
-    colorCabello: data.color_cabello,
-    largoCabello: data.largo_cabello,
-    contraste: data.contraste,
-    personalidad: data.personalidad,
-    personalidadSecundaria: data.personalidad_secundaria,
-    proyeccion: data.proyeccion,
-    edad: data.rango_edad,
-  };
+  const datos: DatosManual = datosDesdeFila(data);
 
   return { usuario, datos, guardado: data };
 }

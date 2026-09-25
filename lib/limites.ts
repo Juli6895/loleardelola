@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { usuarioActual, type UsuarioActual } from "./sesion";
-import { mensajeDeTope, puedeUsar, type Recurso } from "./planes";
+import { mensajeDeTope, puedeUsar, TOPES, type Recurso } from "./planes";
 
 // =====================================================================
 // Control de topes del lado servidor
@@ -78,6 +78,40 @@ export async function revisarTope(
     destrabaCon,
     usadas,
     tope: veredicto.tope,
+  };
+}
+
+/**
+ * ¿Puede buscar combinaciones para ESTA prenda del clóset?
+ *
+ * A diferencia de los demás topes, este no cuenta VECES usado (buscar
+ * combinaciones para la misma prenda dos veces no debería contar
+ * doble): cuenta CUÁLES prendas califican. Sin membresía, solo las
+ * primeras `combinacionesClosetGratis` que subió, por fecha — así
+ * queda claro cuáles son "las gratis" aunque después borre y suba
+ * otras.
+ */
+export async function puedeVerCombinaciones(
+  usuario: UsuarioActual,
+  itemId: string
+): Promise<{ permitido: true } | { permitido: false; mensaje: string; destrabaCon: "membresia" }> {
+  const tope = TOPES[usuario.plan].combinacionesClosetGratis;
+  if (tope === null) return { permitido: true };
+
+  const { data: primeras } = await supabaseAdmin()
+    .from("closet_items")
+    .select("id")
+    .eq("user_id", usuario.id)
+    .order("created_at", { ascending: true })
+    .limit(tope);
+
+  const permitido = (primeras ?? []).some((p) => p.id === itemId);
+  if (permitido) return { permitido: true };
+
+  return {
+    permitido: false,
+    mensaje: `Buscar combinaciones es gratis en tus primeras ${tope} prendas. Con la membresía no tienes tope.`,
+    destrabaCon: "membresia",
   };
 }
 

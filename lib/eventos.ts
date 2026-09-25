@@ -66,6 +66,10 @@ export const EVENTOS = [
   "manual_visto",
   "manual_generado",
   "manual_error",
+
+  // Combinar desde el clóset
+  "combinacion_buscada",
+  "combinacion_error",
 ] as const;
 
 export type NombreEvento = (typeof EVENTOS)[number];

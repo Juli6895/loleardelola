@@ -45,6 +45,21 @@ export function anotar(nombre: string, props: Record<string, unknown> = {}): voi
   }
 }
 
+/**
+ * Anota que se hizo clic hacia UN comercio puntual (no una búsqueda
+ * genérica de Google Shopping, que no dice a cuál tienda entró la
+ * usuaria). `origen` es desde dónde: "buscar", "closet", "manual" o
+ * "instagram" — para saber también qué pantalla está generando esos
+ * clics, no solo qué comercio se lleva más.
+ */
+export function anotarClicComercio(datos: {
+  tienda: string;
+  dominio: string | null;
+  origen: string;
+}): void {
+  anotar("comercio_clic", datos);
+}
+
 /** Anota una vez al montar. Para "vio esta página". */
 export function useAnotarUnaVez(nombre: string, props: Record<string, unknown> = {}) {
   const yaFue = useRef(false);

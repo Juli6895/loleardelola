@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
 import type { ComboConFotos } from "@/lib/combinaciones";
+import { anotarClicComercio } from "@/lib/use-evento";
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
@@ -234,6 +235,7 @@ function ModalCombinaciones({
                     href={f.url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    onClick={() => anotarClicComercio({ tienda: f.tienda, dominio: f.dominio, origen: "closet" })}
                     className="flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:shadow-suave"
                   >
                     {f.imagen ? (

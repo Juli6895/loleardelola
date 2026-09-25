@@ -1,6 +1,7 @@
 "use client";
 
 import type { GrupoProductos } from "@/lib/use-catalogo";
+import { anotarClicComercio } from "@/lib/use-evento";
 
 // Prendas con foto sacadas del catálogo que publican las tiendas.
 // Ver lib/catalogo-tiendas.ts para el porqué y sus límites: solo cubre
@@ -59,6 +60,7 @@ export default function ProductosSugeridos({
                   href={p.url}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "buscar" })}
                   className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
                 >
                   <div className="aspect-[3/4] overflow-hidden bg-rosa-50">

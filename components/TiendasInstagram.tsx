@@ -2,6 +2,7 @@
 
 import type { ClosetCategory, TiendaInstagram } from "@/types";
 import { prendaDeTienda, type GrupoProductos } from "@/lib/use-catalogo";
+import { anotarClicComercio } from "@/lib/use-evento";
 
 type Props = {
   tiendas: TiendaInstagram[];
@@ -44,6 +45,9 @@ export default function TiendasInstagram({ tiendas, categorias, grupos }: Props)
             href={`https://www.instagram.com/${t.handle}/`}
             target="_blank"
             rel="noopener noreferrer"
+            onClick={() =>
+              anotarClicComercio({ tienda: t.nombre, dominio: t.dominio ?? t.handle, origen: "instagram" })
+            }
             className="group flex items-center gap-3 rounded-xl border border-rosa-100 bg-white px-4 py-3 transition hover:border-rosa-300 hover:bg-rosa-50/50"
           >
             {prenda?.imagen ? (

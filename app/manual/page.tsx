@@ -15,7 +15,7 @@ import type { PerfilSilueta } from "@/types";
 import { construirInformeHtml } from "@/lib/informe-html";
 import { colorAHex } from "@/lib/color-swatch";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
-import { useAnotarUnaVez } from "@/lib/use-evento";
+import { useAnotarUnaVez, anotarClicComercio } from "@/lib/use-evento";
 
 // El manual de estilo: lo que da la membresía.
 //
@@ -373,6 +373,7 @@ function FotosDePrenda({
           href={p.url}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "manual" })}
           className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
         >
           <div className="aspect-[3/4] overflow-hidden bg-rosa-50">

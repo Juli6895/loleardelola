@@ -70,6 +70,11 @@ export const EVENTOS = [
   // Combinar desde el clóset
   "combinacion_buscada",
   "combinacion_error",
+
+  // Clic a un comercio puntual (no la búsqueda genérica de Google
+  // Shopping, que no dice a cuál tienda entró) — de dónde: buscar,
+  // clóset, manual o el directorio de Instagram.
+  "comercio_clic",
 ] as const;
 
 export type NombreEvento = (typeof EVENTOS)[number];

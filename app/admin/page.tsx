@@ -29,6 +29,7 @@ type Datos = {
     pagos: number;
   }>;
   servicios: Array<{ orden: number; servicio: string; personas: number; veces: number }>;
+  comerciosMasClic: Array<{ tienda: string; dominio: string | null; clics: number; personas: number; ultimo_clic: string }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
   cuentas: { registrosDelMes: number; ingresosDelMes: number };
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
@@ -122,6 +123,25 @@ export default function AdminPage() {
           <Tabla
             columnas={["Servicio", "Personas", "Veces"]}
             filas={datos.servicios.map((s) => [s.servicio, String(s.personas), String(s.veces)])}
+          />
+        )}
+      </Seccion>
+
+      <Seccion
+        titulo="Comercios con más clic"
+        nota="Clics hacia UN comercio puntual — no cuenta la búsqueda genérica de Google Shopping, que no dice a cuál tienda entró."
+      >
+        {datos.comerciosMasClic.length === 0 ? (
+          <Vacio>Sin datos todavía.</Vacio>
+        ) : (
+          <Tabla
+            columnas={["Comercio", "Clics", "Personas", "Último clic"]}
+            filas={datos.comerciosMasClic.map((c) => [
+              c.tienda || c.dominio || "—",
+              String(c.clics),
+              String(c.personas),
+              new Date(c.ultimo_clic).toLocaleDateString("es-CO"),
+            ])}
           />
         )}
       </Seccion>

@@ -50,6 +50,7 @@ export async function GET(req: Request) {
     seQuedaron,
     actividad,
     servicios,
+    comerciosMasClic,
     porVencer,
     pagos,
     registrosDelMes,
@@ -62,6 +63,7 @@ export async function GET(req: Request) {
     leer("v_se_quedaron_pagando"),
     leer("v_actividad_diaria", "dia"),
     leer("v_servicios_usados", "orden"),
+    leer("v_comercios_mas_clic"),
     sb
       .from("users")
       .select("email, name, premium_until")
@@ -97,6 +99,7 @@ export async function GET(req: Request) {
     seQuedaron,
     actividad,
     servicios,
+    comerciosMasClic: comerciosMasClic.slice(0, 20),
     dinero: {
       pagosDelMes: delMes.length,
       brutoCop: Math.round(bruto),

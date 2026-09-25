@@ -1,5 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { buscarEnCatalogos, type ProductoTienda } from "./catalogo-tiendas";
+import {
+  buscarEnCatalogos,
+  COLORES_BUSCABLES,
+  TIPOS_BUSCABLES,
+  type ProductoTienda,
+} from "./catalogo-tiendas";
 import type { ClosetCategory } from "@/types";
 
 // =====================================================================
@@ -32,6 +37,10 @@ export type PrendaDelCloset = {
   categoria: ClosetCategory;
   color: string | null;
   tags: string[];
+  // El nombre que le puso la IA al subirla ("Pantalón lunares blanco
+  // negro"). Dice más que el color solo: una prenda estampada pide
+  // combinaciones lisas.
+  label: string | null;
 };
 
 export type ComboSugerido = {
@@ -47,11 +56,11 @@ const SISTEMA = `Eres una asesora de imagen colombiana. Una clienta ya tiene UNA
 
 REGLAS:
 
-1. Sugiere 2 a 4 prendas de un tipo DISTINTO al de la prenda que ya tiene (si tiene un pantalón, sugiere tops, calzado o abrigo — no otro pantalón).
+1. Sugiere 4 o 5 prendas, cada una de un tipo distinto entre sí y DISTINTO al de la prenda que ya tiene (si tiene un pantalón, sugiere parte de arriba, calzado, abrigo o accesorio — no otro pantalón ni otra parte de abajo).
 
-2. El color de cada sugerencia tiene que combinar de verdad con el color de la prenda que ya tiene: o hace juego en la misma familia de color, o es un neutro que la deja lucir, o es un acento puntual a propósito. Nunca un color que choque sin razón.
+2. El color de cada sugerencia tiene que combinar de verdad con la prenda que ya tiene: o hace juego en la misma familia de color, o es un neutro que la deja lucir, o es un acento puntual a propósito. Nunca un color que choque sin razón. Si la prenda es estampada o de varios colores, lo que sugieras va LISO y en uno de los colores del estampado o en un neutro.
 
-3. tipo: SOLO el tipo de prenda, sin color ni estilo, 1-2 palabras (ej. "blusa", "tenis", "chaqueta"). color: un color en español, una o dos palabras. rasgos: 2-4 palabras o frases muy cortas (corte, tela, largo, manga...).
+3. tipo y color: elígelos SOLO de las listas permitidas del esquema — son los nombres con que las tiendas titulan sus prendas, y con otros nombres no se encuentran. Si el matiz exacto que imaginas no está (ej. "blanco roto"), usa el más cercano de la lista ("marfil"). El denim es una tela, no un color: una chaqueta de jean va con color "azul" y el rasgo "denim". rasgos: 2-4 palabras o frases muy cortas (corte, tela, largo, manga...).
 
 4. Todas las prendas son para una mujer adulta. Nunca sugieras ni describas ropa de hombre.
 
@@ -69,12 +78,12 @@ const REPORT_TOOL: Anthropic.Tool = {
     properties: {
       combinaciones: {
         type: "array",
-        description: "2 a 4 prendas de tipo distinto a la que ya tiene, que combinen en color.",
+        description: "4 o 5 prendas, de tipos distintos entre sí y distintos a la que ya tiene, que combinen en color.",
         items: {
           type: "object",
           properties: {
-            tipo: { type: "string", description: "Solo el tipo de prenda, 1-2 palabras." },
-            color: { type: "string", description: "Un color, en español." },
+            tipo: { type: "string", enum: TIPOS_BUSCABLES, description: "El tipo de prenda." },
+            color: { type: "string", enum: COLORES_BUSCABLES, description: "El color de la prenda." },
             rasgos: {
               type: "array",
               items: { type: "string" },
@@ -106,6 +115,7 @@ async function sugerirCombinaciones(p: PrendaDelCloset): Promise<ComboSugerido[]
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
 
   const descripcion = [
+    p.label ? `"${p.label}"` : null,
     NOMBRE_CATEGORIA[p.categoria],
     p.color ? `color ${p.color}` : null,
     p.tags.length > 0 ? p.tags.join(", ") : null,

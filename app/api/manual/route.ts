@@ -42,7 +42,7 @@ async function cargar(req: Request) {
   const { data } = await supabaseAdmin()
     .from("users")
     .select(
-      "name, silueta, bust_cm, waist_cm, hip_cm, height_cm, tono_piel, color_cabello, largo_cabello, contraste, personalidad, personalidad_secundaria, proyeccion, manual_md, manual_hash, manual_generado_at"
+      "name, silueta, bust_cm, waist_cm, hip_cm, height_cm, tono_piel, color_cabello, largo_cabello, contraste, personalidad, personalidad_secundaria, proyeccion, rango_edad, manual_md, manual_hash, manual_generado_at"
     )
     .eq("id", usuario.id)
     .maybeSingle();
@@ -65,6 +65,7 @@ async function cargar(req: Request) {
     personalidad: data.personalidad,
     personalidadSecundaria: data.personalidad_secundaria,
     proyeccion: data.proyeccion,
+    edad: data.rango_edad,
   };
 
   return { usuario, datos, guardado: data };

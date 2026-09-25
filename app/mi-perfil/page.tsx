@@ -34,6 +34,7 @@ const PERFIL_VACIO: PerfilSilueta = {
   personalidad_secundaria: null,
   personalidad_fuente: null,
   proyeccion: null,
+  rango_edad: null,
 };
 
 // Página "Mi Perfil": la usuaria ingresa sus medidas (busto, cintura,
@@ -53,6 +54,7 @@ export default function MiPerfilPage() {
   const [largoCabello, setLargoCabello] = useState("");
   const [tonoPiel, setTonoPiel] = useState("");
   const [proyeccion, setProyeccion] = useState("");
+  const [rangoEdad, setRangoEdad] = useState("");
 
   const [referencia, setReferencia] = useState("");
   const [analizandoPersonalidad, setAnalizandoPersonalidad] = useState(false);
@@ -76,6 +78,7 @@ export default function MiPerfilPage() {
           if (p.largo_cabello) setLargoCabello(p.largo_cabello);
           if (p.tono_piel) setTonoPiel(p.tono_piel);
           if (p.proyeccion) setProyeccion(p.proyeccion);
+          if (p.rango_edad) setRangoEdad(p.rango_edad);
         }
       })
       .finally(() => setLoadingInicial(false));
@@ -98,6 +101,7 @@ export default function MiPerfilPage() {
           largoCabello: largoCabello || null,
           tonoPiel: tonoPiel || null,
           proyeccion: proyeccion || null,
+          rangoEdad: rangoEdad || null,
         }),
       });
       // Si el servidor cae feo puede responder con el cuerpo vacío, y
@@ -394,11 +398,34 @@ export default function MiPerfilPage() {
                 <option value="negra">Negra / oscura</option>
               </select>
             </div>
+            <div>
+              <label
+                htmlFor="rangoEdad"
+                className="text-sm font-medium text-noche/80"
+              >
+                Rango de edad
+              </label>
+              <select
+                id="rangoEdad"
+                value={rangoEdad}
+                onChange={(e) => setRangoEdad(e.target.value)}
+                className="mt-1.5 w-full rounded-full border border-rosa-200 bg-rosa-50/40 px-4 py-2.5 text-sm outline-none transition focus:border-rosa-400 focus:bg-white"
+              >
+                <option value="">Sin responder</option>
+                <option value="18-24">18 a 24 años</option>
+                <option value="25-34">25 a 34 años</option>
+                <option value="35-44">35 a 44 años</option>
+                <option value="45-54">45 a 54 años</option>
+                <option value="55-64">55 a 64 años</option>
+                <option value="65+">65 años o más</option>
+              </select>
+            </div>
           </div>
           <p className="mt-3 text-xs text-noche/40">
             Con tu tono de piel y tu color de cabello calculamos tu nivel de
             contraste, que es lo que define cómo te favorece combinar los
-            colores entre sí.
+            colores entre sí. Pedimos tu rango de edad, no tu fecha de
+            nacimiento, y solo para que el manual sugiera prendas acordes.
           </p>
         </div>
 

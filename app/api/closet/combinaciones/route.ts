@@ -2,14 +2,16 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { puedeVerCombinaciones } from "@/lib/limites";
-import { combinacionesConFotos } from "@/lib/combinaciones";
+import { outfitConFotos } from "@/lib/combinaciones";
+import { COLUMNAS_PERFIL, datosDesdeFila } from "@/lib/manual-estilo";
 import { contextoDe, registrar } from "@/lib/eventos";
 import type { ClosetCategory } from "@/types";
 
 // POST /api/closet/combinaciones  { itemId }
 //
-// Busca, en el catálogo real de las tiendas, prendas que combinen con
-// UNA prenda puntual del clóset de la usuaria. Gratis en sus primeras
+// Arma UN outfit alrededor de una prenda puntual del clóset, pensado
+// para lo que la usuaria dijo en su perfil que quiere proyectar, y
+// busca lo que le falta en el catálogo real de las tiendas. Gratis en sus primeras
 // prendas subidas (ver combinacionesClosetGratis en lib/planes.ts);
 // después de eso, pide membresía — igual que el Manual de estilo, usa
 // la misma búsqueda en catálogos reales.
@@ -44,15 +46,33 @@ export async function POST(req: Request) {
     );
   }
 
+  const { data: fila } = await sb
+    .from("users")
+    .select(COLUMNAS_PERFIL)
+    .eq("id", usuario.id)
+    .maybeSingle();
+  const perfil = datosDesdeFila(fila ?? {});
+
   try {
-    const combinaciones = await combinacionesConFotos({
-      categoria: item.category as ClosetCategory,
-      color: item.color,
-      tags: item.tags ?? [],
-      label: item.label ?? null,
+    const outfit = await outfitConFotos(
+      {
+        categoria: item.category as ClosetCategory,
+        color: item.color,
+        tags: item.tags ?? [],
+        label: item.label ?? null,
+      },
+      perfil
+    );
+    registrar("combinacion_buscada", contextoDe(req, usuario.id), {
+      categoria: item.category,
+      proyeccion: perfil.proyeccion,
     });
-    registrar("combinacion_buscada", contextoDe(req, usuario.id), { categoria: item.category });
-    return NextResponse.json({ combinaciones });
+    return NextResponse.json({
+      outfit,
+      // Sin esto el outfit sale "genérico": la pantalla invita a
+      // completar el perfil para que se arme a su medida.
+      perfilIncompleto: !perfil.proyeccion || !perfil.personalidad,
+    });
   } catch (e) {
     console.error("[api/closet/combinaciones] falló:", e);
     registrar("combinacion_error", contextoDe(req, usuario.id));

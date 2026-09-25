@@ -174,7 +174,7 @@ const FAMILIAS_DE_COLOR: string[][] = [
   ["plateado", "plata", "silver"],
   // No es un color que se pida: está para reconocer que una prenda NO es
   // de un solo color cuando se pidió uno.
-  ["multicolor", "bicolor", "tricolor", "estampado"],
+  ["multicolor", "bicolor", "tricolor", "estampado", "print", "animal print", "leopardo", "cebra"],
 ];
 
 /**

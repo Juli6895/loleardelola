@@ -118,8 +118,35 @@ export function loQueFalta(d: DatosManual): string[] {
   return falta;
 }
 
+// Las columnas de users que alimentan el perfil de asesoría, y cómo se
+// convierten en DatosManual. Viven acá porque las usan el manual Y
+// "Buscar combinaciones" del clóset — que no se desincronicen.
+export const COLUMNAS_PERFIL =
+  "name, silueta, bust_cm, waist_cm, hip_cm, height_cm, tono_piel, color_cabello, largo_cabello, contraste, personalidad, personalidad_secundaria, proyeccion, rango_edad";
+
+export function datosDesdeFila(fila: any): DatosManual {
+  return {
+    nombre: fila.name ?? null,
+    silueta: fila.silueta ?? null,
+    medidas: {
+      busto: fila.bust_cm ?? null,
+      cintura: fila.waist_cm ?? null,
+      cadera: fila.hip_cm ?? null,
+      estatura: fila.height_cm ?? null,
+    },
+    tonoPiel: fila.tono_piel ?? null,
+    colorCabello: fila.color_cabello ?? null,
+    largoCabello: fila.largo_cabello ?? null,
+    contraste: fila.contraste ?? null,
+    personalidad: fila.personalidad ?? null,
+    personalidadSecundaria: fila.personalidad_secundaria ?? null,
+    proyeccion: fila.proyeccion ?? null,
+    edad: fila.rango_edad ?? null,
+  };
+}
+
 /** El material curado que le corresponde a ESTA usuaria, ya resuelto. */
-function expediente(d: DatosManual): string {
+export function expediente(d: DatosManual): string {
   const partes: string[] = [];
 
   if (d.edad) {
@@ -259,6 +286,10 @@ Llama siempre a report_manual con los tres campos completos.`;
 const REPORT_TOOL: Anthropic.Tool = {
   name: "report_manual",
   description: "Reporta el manual de estilo: el texto y las prendas recomendadas en piezas sueltas para poder buscarlas después.",
+  // La respuesta tiene listas dentro de listas (outfits → prendas): sin
+  // strict, a veces llegan rotas como texto. Con strict la API garantiza
+  // que respetan el esquema.
+  strict: true,
   input_schema: {
     type: "object",
     properties: {
@@ -293,10 +324,12 @@ const REPORT_TOOL: Anthropic.Tool = {
                   },
                 },
                 required: ["tipo", "color", "rasgos"],
+                additionalProperties: false,
               },
             },
           },
           required: ["titulo", "descripcion", "prendas"],
+          additionalProperties: false,
         },
       },
       prendasClave: {
@@ -315,10 +348,12 @@ const REPORT_TOOL: Anthropic.Tool = {
             porque: { type: "string", description: "1 frase: por qué esta prenda, para ella." },
           },
           required: ["tipo", "color", "rasgos", "porque"],
+          additionalProperties: false,
         },
       },
     },
     required: ["texto", "outfits", "prendasClave"],
+    additionalProperties: false,
   },
 };
 

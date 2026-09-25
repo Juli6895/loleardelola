@@ -339,16 +339,22 @@ export async function buscarEnCatalogos(
         punto += mejor;
       }
 
-      // Si el tipo no venía en el título (solo en tags o categoría),
-      // exigimos que de verdad se parezca en algo más: si pidió un
-      // color y esta prenda no lo tiene por ningún lado, o si no hay
-      // color ni ningún rasgo que coincida, es solo una mención suelta
-      // y mejor no mostrar nada — como pidió Juliana: si no está de
-      // verdad en el comercio, no se sugiere.
-      if (!enTitulo) {
-        if (color && pesoDe(p, color) === 0) continue;
-        if (punto <= 1) continue;
-      }
+      // El color no es negociable: si pidió "cárdigan mostaza" y esta
+      // prenda es un cárdigan de verdad pero rosa o rojo, mostrarlo es
+      // tan engañoso como mostrar el tipo de prenda equivocado — la
+      // usuaria compara la foto contra el color que le dijeron, no
+      // contra el tipo. Pero solo cuenta si el color está en el título
+      // o en la clasificación de la tienda: en la descripción libre
+      // aparece igual de suelto que el tipo ("combínala con una blusa
+      // camel" describe OTRA prenda, no el color de esta).
+      const colorConfirmado = !color || p.titulo_n.includes(color) || p.meta_n.includes(color);
+      if (!colorConfirmado) continue;
+
+      // Si además el tipo no venía en el título (solo en tags o
+      // categoría) y no hay ni color ni ningún rasgo que coincida, es
+      // solo una mención suelta — mejor no mostrar nada, como pidió
+      // Juliana: si no está de verdad en el comercio, no se sugiere.
+      if (!enTitulo && punto <= 1) continue;
 
       puntuados.push({ p, punto });
     }

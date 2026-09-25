@@ -6,7 +6,7 @@ import {
   inferirContraste,
   inferirEstacion,
 } from "@/lib/image-consulting/colorimetria";
-import type { Subtono, TonoPiel } from "@/types";
+import type { RangoEdad, Subtono, TonoPiel } from "@/types";
 import { PROYECCIONES, type Proyeccion } from "@/lib/image-consulting/proyeccion";
 
 // GET /api/perfil → medidas y silueta guardadas de este dispositivo
@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const { data, error } = await sb
     .from("users")
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente, rango_edad"
     )
     .eq("id", userId)
     .single();
@@ -103,6 +103,11 @@ async function guardarPerfil(req: Request) {
     ? (body.proyeccion as Proyeccion)
     : null;
 
+  const RANGOS_EDAD_VALIDOS: RangoEdad[] = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+"];
+  const rangoEdad = RANGOS_EDAD_VALIDOS.includes(body.rangoEdad)
+    ? (body.rangoEdad as RangoEdad)
+    : null;
+
   const pesoKg =
     body.pesoKg != null && body.pesoKg !== "" && Number.isFinite(Number(body.pesoKg))
       ? Number(body.pesoKg)
@@ -128,10 +133,11 @@ async function guardarPerfil(req: Request) {
       subtono,
       contraste,
       estacion,
+      rango_edad: rangoEdad,
     })
     .eq("id", userId)
     .select(
-      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente"
+      "bust_cm, waist_cm, hip_cm, height_cm, peso_kg, silueta, tono_piel, color_cabello, largo_cabello, subtono, contraste, estacion, proyeccion, personalidad, personalidad_secundaria, personalidad_fuente, rango_edad"
     )
     .single();
 

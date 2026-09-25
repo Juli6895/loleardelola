@@ -58,6 +58,12 @@ import type {
   Contraste,
 } from "@/lib/image-consulting/colorimetria";
 
+// Rango de edad, no fecha de nacimiento exacta: alcanza para que el
+// manual ajuste el consejo (una prenda que le sienta bien a los 20 no
+// necesariamente es la más favorecedora a los 55) sin pedir un dato más
+// sensible del que hace falta.
+export type RangoEdad = "18-24" | "25-34" | "35-44" | "45-54" | "55-64" | "65+";
+
 // Perfil de medidas de la usuaria — base para la asesoría de figura hoy,
 // y para el Avatar (Fase 3 del roadmap) más adelante.
 export type PerfilSilueta = {
@@ -87,6 +93,7 @@ export type PerfilSilueta = {
   personalidad: Personalidad | null;
   personalidad_secundaria: Personalidad | null;
   personalidad_fuente: string | null;
+  rango_edad: RangoEdad | null;
 };
 
 // Desglose completo de UNA prenda detectada en la foto. Los campos

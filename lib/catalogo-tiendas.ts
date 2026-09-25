@@ -298,10 +298,18 @@ export async function buscarEnCatalogos(
   const puntuados: Array<{ p: Indexado; punto: number }> = [];
   for (const lote of [...catalogos, ...busquedas]) {
     for (const p of lote) {
-      // El tipo tiene que estar en el título o en la clasificación de
-      // la tienda; en la descripción no vale, porque ahí aparece
-      // mencionado de pasada ("combínalo con un vestido").
-      const enTitulo = p.titulo_n.includes(tipo) || p.titulo_n.includes(tipo + "s");
+      // El tipo tiene que ser lo que el título dice que ES la prenda, no
+      // solo algo que menciona de pasada: "Falda midi con cinturón" NO
+      // es un cinturón, aunque la palabra esté ahí. En este catálogo el
+      // nombre del producto siempre empieza por su categoría ("Vestido
+      // corto...", "Blusa de lino..."), así que exigimos que el tipo
+      // esté al comienzo del título, no en cualquier parte.
+      const tipoEscapado = tipo.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      const inicioDeTitulo = new RegExp(`^${tipoEscapado}s?\\b`);
+      const enTitulo = inicioDeTitulo.test(p.titulo_n.trim());
+      // La clasificación de la tienda (product_type, tags) sí puede
+      // traer el tipo en cualquier posición: es vocabulario controlado,
+      // no una frase libre.
       const enMeta = p.meta_n.includes(tipo) || p.meta_n.includes(tipo + "s");
       if (!enTitulo && !enMeta) continue;
 
@@ -330,6 +338,18 @@ export async function buscarEnCatalogos(
         }
         punto += mejor;
       }
+
+      // Si el tipo no venía en el título (solo en tags o categoría),
+      // exigimos que de verdad se parezca en algo más: si pidió un
+      // color y esta prenda no lo tiene por ningún lado, o si no hay
+      // color ni ningún rasgo que coincida, es solo una mención suelta
+      // y mejor no mostrar nada — como pidió Juliana: si no está de
+      // verdad en el comercio, no se sugiere.
+      if (!enTitulo) {
+        if (color && pesoDe(p, color) === 0) continue;
+        if (punto <= 1) continue;
+      }
+
       puntuados.push({ p, punto });
     }
   }

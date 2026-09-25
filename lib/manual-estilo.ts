@@ -5,6 +5,7 @@ import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalid
 import { CONTRASTES, TONOS_PIEL, type Contraste, type TonoPiel } from "./image-consulting/colorimetria";
 import { PROYECCIONES, type Proyeccion } from "./image-consulting/proyeccion";
 import { buscarEnCatalogos, type ProductoTienda } from "./catalogo-tiendas";
+import type { RangoEdad } from "@/types";
 
 // =====================================================================
 // Manual de estilo personal (lo que da la membresía)
@@ -46,6 +47,16 @@ export type DatosManual = {
   personalidad: Personalidad | null;
   personalidadSecundaria: Personalidad | null;
   proyeccion: Proyeccion | null;
+  edad: RangoEdad | null;
+};
+
+const RANGOS_EDAD_LABEL: Record<RangoEdad, string> = {
+  "18-24": "18 a 24 años",
+  "25-34": "25 a 34 años",
+  "35-44": "35 a 44 años",
+  "45-54": "45 a 54 años",
+  "55-64": "55 a 64 años",
+  "65+": "65 años o más",
 };
 
 /** Una prenda tal como la necesita la búsqueda en catálogos. */
@@ -83,7 +94,7 @@ export function huella(d: DatosManual): string {
     .update(
       JSON.stringify([
         d.silueta, d.tonoPiel, d.colorCabello, d.largoCabello, d.contraste,
-        d.personalidad, d.personalidadSecundaria, d.proyeccion,
+        d.personalidad, d.personalidadSecundaria, d.proyeccion, d.edad,
         d.medidas.busto, d.medidas.cintura, d.medidas.cadera, d.medidas.estatura,
       ])
     )
@@ -98,12 +109,17 @@ export function loQueFalta(d: DatosManual): string[] {
   if (!d.contraste) falta.push("tu tono de piel y color de cabello");
   if (!d.personalidad) falta.push("tu personalidad de estilo");
   if (!d.proyeccion) falta.push("qué quieres proyectar");
+  if (!d.edad) falta.push("tu rango de edad");
   return falta;
 }
 
 /** El material curado que le corresponde a ESTA usuaria, ya resuelto. */
 function expediente(d: DatosManual): string {
   const partes: string[] = [];
+
+  if (d.edad) {
+    partes.push(`## SU EDAD: ${RANGOS_EDAD_LABEL[d.edad]}`);
+  }
 
   if (d.silueta) {
     const s = SILUETAS[d.silueta];
@@ -196,6 +212,8 @@ REGLAS:
 9. EL COLOR DE CADA PRENDA TIENE QUE QUEDARLE BIEN A SU PIEL Y SU CABELLO PUNTUALES, no solo "un tono cualquiera de su nivel de contraste". Piensa como una colorista real: qué colores iluminan la combinación exacta de su tono de piel y el color de su cabello, y cuáles se la apagan. Dos personas con el mismo nivel de contraste pero distinto tono de piel casi nunca lucen el mismo color igual de bien.
 
 10. CADA OUTFIT TIENE QUE SER COHERENTE EN COLOR, no una lista de prendas sueltas de colores que no combinan entre sí. Antes de fijar los colores de un outfit, decide una paleta de 2-3 colores que se vean bien juntos (para su piel/cabello) y reparte esos colores entre las prendas del outfit — un color base, uno de apoyo, y como mucho un acento.
+
+11. TEN EN CUENTA SU EDAD para que cada prenda se sienta acorde a su momento de vida, no solo a su cuerpo o su color. No se trata de "vestir mayor" o "vestir joven": se trata de que un corte, un largo o un estampado que a los 20 lee como fresco puede leer como disfraz a los 50, y al revés, algo que a los 45 se ve con autoridad puede quedarle infantil a una veinteañera. Ajusta el detalle (proporción, estampado, tela), no la calidad de la asesoría.
 
 EL CAMPO "texto" — markdown con estos títulos exactos, en este orden:
 

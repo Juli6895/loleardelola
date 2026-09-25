@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     }
 
     registrar("ingreso_ok", contextoDe(req, resultado.userId));
+    if (resultado.esNuevo) registrar("registro_ok", contextoDe(req, resultado.userId));
     const usuario = await usuarioActual(req);
     return NextResponse.json({ ok: true, usuario });
   } catch (e) {

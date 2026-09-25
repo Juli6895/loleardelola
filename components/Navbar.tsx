@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
+import { esAdmin } from "@/lib/admin-correos";
 
 const LINKS = [
   { href: "/buscar", label: "Buscar" },
@@ -29,6 +30,7 @@ export default function Navbar() {
   const router = useRouter();
   const dentro = !!usuario?.conSesion;
   const nombre = comoSeLlama(usuario);
+  const administradora = dentro && esAdmin(usuario?.email);
 
   async function salir() {
     await fetch("/api/auth/salir", { method: "POST" });
@@ -75,6 +77,14 @@ export default function Navbar() {
           ))}
           {dentro ? (
             <div className="flex items-center gap-3">
+              {administradora && (
+                <Link
+                  href="/admin"
+                  className="rounded-full border border-white/20 px-3 py-1 text-xs font-medium text-white/80 transition hover:border-rosa-300 hover:text-rosa-300"
+                >
+                  Admin
+                </Link>
+              )}
               <Link
                 href="/mi-perfil"
                 className="flex items-center gap-2 text-sm font-medium text-white transition hover:text-rosa-300"
@@ -144,12 +154,23 @@ export default function Navbar() {
             </Link>
           ))}
           {dentro ? (
-            <button
-              onClick={salir}
-              className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/80 transition hover:bg-white/10"
-            >
-              Salir ({nombre})
-            </button>
+            <>
+              {administradora && (
+                <Link
+                  href="/admin"
+                  onClick={() => setMenuOpen(false)}
+                  className="block rounded-lg px-3 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+                >
+                  Admin
+                </Link>
+              )}
+              <button
+                onClick={salir}
+                className="block w-full rounded-lg px-3 py-2 text-left text-sm font-medium text-white/80 transition hover:bg-white/10"
+              >
+                Salir ({nombre})
+              </button>
+            </>
           ) : (
             <Link
               href="/entrar"

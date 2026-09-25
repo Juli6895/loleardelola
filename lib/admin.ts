@@ -1,6 +1,9 @@
 import { supabaseAdmin } from "./supabase";
 import { usuarioActual } from "./sesion";
 import { DIAS_DE_PLAN, PRECIOS, type TipoPlan } from "./planes";
+import { esAdmin } from "./admin-correos";
+
+export { esAdmin };
 
 // =====================================================================
 // Administración de membresías
@@ -17,15 +20,6 @@ import { DIAS_DE_PLAN, PRECIOS, type TipoPlan } from "./planes";
 // día es perfectamente manejable, y es honesto: no inventa una
 // confirmación que no tenemos.
 // =====================================================================
-
-// Quién puede administrar. Se edita acá, igual que las listas de
-// comercios: no hay pantalla para cambiarlo desde la app.
-const CORREOS_ADMIN = ["contacto@lakaja.co"];
-
-export function esAdmin(correo: string | null | undefined): boolean {
-  if (!correo) return false;
-  return CORREOS_ADMIN.includes(correo.trim().toLowerCase());
-}
 
 /** Exige sesión abierta Y correo de administración. */
 export async function exigirAdmin(

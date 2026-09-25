@@ -3,9 +3,11 @@
 import { useState } from "react";
 import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se hace el análisis de outfit
 export default function BuscarPage() {
+  useAnotarUnaVez("buscar_visto");
   const [result, setResult] = useState<R | null>(null);
 
   return (

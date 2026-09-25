@@ -97,7 +97,9 @@ export async function verificarCodigo(
   correo: string,
   codigo: string,
   aceptaPolitica: boolean
-): Promise<{ ok: true; userId: string } | { ok: false; motivo: string }> {
+): Promise<
+  { ok: true; userId: string; esNuevo: boolean } | { ok: false; motivo: string }
+> {
   // Se exige acá, no solo en la pantalla: un checkbox deshabilitado en
   // el navegador no impide llamar esta función directo. Sin esto,
   // "obligatorio para crear cuenta" sería solo una sugerencia visual.
@@ -139,8 +141,9 @@ export async function verificarCodigo(
     .update({ used_at: new Date().toISOString() })
     .eq("id", fila.id);
 
-  const userId = await unirIdentidades(req, correo);
-  if (!userId) return { ok: false, motivo: "No pudimos abrir tu cuenta." };
+  const identidad = await unirIdentidades(req, correo);
+  if (!identidad) return { ok: false, motivo: "No pudimos abrir tu cuenta." };
+  const { id: userId, esNuevo } = identidad;
 
   // Queda registrado CUÁNDO y QUÉ VERSIÓN aceptó — no solo que aceptó
   // alguna vez. Se actualiza en cada entrada exitosa: si la política
@@ -155,10 +158,18 @@ export async function verificarCodigo(
     .eq("id", userId);
 
   await abrirSesion(userId);
-  return { ok: true, userId };
+  return { ok: true, userId, esNuevo };
 }
 
-async function unirIdentidades(req: Request, correo: string): Promise<string | null> {
+type Identidad = { id: string; esNuevo: boolean };
+
+/**
+ * `esNuevo` marca el momento exacto de un registro (correo que nunca
+ * había entrado), para diferenciarlo de un ingreso más — es lo que
+ * necesita el tablero para contar "quién se registró" aparte de
+ * "quién entró".
+ */
+async function unirIdentidades(req: Request, correo: string): Promise<Identidad | null> {
   const sb = supabaseAdmin();
   const idDispositivo = await getOrCreateUserId(req);
 
@@ -173,11 +184,11 @@ async function unirIdentidades(req: Request, correo: string): Promise<string | n
   if (!porCorreo) {
     if (!idDispositivo) return null;
     await sb.from("users").update({ email: correo }).eq("id", idDispositivo);
-    return idDispositivo;
+    return { id: idDispositivo, esNuevo: true };
   }
 
   // Caso 2: ya tenía cuenta y es este mismo navegador.
-  if (!idDispositivo || porCorreo.id === idDispositivo) return porCorreo.id;
+  if (!idDispositivo || porCorreo.id === idDispositivo) return { id: porCorreo.id, esNuevo: false };
 
   // Caso 3: ya tenía cuenta desde otro lado. Lo que hizo en este
   // navegador sin identificarse se pasa a la cuenta de verdad, y la
@@ -202,7 +213,7 @@ async function unirIdentidades(req: Request, correo: string): Promise<string | n
       .eq("id", porCorreo.id);
   }
   await sb.from("users").delete().eq("id", idDispositivo);
-  return porCorreo.id;
+  return { id: porCorreo.id, esNuevo: false };
 }
 
 async function abrirSesion(userId: string) {

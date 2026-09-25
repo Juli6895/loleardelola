@@ -16,6 +16,7 @@ import {
 import { colorAHex } from "@/lib/color-swatch";
 import { PROYECCIONES } from "@/lib/image-consulting/proyeccion";
 import type { PerfilSilueta } from "@/types";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 const PERFIL_VACIO: PerfilSilueta = {
   bust_cm: null,
@@ -41,6 +42,7 @@ const PERFIL_VACIO: PerfilSilueta = {
 // cadera, estatura opcional) y recibe su silueta + asesoría del manual de
 // imagen. Esta misma data es la base del futuro Avatar (Fase 3).
 export default function MiPerfilPage() {
+  useAnotarUnaVez("perfil_visto");
   const [perfil, setPerfil] = useState<PerfilSilueta | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadingInicial, setLoadingInicial] = useState(true);

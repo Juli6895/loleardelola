@@ -36,10 +36,19 @@ export const EVENTOS = [
   // Cuenta
   "ingreso_codigo_pedido",
   "ingreso_ok",
+  // Solo la primera vez que ESE correo entra — ver unirIdentidades en
+  // lib/sesion.ts. Sin esto, "ingreso_ok" mezcla registros nuevos con
+  // gente que vuelve, y el tablero no puede contarlos aparte.
+  "registro_ok",
   "ingreso_error",
   "nombre_puesto",
 
-  // Uso
+  // Uso — una por servicio, para saber qué usa de verdad cada persona
+  // y no solo cuánta gente hay.
+  "buscar_visto",
+  "closet_visto",
+  "outfits_visto",
+  "perfil_visto",
   "outfit_guardado",
   "prenda_subida",
   "perfil_guardado",

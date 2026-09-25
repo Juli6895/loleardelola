@@ -28,7 +28,7 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: item } = await sb
     .from("closet_items")
-    .select("id, user_id, category, color, tags")
+    .select("id, user_id, category, color, tags, label")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -49,6 +49,7 @@ export async function POST(req: Request) {
       categoria: item.category as ClosetCategory,
       color: item.color,
       tags: item.tags ?? [],
+      label: item.label ?? null,
     });
     registrar("combinacion_buscada", contextoDe(req, usuario.id), { categoria: item.category });
     return NextResponse.json({ combinaciones });

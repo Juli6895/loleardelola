@@ -4,7 +4,12 @@ import { SILUETAS, type Silueta } from "./image-consulting/morfologia";
 import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalidad";
 import { CONTRASTES, TONOS_PIEL, type Contraste, type TonoPiel } from "./image-consulting/colorimetria";
 import { PROYECCIONES, type Proyeccion } from "./image-consulting/proyeccion";
-import { buscarEnCatalogos, type ProductoTienda } from "./catalogo-tiendas";
+import {
+  buscarEnCatalogos,
+  COLORES_BUSCABLES,
+  TIPOS_BUSCABLES,
+  type ProductoTienda,
+} from "./catalogo-tiendas";
 import type { RangoEdad } from "@/types";
 
 // =====================================================================
@@ -242,8 +247,7 @@ EL CAMPO "outfits" — EXACTAMENTE estos tres, en este orden y con este título 
 3. "Salida de noche"
 
 Cada outfit necesita 4 a 6 prendas, coherentes en color entre sí (regla 10) y en el vocabulario con el que se buscaría en Google o en una tienda:
-- tipo: SOLO el tipo de prenda, sin color ni estilo (ej. "vestido", "blazer", "jean", "top"). Una palabra o dos, nunca una frase.
-- color: UN color, en español, una palabra (ej. "verde oliva" como máximo dos).
+- tipo y color: SOLO de las listas permitidas del esquema. Son los nombres con que las tiendas titulan sus prendas; con otros nombres no se encuentran. Si el matiz que imaginas no está (ej. "blanco roto"), usa el más cercano de la lista ("marfil") — el matiz fino puede ir en el texto del manual. El denim es una tela, no un color: un jean va con color "azul".
 - rasgos: 2 a 4 palabras o frases MUY cortas que describan la prenda (ej. ["midi", "manga larga", "lino"], o ["wide leg", "tiro alto"]). Nada de oraciones acá.
 
 Pon 4 a 6 prendas por outfit y no 3, aunque el outfit "se vea completo" con menos: algunas de las que propongas no van a existir en las tiendas donde se buscan después, y las que sí existan son las únicas que la usuaria va a ver — más candidatas por outfit significa más probabilidad de que le quede un outfit completo y no una sola prenda suelta.
@@ -280,8 +284,8 @@ const REPORT_TOOL: Anthropic.Tool = {
               items: {
                 type: "object",
                 properties: {
-                  tipo: { type: "string", description: "Solo el tipo de prenda, 1-2 palabras." },
-                  color: { type: "string", description: "Un color, en español." },
+                  tipo: { type: "string", enum: TIPOS_BUSCABLES, description: "El tipo de prenda." },
+                  color: { type: "string", enum: COLORES_BUSCABLES, description: "El color de la prenda." },
                   rasgos: {
                     type: "array",
                     items: { type: "string" },
@@ -301,8 +305,8 @@ const REPORT_TOOL: Anthropic.Tool = {
         items: {
           type: "object",
           properties: {
-            tipo: { type: "string", description: "Solo el tipo de prenda, 1-2 palabras." },
-            color: { type: "string", description: "Un color, en español." },
+            tipo: { type: "string", enum: TIPOS_BUSCABLES, description: "El tipo de prenda." },
+            color: { type: "string", enum: COLORES_BUSCABLES, description: "El color de la prenda." },
             rasgos: {
               type: "array",
               items: { type: "string" },

@@ -20,8 +20,17 @@ type Datos = {
   embudoPago: Paso[];
   errores: Array<{ nombre: string; motivo: string | null; veces: number; personas: number; ultima_vez: string }>;
   seQuedaron: Array<{ email: string; nombre: string | null; ultimo_intento: string; donde_se_quedo: string }>;
-  actividad: Array<{ dia: string; busquedas: number; ingresos: number; intentos_de_pago: number; pagos: number }>;
+  actividad: Array<{
+    dia: string;
+    busquedas: number;
+    registros: number;
+    ingresos: number;
+    intentos_de_pago: number;
+    pagos: number;
+  }>;
+  servicios: Array<{ orden: number; servicio: string; personas: number; veces: number }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
+  cuentas: { registrosDelMes: number; ingresosDelMes: number };
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
 };
 
@@ -92,7 +101,9 @@ export default function AdminPage() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <Numero etiqueta="Se registraron este mes" valor={String(datos.cuentas.registrosDelMes)} />
+        <Numero etiqueta="Ingresos este mes" valor={String(datos.cuentas.ingresosDelMes)} />
         <Numero etiqueta="Pagos este mes" valor={String(datos.dinero.pagosDelMes)} />
         <Numero etiqueta="Cobrado" valor={pesos(datos.dinero.brutoCop)} />
         <Numero
@@ -100,6 +111,20 @@ export default function AdminPage() {
           valor={pesos(datos.dinero.netoEstimadoCop)}
         />
       </div>
+
+      <Seccion
+        titulo="Qué servicios usan"
+        nota="Cuánta gente distinta ha abierto cada sección, y cuántas veces en total."
+      >
+        {datos.servicios.length === 0 ? (
+          <Vacio>Sin datos todavía.</Vacio>
+        ) : (
+          <Tabla
+            columnas={["Servicio", "Personas", "Veces"]}
+            filas={datos.servicios.map((s) => [s.servicio, String(s.personas), String(s.veces)])}
+          />
+        )}
+      </Seccion>
 
       <Embudo
         titulo="El recorrido completo"
@@ -174,16 +199,17 @@ export default function AdminPage() {
           <Vacio>Sin actividad registrada todavía.</Vacio>
         ) : (
           <Tabla
-            columnas={["Día", "Búsquedas", "Ingresos", "Tocaron pagar", "Pagaron"]}
+            columnas={["Día", "Búsquedas", "Registros", "Ingresos", "Tocaron pagar", "Pagaron"]}
             filas={datos.actividad
               .slice()
               .reverse()
               .map((d) => [
                 new Date(d.dia).toLocaleDateString("es-CO"),
-                String(d.busquedas),
-                String(d.ingresos),
-                String(d.intentos_de_pago),
-                String(d.pagos),
+                String(d.busquedas ?? 0),
+                String(d.registros ?? 0),
+                String(d.ingresos ?? 0),
+                String(d.intentos_de_pago ?? 0),
+                String(d.pagos ?? 0),
               ])}
           />
         )}

@@ -15,6 +15,7 @@ import type { PerfilSilueta } from "@/types";
 import { construirInformeHtml } from "@/lib/informe-html";
 import { colorAHex } from "@/lib/color-swatch";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // El manual de estilo: lo que da la membresía.
 //
@@ -53,6 +54,7 @@ export default function ManualPage() {
 }
 
 function Contenido() {
+  useAnotarUnaVez("manual_visto");
   const [estado, setEstado] = useState<Estado | null>(null);
   const [perfil, setPerfil] = useState<PerfilSilueta | null>(null);
   const [generando, setGenerando] = useState(false);

@@ -6,10 +6,12 @@ import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { Outfit } from "@/types";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página "Mis Outfits": outfits guardados en este dispositivo.
 // La sección de boards de Pinterest quedó para la fase del login.
 export default function MisOutfitsPage() {
+  useAnotarUnaVez("outfits_visto");
   const [outfits, setOutfits] = useState<Outfit[] | null>(null);
   // Config de administración (config/*.txt). Se pasa a OutfitCard para que
   // las URLs de Google Shopping respeten exclusiones y/o la restricción a

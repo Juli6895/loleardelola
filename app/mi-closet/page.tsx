@@ -7,6 +7,7 @@ import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
 import { TOPES } from "@/lib/planes";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // El tope vive en lib/planes.ts, junto con los de búsquedas y outfits.
 // Acá solo se muestra; quien lo hace cumplir es la API.
@@ -16,6 +17,7 @@ const TOPE_GRATIS = TOPES.gratis.prendasCloset ?? 2;
 // organizadas por categoría. Fase 1 del roadmap premium — base de datos
 // que después usan el Manual de asesoría y el Avatar.
 export default function MiClosetPage() {
+  useAnotarUnaVez("closet_visto");
   const [items, setItems] = useState<ClosetItem[] | null>(null);
 
   useEffect(() => {

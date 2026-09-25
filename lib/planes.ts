@@ -16,6 +16,11 @@ export type Topes = {
   outfits: number | null;
   prendasCloset: number | null;
   manualDeEstilo: boolean;
+  // Cuántas de las PRIMERAS prendas subidas al clóset (por orden de
+  // fecha) dejan usar "Buscar combinaciones". No es un conteo de veces
+  // usado (eso se podría repetir sin límite en esas prendas): es cuáles
+  // prendas califican. null = cualquier prenda, sin límite.
+  combinacionesClosetGratis: number | null;
 };
 
 // null = sin tope.
@@ -27,6 +32,7 @@ export const TOPES: Record<Plan, Topes> = {
     outfits: 5,
     prendasCloset: 2,
     manualDeEstilo: false,
+    combinacionesClosetGratis: 2,
   },
   // Con cuenta gratis: un poco más, a cambio del correo.
   gratis: {
@@ -34,12 +40,14 @@ export const TOPES: Record<Plan, Topes> = {
     outfits: 10,
     prendasCloset: 2,
     manualDeEstilo: false,
+    combinacionesClosetGratis: 2,
   },
   membresia: {
     busquedas: null,
     outfits: null,
     prendasCloset: null,
     manualDeEstilo: true,
+    combinacionesClosetGratis: null,
   },
 };
 

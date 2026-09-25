@@ -4,6 +4,9 @@ import { useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
+import type { ComboConFotos } from "@/lib/combinaciones";
+
+const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
 const CATEGORY_LABELS: Record<ClosetCategory, string> = {
   top: "Tops",
@@ -32,6 +35,8 @@ type Props = {
 // y los tags detectados por Claude.
 export default function ClosetGrid({ items, onDelete }: Props) {
   const [filter, setFilter] = useState<ClosetCategory | "todas">("todas");
+  const [combinando, setCombinando] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ item: ClosetItem; combos: ComboConFotos[] } | null>(null);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -53,6 +58,32 @@ export default function ClosetGrid({ items, onDelete }: Props) {
       toast.success("Prenda eliminada");
     } catch {
       toast.error("No se pudo eliminar");
+    }
+  }
+
+  async function buscarCombinaciones(item: ClosetItem) {
+    setCombinando(item.id);
+    try {
+      const res = await fetchConDispositivo("/api/closet/combinaciones", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) {
+        toast.error(json.error ?? "No pudimos buscar combinaciones.", { duration: 6000 });
+        return;
+      }
+      const combos: ComboConFotos[] = json.combinaciones ?? [];
+      if (combos.length === 0) {
+        toast("No encontramos combinaciones en las tiendas por ahora.");
+        return;
+      }
+      setModal({ item, combos });
+    } catch {
+      toast.error("No pudimos buscar combinaciones.");
+    } finally {
+      setCombinando(null);
     }
   }
 
@@ -127,9 +158,112 @@ export default function ClosetGrid({ items, onDelete }: Props) {
                   ))}
                 </div>
               )}
+              <button
+                onClick={() => buscarCombinaciones(item)}
+                disabled={combinando === item.id}
+                className="mt-1 self-start rounded-full border border-rosa-200 px-3 py-1.5 text-xs font-medium text-rosa-600 transition hover:border-rosa-400 hover:bg-rosa-50 disabled:opacity-50"
+              >
+                {combinando === item.id ? "Buscando…" : "Buscar combinaciones"}
+              </button>
             </div>
           </article>
         ))}
+      </div>
+
+      {modal && <ModalCombinaciones item={modal.item} combos={modal.combos} onCerrar={() => setModal(null)} />}
+    </div>
+  );
+}
+
+/** Con qué combina UNA prenda del clóset, con fotos reales de tienda. */
+function ModalCombinaciones({
+  item,
+  combos,
+  onCerrar,
+}: {
+  item: ClosetItem;
+  combos: ComboConFotos[];
+  onCerrar: () => void;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-noche/50 p-0 sm:items-center sm:p-4"
+      onClick={onCerrar}
+    >
+      <div
+        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-t-2xl bg-white p-5 shadow-suave sm:rounded-2xl sm:p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={item.image_url}
+              alt={item.label ?? "Prenda del clóset"}
+              className="h-14 w-14 rounded-xl object-cover"
+            />
+            <div>
+              <p className="text-xs text-noche/50">Combina con</p>
+              <p className="font-display text-lg text-noche">
+                {item.label ?? "esta prenda"}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onCerrar}
+            aria-label="Cerrar"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-noche/40 transition hover:bg-rosa-50 hover:text-noche"
+          >
+            <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4">
+              <path d="M4.293 4.293a1 1 0 0 1 1.414 0L10 8.586l4.293-4.293a1 1 0 1 1 1.414 1.414L11.414 10l4.293 4.293a1 1 0 0 1-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 0 1-1.414-1.414L8.586 10 4.293 5.707a1 1 0 0 1 0-1.414Z" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="mt-5 space-y-6">
+          {combos.map((c, i) => (
+            <div key={i}>
+              <p className="text-sm font-medium text-noche">
+                {[c.tipo, c.color, ...c.rasgos].filter(Boolean).join(" · ")}
+              </p>
+              {c.porque && <p className="mt-0.5 text-xs text-noche/50">{c.porque}</p>}
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {c.fotos.map((f) => (
+                  <a
+                    key={f.url}
+                    href={f.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:shadow-suave"
+                  >
+                    {f.imagen ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={f.imagen}
+                        alt={f.titulo}
+                        className="aspect-[3/4] w-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="aspect-[3/4] w-full bg-rosa-50" />
+                    )}
+                    <div className="p-1.5">
+                      <p className="line-clamp-2 text-[10px] leading-tight text-noche/80">
+                        {f.titulo}
+                      </p>
+                      {f.precioCop && (
+                        <p className="mt-0.5 text-[11px] font-semibold text-noche">
+                          {pesos(f.precioCop)}
+                        </p>
+                      )}
+                      <p className="mt-0.5 text-[9px] text-noche/40">{f.tienda}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

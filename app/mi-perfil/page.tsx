@@ -483,7 +483,7 @@ export default function MiPerfilPage() {
             silueta={perfil.silueta}
             // El ancho va atado al alto (el lienzo es 120x300), para que
             // la figura no quede flotando con aire a los lados.
-            className="h-44 w-[70px] text-rosa-400 sm:h-56 sm:w-[90px]"
+            className="h-44 w-[70px] shrink-0 text-rosa-500 sm:h-56 sm:w-[90px]"
           />
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">

@@ -18,6 +18,9 @@ export async function GET(req: Request) {
   }
 
   const consulta: ConsultaPrenda = {
+    // Esto lo usa la búsqueda por foto: la prenda es una de verdad, así
+    // que su estampado y su textura (lentejuelas, encaje...) se exigen.
+    estricto: true,
     tipo,
     color: params.get("color")?.trim() || null,
     rasgos: (params.get("rasgos") ?? "")

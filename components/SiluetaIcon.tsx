@@ -1,50 +1,23 @@
 import type { Silueta } from "@/types";
 
 // =====================================================================
-// Figura femenina — un solo contorno por mitad, no piezas pegadas
+// Figurín de moda
 // =====================================================================
-// Los intentos anteriores armaban el cuerpo con piezas sueltas (torso,
-// brazos, piernas como formas independientes) y usaban una máscara para
-// separar el brazo del torso donde se encimaban. El resultado se veía
-// como partes pegadas, no como un cuerpo.
+// Las versiones anteriores eran una mancha de un solo color, armada con
+// curvas ajustadas a mano: salían rígidas (brazos como tubos, piernas
+// como columnas, pies cuadrados) y se leían como maniquí, no como
+// ilustración.
 //
-// Este va distinto: EL TORSO Y LAS PIERNAS SON UN SOLO CONTORNO
-// CERRADO, de hombro a tobillo, igual que se dibuja un figurín de moda
-// a mano — una sola línea continua por lado. Eso es lo que hace que se
-// lea como un cuerpo y no como una silueta armada con recortes.
+// Esta se dibuja como un figurín: contorno fino, relleno suave y el
+// pelo en otro tono. Las curvas no se ajustan a mano: cada borde es una
+// lista de puntos por los que pasa una curva suave (Catmull-Rom), así
+// que mover una medida mueve la curva entera sin quiebres.
 //
-// Los brazos SÍ son una pieza aparte, pero sin máscara: cuelgan a un
-// costado con un espacio natural respecto al torso (como cuelga un
-// brazo real, que no toca las costillas de axila a muñeca), así que no
-// hace falta recortar nada — el espacio ya existe en las coordenadas.
-//
-// Proporción de figurín (~8.5 cabezas), sobre un lienzo de 130 x 320
-// con el eje del cuerpo en x = 65.
+// Proporción de figurín (~9 cabezas), lienzo de 130 x 320 con el eje
+// del cuerpo en x = 65. Todas las x de abajo son distancia al eje.
 // =====================================================================
 
 const EJE = 65;
-
-// El torso ocupa un poco menos y las piernas un poco más que la
-// proporción real — es el mismo alargamiento que usa cualquier figurín
-// de moda, y es lo que hace que una figura se vea elegante en vez de
-// achaparrada.
-const Y = {
-  coronilla: 10,
-  menton: 40,
-  cuello: 45,
-  hombro: 60,
-  busto: 84,
-  cintura: 124,
-  cadera: 158,
-  entrepierna: 172,
-  rodilla: 236,
-  tobillo: 300,
-  piso: 312,
-  codo: 152,
-  muneca: 190,
-};
-
-const CABEZA = { cx: EJE, cy: 26, rx: 12, ry: 16 };
 
 type Medidas = {
   hombro: number;
@@ -54,18 +27,203 @@ type Medidas = {
   muslo: number;
 };
 
-// Los cuatro anchos que distinguen cada silueta. El muslo se deriva de
-// la cadera (más angosto), no se pregunta aparte.
+// Lo que distingue cada silueta: el ancho (medio) de hombro, busto,
+// cintura y cadera, y el grosor del muslo.
 const MEDIDAS: Record<Silueta, Medidas> = {
-  reloj_de_arena: { hombro: 25, busto: 27, cintura: 15, cadera: 27, muslo: 15 },
-  pera: { hombro: 20, busto: 21, cintura: 17, cadera: 30, muslo: 17 },
-  manzana: { hombro: 24, busto: 26, cintura: 27, cadera: 23, muslo: 13 },
-  rectangulo: { hombro: 23, busto: 22, cintura: 21, cadera: 23, muslo: 13 },
-  triangulo_invertido: { hombro: 30, busto: 27, cintura: 19, cadera: 20, muslo: 12 },
+  reloj_de_arena: { hombro: 24, busto: 25, cintura: 14.5, cadera: 26, muslo: 14 },
+  pera: { hombro: 20.5, busto: 20, cintura: 15.5, cadera: 29, muslo: 16 },
+  manzana: { hombro: 23, busto: 24.5, cintura: 24, cadera: 22.5, muslo: 12.5 },
+  rectangulo: { hombro: 22, busto: 21.5, cintura: 19.5, cadera: 22, muslo: 12.5 },
+  triangulo_invertido: { hombro: 28, busto: 25, cintura: 17.5, cadera: 19.5, muslo: 11.5 },
 };
 
-const iz = (w: number) => EJE - w;
-const de = (w: number) => EJE + w;
+type Punto = [number, number];
+
+/**
+ * Curva suave que pasa por todos los puntos (Catmull-Rom convertida a
+ * Bézier). Devuelve solo los tramos "C", para encadenarla a un "M" o a
+ * otra curva.
+ */
+function curva(puntos: Punto[]): string {
+  let d = "";
+  for (let i = 0; i < puntos.length - 1; i++) {
+    const p0 = puntos[i - 1] ?? puntos[i];
+    const p1 = puntos[i];
+    const p2 = puntos[i + 1];
+    const p3 = puntos[i + 2] ?? p2;
+    const c1: Punto = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6];
+    const c2: Punto = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+    d += ` C ${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${f(p2[0])} ${f(p2[1])}`;
+  }
+  return d;
+}
+
+const f = (n: number) => Math.round(n * 100) / 100;
+const derecha = ([x, y]: Punto): Punto => [EJE + x, y];
+const izquierda = ([x, y]: Punto): Punto => [EJE - x, y];
+
+// ---------------------------------------------------------------------
+// El cuerpo: un solo contorno, del cuello a los pies
+// ---------------------------------------------------------------------
+// Baja por el borde de afuera del lado derecho hasta el pie, sube por
+// el borde de adentro de esa pierna hasta la entrepierna, baja por el
+// de adentro de la otra y sube por fuera hasta el cuello. El espacio
+// entre las piernas queda FUERA del contorno, así que se ve vacío.
+
+/** Borde de afuera, del cuello al tobillo. */
+function bordeExterior(m: Medidas): Punto[] {
+  const caderaAlta = m.cintura + (m.cadera - m.cintura) * 0.6;
+  const k = rodilla(m);
+  return [
+    [4.6, 36],
+    [4.4, 43],
+    [5.6, 49],
+    [12, 54],
+    [m.hombro - 3, 57.5],
+    [m.hombro, 62],
+    [m.hombro - 1.2, 69],
+    [m.busto - 1.6, 76],
+    [m.busto, 86],
+    [m.busto - 1.8, 97],
+    [m.cintura, 117],
+    [caderaAlta, 134],
+    [m.cadera, 150],
+    [m.cadera - 1.2, 164],
+    [entreMuslos(m) + m.muslo * 1.2, 202],
+    [k.centro + k.medio, 236],
+    [k.centro + k.medio * 1.12, 256],
+    [9.4, 289],
+    [8.8, 299],
+  ];
+}
+
+/** El pie, en punta (como un figurín de moda con tacón), del tobillo de afuera al de adentro. */
+function pie(): Punto[] {
+  return [
+    [8.8, 299],
+    [8.9, 306],
+    [7, 314.5],
+    [5.2, 315.5],
+    [3.8, 310],
+    [3.4, 300],
+  ];
+}
+
+/** Borde de adentro de la pierna, del tobillo a la entrepierna. */
+function bordeInterior(m: Medidas): Punto[] {
+  const k = rodilla(m);
+  return [
+    [3.4, 300],
+    [3.6, 290],
+    [4.6, 264],
+    [k.centro - k.medio, 238],
+    [entreMuslos(m), 204],
+    [1.6, 180],
+    [0, 175.5],
+  ];
+}
+
+/** Dónde queda el borde de adentro del muslo: casi tocando la otra pierna. */
+function entreMuslos(m: Medidas): number {
+  return Math.max(1.6, m.cadera * 0.5 - m.muslo * 0.72);
+}
+
+function rodilla(m: Medidas) {
+  const medio = 4.9 + m.muslo * 0.09;
+  return { medio, centro: 2.6 + medio };
+}
+
+function cuerpo(m: Medidas): string {
+  const exterior = bordeExterior(m);
+  const bajada = [...exterior, ...pie().slice(1), ...bordeInterior(m).slice(1)];
+  const derechaD = bajada.map(derecha);
+  const izquierdaD = [...bajada].reverse().map(izquierda);
+  const inicio = derechaD[0];
+  return `M ${f(inicio[0])} ${f(inicio[1])}${curva(derechaD)}${curva(izquierdaD)} Z`;
+}
+
+// ---------------------------------------------------------------------
+// Los brazos: cuelgan con aire alrededor de la cintura y la cadera
+// ---------------------------------------------------------------------
+// Van DETRÁS del cuerpo, así el hombro los tapa donde se unen. Su
+// recorrido depende de la silueta: en una pera la mano se abre para
+// pasar por fuera de la cadera, en una manzana el codo se aparta de la
+// cintura. Un brazo que atraviesa el torso se ve dibujado encima.
+function brazo(m: Medidas): Punto[] {
+  const borde = bordeExterior(m);
+  // Ancho del torso a una altura, leyendo el mismo borde que dibuja el cuerpo.
+  const torso = (y: number) => {
+    for (let i = 0; i < borde.length - 1; i++) {
+      const [x1, y1] = borde[i];
+      const [x2, y2] = borde[i + 1];
+      if (y >= y1 && y <= y2) return x1 + ((x2 - x1) * (y - y1)) / (y2 - y1);
+    }
+    return borde[borde.length - 1][0];
+  };
+  const masAnchoHasta = (y: number) =>
+    Math.max(...borde.filter(([, by]) => by >= 60 && by <= y).map(([bx]) => bx));
+
+  // Un brazo real cuelga casi recto: no se mete hacia la cintura aunque
+  // la cintura sea angosta, así que su borde de adentro no baja de lo
+  // más ancho que el cuerpo tuvo más arriba (menos lo que se afina).
+  // Los brazos se abren apenas del cuerpo, como en las guías de tipos
+  // de cuerpo: si cuelgan pegados, tapan justo la cintura y la cadera,
+  // que es lo que esta figura existe para mostrar.
+  const tramos: Array<[number, number, number]> = [
+    // [y, aire respecto al torso, grosor del brazo]
+    [82, -0.4, 7.4],
+    [102, 2.2, 6.8],
+    [123, 4.4, 6],
+    [147, 6.2, 5.2],
+    [167, 7.4, 4.3],
+  ];
+  let anterior = 0;
+  const adentroDe = tramos.map(([y, aire, grosor]) => {
+    // Nunca se mete hacia adentro al bajar: un brazo no sigue la curva
+    // de la cintura.
+    const x = Math.max(torso(y) + aire, masAnchoHasta(y) - 1.5, anterior - 0.6);
+    anterior = x;
+    return { y, x, grosor };
+  });
+
+  const muneca = adentroDe[adentroDe.length - 1];
+  const afuera: Punto[] = [
+    [m.hombro - 2.5, 57.5],
+    [m.hombro + 2.2, 64.5],
+    ...adentroDe.map(({ y, x, grosor }): Punto => [x + grosor, y]),
+    [muneca.x + muneca.grosor + 0.8, 179],
+    [muneca.x + muneca.grosor * 0.55, 191],
+  ];
+  const adentro: Punto[] = [
+    [muneca.x + 0.4, 190.5],
+    [muneca.x - 0.5, 180],
+    ...[...adentroDe].reverse().map(({ y, x }): Punto => [x, y]),
+    [torso(70) - 3.5, 70],
+    [m.hombro - 2.5, 57.5],
+  ];
+  return [...afuera, ...adentro];
+}
+
+function brazoD(m: Medidas, lado: typeof derecha): string {
+  const p = brazo(m).map(lado);
+  return `M ${f(p[0][0])} ${f(p[0][1])}${curva(p)} Z`;
+}
+
+/** Una línea suave bajo el busto, a cada lado: sin ella el torso se lee plano. */
+function busto(m: Medidas, lado: typeof derecha): string {
+  const p: Punto[] = [
+    [m.busto - 3.2, 86],
+    [m.busto - 6.5, 92.5],
+    [m.busto * 0.45, 94],
+    [3.2, 91.5],
+  ].map((q) => lado(q as Punto));
+  return `M ${f(p[0][0])} ${f(p[0][1])}${curva(p)}`;
+}
+
+// ---------------------------------------------------------------------
+// Cabeza y peinado
+// ---------------------------------------------------------------------
+const CABEZA = { cx: EJE, cy: 24, rx: 10.5, ry: 13.5 };
 
 function elipse(cx: number, cy: number, rx: number, ry: number): string {
   const k = 0.5523;
@@ -80,140 +238,43 @@ function elipse(cx: number, cy: number, rx: number, ry: number): string {
 }
 
 /**
- * Cabeza simple, sin mechones sueltos. Se intentó varias veces dibujar
- * pelo con tiras aparte y siempre terminaba viéndose como manchas
- * flotando junto a la cara — vale más una forma limpia que una con
- * partes que no se leen bien. La silueta entera es de un solo color,
- * así que el pelo no se puede diferenciar por color de todos modos;
- * solo quedaría bien si fuera un volumen claramente de peinado (una
- * cola, un moño), y eso es más ruido del que vale la pena para este
- * ícono pequeño.
+ * Pelo recogido con raya al lado: cubre la parte de arriba de la cabeza
+ * y baja por las sienes. Un recogido se lee femenino y elegante sin
+ * competir con lo que importa, que es la forma del cuerpo.
  */
-function cabello(): string[] {
-  return [];
-}
-
-/** Cuello con un borde curvo, no un trapecio de esquinas duras. */
-function cuello(): string {
-  return [
-    `M ${iz(4)} ${Y.menton - 2}`,
-    `C ${iz(4)} ${Y.cuello - 2} ${iz(6)} ${Y.cuello} ${iz(7)} ${Y.cuello + 7}`,
-    `L ${de(7)} ${Y.cuello + 7}`,
-    `C ${de(6)} ${Y.cuello} ${de(4)} ${Y.cuello - 2} ${de(4)} ${Y.menton - 2}`,
-    "Z",
-  ].join(" ");
-}
-
-/**
- * El torso: de hombro a cadera, como un solo contorno cerrado con el
- * borde de abajo recto (de una pierna a la otra). Antes esto seguía
- * hasta el tobillo en un solo trazo, y la única forma de "salir" y
- * "volver a entrar" para las dos piernas era subir por la entrepierna
- * — pero un trazo que sube y baja sigue siendo UNA superficie rellena:
- * el espacio entre las piernas quedaba pintado en vez de vacío.
- *
- * Por eso el torso para acá, en una línea recta a la altura de la
- * entrepierna, y las piernas son dos piezas aparte (ver pierna()) que
- * arrancan un poco MÁS ARRIBA de esa línea para solaparse con el
- * torso — mismo color, así que el solape no se nota, y evita que quede
- * una costura blanca si algún punto no calza exacto.
- */
-function torso(m: Medidas, ejePiernaIz: number, ejePiernaDe: number, anchoMuslo: number): string {
-  const solape = 6;
-  return [
-    `M ${iz(6)} ${Y.cuello + 4}`,
-    `C ${iz(9)} ${Y.cuello + 10} ${iz(m.hombro - 8)} ${Y.hombro - 10} ${iz(m.hombro)} ${Y.hombro}`,
-    `C ${iz(m.hombro + 2)} ${Y.hombro + 14} ${iz(m.busto)} ${Y.busto - 16} ${iz(m.busto)} ${Y.busto}`,
-    `C ${iz(m.busto)} ${Y.busto + 20} ${iz(m.cintura + 3)} ${Y.cintura - 18} ${iz(m.cintura)} ${Y.cintura}`,
-    `C ${iz(m.cintura)} ${Y.cintura + 16} ${iz(m.cadera)} ${Y.cadera - 20} ${iz(m.cadera)} ${Y.cadera}`,
-    `C ${iz(m.cadera)} ${Y.cadera + 10} ${ejePiernaIz - anchoMuslo} ${Y.entrepierna - solape - 6} ${ejePiernaIz - anchoMuslo} ${Y.entrepierna + solape}`,
-    `L ${ejePiernaDe + anchoMuslo} ${Y.entrepierna + solape}`,
-    `C ${ejePiernaDe + anchoMuslo} ${Y.entrepierna - solape - 6} ${de(m.cadera)} ${Y.cadera + 10} ${de(m.cadera)} ${Y.cadera}`,
-    `C ${de(m.cadera)} ${Y.cadera - 20} ${de(m.cintura)} ${Y.cintura + 16} ${de(m.cintura)} ${Y.cintura}`,
-    `C ${de(m.cintura + 3)} ${Y.cintura - 18} ${de(m.busto)} ${Y.busto + 20} ${de(m.busto)} ${Y.busto}`,
-    `C ${de(m.busto)} ${Y.busto - 16} ${de(m.hombro + 2)} ${Y.hombro + 14} ${de(m.hombro)} ${Y.hombro}`,
-    `C ${de(m.hombro - 8)} ${Y.hombro - 10} ${de(9)} ${Y.cuello + 10} ${de(6)} ${Y.cuello + 4}`,
-    "Z",
-  ].join(" ");
-}
-
-/**
- * Una pierna, de la cadera al pie. Arranca un poco más arriba de la
- * línea de entrepierna para solaparse con el torso (ver torso() arriba)
- * y se angosta hacia el tobillo por su PROPIO eje, no por el eje del
- * cuerpo — así se puede inclinar o angostar sin romper el contorno.
- */
-function pierna(eje: number, anchoMuslo: number, lado: -1 | 1): string {
-  const x = (w: number) => eje + w; // ya viene con el signo aplicado
-  const anchoRodilla = anchoMuslo * 0.62;
-  const anchoTobillo = anchoMuslo * 0.42;
-  const solape = 6;
-
-  return [
-    `M ${x(-anchoMuslo)} ${Y.entrepierna - solape}`,
-    `C ${x(-anchoMuslo)} ${Y.entrepierna + 30} ${x(-anchoRodilla)} ${Y.rodilla - 24} ${x(-anchoRodilla)} ${Y.rodilla}`,
-    `C ${x(-anchoRodilla)} ${Y.rodilla + 26} ${x(-anchoTobillo)} ${Y.tobillo - 18} ${x(-anchoTobillo)} ${Y.tobillo}`,
-    // Pie: un óvalo achatado, no una punta — un pie real es redondeado.
-    `C ${x(-anchoTobillo)} ${Y.piso - 5} ${x(-anchoTobillo - 5)} ${Y.piso} ${x(-anchoTobillo + 2)} ${Y.piso}`,
-    `L ${x(anchoTobillo + 3)} ${Y.piso}`,
-    `C ${x(anchoTobillo + 5)} ${Y.piso} ${x(anchoTobillo)} ${Y.piso - 6} ${x(anchoTobillo)} ${Y.tobillo}`,
-    `C ${x(anchoTobillo)} ${Y.tobillo - 18} ${x(anchoRodilla)} ${Y.rodilla + 26} ${x(anchoRodilla)} ${Y.rodilla}`,
-    `C ${x(anchoRodilla)} ${Y.rodilla - 24} ${x(anchoMuslo)} ${Y.entrepierna + 30} ${x(anchoMuslo)} ${Y.entrepierna - solape}`,
-    "Z",
-  ].join(" ");
-}
-
-/**
- * Un brazo colgando al costado, con una leve flexión en el codo. Cuelga
- * SEPARADO del torso a propósito —de axila a muñeca un brazo real no
- * toca las costillas— así que no hace falta ninguna máscara: el espacio
- * ya sale de las coordenadas.
- */
-function brazo(m: Medidas, lado: -1 | 1): string {
-  const x = (w: number) => EJE + lado * w;
-  // Sale un poco por fuera del hombro y se aleja del cuerpo hacia abajo.
-  const salida = m.hombro - 3;
-  const codo = m.hombro + 10;
-  const muneca = m.hombro + 6;
-  const grHombro = 6;
-  const grCodo = 4.3;
-  const grMuneca = 3.2;
-
-  return [
-    `M ${x(salida - grHombro)} ${Y.hombro - 2}`,
-    `C ${x(salida + grHombro)} ${Y.hombro} ${x(codo + grCodo)} ${Y.codo - 26} ${x(codo + grCodo)} ${Y.codo}`,
-    `C ${x(codo + grCodo)} ${Y.codo + 20} ${x(muneca + grMuneca)} ${Y.muneca - 16} ${x(muneca + grMuneca)} ${Y.muneca}`,
-    `C ${x(muneca + grMuneca)} ${Y.muneca + 10} ${x(muneca - grMuneca)} ${Y.muneca + 10} ${x(muneca - grMuneca)} ${Y.muneca}`,
-    `C ${x(muneca - grMuneca)} ${Y.muneca - 16} ${x(codo - grCodo)} ${Y.codo + 20} ${x(codo - grCodo)} ${Y.codo}`,
-    `C ${x(codo - grCodo)} ${Y.codo - 26} ${x(salida - grHombro)} ${Y.hombro} ${x(salida - grHombro)} ${Y.hombro - 2}`,
-    "Z",
-  ].join(" ");
-}
-
-export function partes(m: Medidas): string[] {
-  const anchoMuslo = m.muslo;
-  // Cada pierna nace un poco hacia adentro de donde termina la cadera,
-  // para que las dos quepan sin encimarse ni dejar un vacío raro entre
-  // el borde de la cadera y el arranque del muslo.
-  const ejePiernaIz = EJE - Math.max(m.cadera * 0.42, anchoMuslo * 0.75);
-  const ejePiernaDe = EJE + Math.max(m.cadera * 0.42, anchoMuslo * 0.75);
-
-  return [
-    ...cabello(),
-    elipse(CABEZA.cx, CABEZA.cy, CABEZA.rx, CABEZA.ry),
-    cuello(),
-    torso(m, ejePiernaIz, ejePiernaDe, anchoMuslo),
-    pierna(ejePiernaIz, anchoMuslo, -1),
-    pierna(ejePiernaDe, anchoMuslo, 1),
-    brazo(m, -1),
-    brazo(m, 1),
+function peinado(): string {
+  const { cx, cy } = CABEZA;
+  const borde: Punto[] = [
+    [cx - 11.4, cy + 4],
+    [cx - 11.8, cy - 5],
+    [cx - 7.5, cy - 13],
+    [cx + 1, cy - 15.4],
+    [cx + 8.6, cy - 12],
+    [cx + 11.8, cy - 4],
+    [cx + 11.2, cy + 5],
   ];
+  const nacimiento: Punto[] = [
+    [cx + 11.2, cy + 5],
+    [cx + 9.2, cy - 2],
+    [cx + 4.5, cy - 8.2],
+    [cx - 2.5, cy - 9.6],
+    [cx - 8.6, cy - 5.5],
+    [cx - 10, cy + 1.5],
+    [cx - 11.4, cy + 4],
+  ];
+  return `M ${cx - 11.4} ${cy + 4}${curva(borde)}${curva(nacimiento)} Z`;
+}
+
+/** El moño, detrás de la cabeza. */
+function mono(): string {
+  const { cx, cy } = CABEZA;
+  return elipse(cx + 3, cy - 15.5, 6.6, 5.4);
 }
 
 export { MEDIDAS };
 
-// Silueta ilustrada, usada en el manual de asesoría y en el perfil de la
-// usuaria — y más adelante, como base del Avatar.
+// Silueta ilustrada, usada en el perfil de la usuaria — y más adelante,
+// como base del Avatar.
 export default function SiluetaIcon({
   silueta,
   className,
@@ -224,10 +285,28 @@ export default function SiluetaIcon({
   const m = MEDIDAS[silueta];
   return (
     <svg viewBox="0 0 130 320" className={className} aria-hidden>
-      <g fill="currentColor" opacity="0.9">
-        {partes(m).map((d, i) => (
-          <path key={i} d={d} />
+      <g stroke="currentColor" strokeWidth={1.6} strokeLinejoin="round" strokeLinecap="round">
+        {/* Cada pieza se pinta primero en blanco y encima el tono suave:
+            así el torso tapa al brazo donde se cruzan, en vez de dejarlo
+            ver a través. */}
+        {[brazoD(m, derecha), brazoD(m, izquierda), cuerpo(m)].map((d, i) => (
+          <g key={i}>
+            <path d={d} fill="white" stroke="none" />
+            <path d={d} fill="currentColor" fillOpacity={0.2} />
+          </g>
         ))}
+        <g fill="none" strokeOpacity={0.45} strokeWidth={1}>
+          <path d={busto(m, derecha)} />
+          <path d={busto(m, izquierda)} />
+        </g>
+        <path d={mono()} fill="currentColor" />
+        <path d={elipse(CABEZA.cx, CABEZA.cy, CABEZA.rx, CABEZA.ry)} fill="white" stroke="none" />
+        <path
+          d={elipse(CABEZA.cx, CABEZA.cy, CABEZA.rx, CABEZA.ry)}
+          fill="currentColor"
+          fillOpacity={0.2}
+        />
+        <path d={peinado()} fill="currentColor" />
       </g>
     </svg>
   );

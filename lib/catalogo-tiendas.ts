@@ -228,16 +228,18 @@ function familiaDe(color: string): number | null {
  * guion ("Blazer Azul Oscuro con Forro - Negro"): si ese final nombra un
  * color, manda sobre el resto del título.
  */
-function coloresPrincipales(titulo: string): Set<number> | null {
+function coloresPrincipales(titulo: string, ignorarEstampado = false): Set<number> | null {
   const guion = titulo.lastIndexOf(" - ");
   if (guion >= 0) {
-    const final = coloresPrincipales(titulo.slice(guion + 3));
+    const final = coloresPrincipales(titulo.slice(guion + 3), ignorarEstampado);
     if (final) return final;
     titulo = titulo.slice(0, guion);
   }
   let primera = Infinity;
-  const posiciones = PATRONES_DE_FAMILIA.map((patrones) =>
-    Math.min(...patrones.map((re) => titulo.search(re)).filter((i) => i >= 0))
+  const posiciones = PATRONES_DE_FAMILIA.map((patrones, i) =>
+    ignorarEstampado && i === FAMILIA_ESTAMPADO
+      ? Infinity
+      : Math.min(...patrones.map((re) => titulo.search(re)).filter((i) => i >= 0))
   );
   for (const pos of posiciones) primera = Math.min(primera, pos);
   if (primera === Infinity) return null;
@@ -257,15 +259,51 @@ function coloresPrincipales(titulo: string): Set<number> | null {
  * clasificación y las etiquetas. La descripción no cuenta nunca: ahí
  * aparece el color de OTRAS prendas ("combínala con una blusa camel").
  */
-function esDelColor(p: Indexado, color: string): boolean {
+function esDelColor(
+  p: Indexado,
+  color: string,
+  estampado: RegExp | null,
+  estampadoConcreto: boolean
+): boolean {
   const fam = familiaDe(color);
   if (fam === null) {
     const re = patronTermino(color);
     return re.test(p.titulo_n) || re.test(p.meta_n);
   }
-  const principales = coloresPrincipales(p.titulo_n);
+  // Si se busca una prenda estampada ("falda roja de cuadros"), que el
+  // título diga "Estampada" no le quita el color: se mira el color que
+  // nombra aparte del estampado.
+  const principales = coloresPrincipales(p.titulo_n, !!estampado);
   if (principales) return principales.has(fam);
-  return PATRONES_DE_FAMILIA[fam].some((re) => re.test(p.meta_n));
+  if (PATRONES_DE_FAMILIA[fam].some((re) => re.test(p.meta_n))) return true;
+  // El título no nombra color, pero sí el mismo estampado concreto
+  // ("Falda Midi Cuadros" para una falda roja de cuadros): el estampado
+  // es lo que más se ve, así que es la más parecida que hay. "Estampado"
+  // a secas no alcanza: ahí cualquier estampado pasaría.
+  return estampadoConcreto && !!estampado && estampado.test(p.titulo_n);
+}
+
+// ---------------------------------------------------------------------
+// Estampados
+// ---------------------------------------------------------------------
+// Un estampado no es un color: "falda de cuadros" se busca por el
+// estampado, y su color (si lo hay) es el del fondo.
+const FAMILIA_ESTAMPADO = FAMILIAS_DE_COLOR.findIndex((f) => f[0] === "multicolor");
+
+const ESTAMPADOS = [
+  "cuadros", "rayas", "lunares", "floral", "flores", "estampado", "animal print",
+  "leopardo", "cebra", "tie dye", "geometrico", "pata de gallo", "escoces",
+  "tropical", "cachemir", "paisley", "tartan",
+];
+
+/** El estampado de los rasgos pedidos, si hay alguno: el que va a la búsqueda. */
+function estampadoDe(rasgos: string[]): string | null {
+  for (const r of rasgos) {
+    const n = normalizar(r);
+    const e = ESTAMPADOS.find((x) => patronTermino(x).test(n));
+    if (e) return e;
+  }
+  return null;
 }
 
 /** Cómo se le pregunta el color al buscador de la tienda. */
@@ -488,15 +526,25 @@ function frasesDe(rasgo: string): string[] {
  * completa la última palabra, así que trae "Blanca" y "Blanco" de una.
  * VTEX no completa, así que ahí van las dos formas enteras.
  */
-function consultasPara(tipo: string, color: string | null): { shopify: string[]; vtex: string[] } {
+function consultasPara(
+  tipo: string,
+  color: string | null,
+  estampado: string | null
+): { shopify: string[]; vtex: string[] } {
   const tipos = tiposDe(tipo);
-  if (!color) return { shopify: tipos, vtex: tipos };
+  // El estampado va en su propia consulta: si solo se pregunta "falda",
+  // la tienda devuelve sus 10 faldas más relevantes y las de cuadros
+  // pueden no estar entre ellas.
+  const conEstampado = estampado ? tipos.map((t) => `${t} ${estampado}`) : [];
+  if (!color) {
+    return { shopify: [...tipos, ...conEstampado], vtex: [...tipos, ...conEstampado] };
+  }
   const c = colorParaBuscar(color);
   const recortado = /[oa]$/.test(c) && c.length > 3 ? c.slice(0, -1) : c;
   const formas = /o$/.test(c) ? [c, c.slice(0, -1) + "a"] : [c];
   return {
-    shopify: tipos.map((t) => `${t} ${recortado}`),
-    vtex: tipos.flatMap((t) => formas.map((f) => `${t} ${f}`)),
+    shopify: [...tipos.map((t) => `${t} ${recortado}`), ...conEstampado],
+    vtex: [...tipos.flatMap((t) => formas.map((f) => `${t} ${f}`)), ...conEstampado],
   };
 }
 
@@ -514,9 +562,14 @@ export async function buscarEnCatalogos(
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();
   if (!tipo) return [];
-  const color = c.color ? normalizar(c.color).trim() : null;
+  const estampado = estampadoDe([c.color ?? "", ...c.rasgos]);
+  let color = c.color ? normalizar(c.color).trim() : null;
+  // "Multicolor", "estampado", "cuadros" no son un color que se pueda
+  // exigir en el título: esas prendas se buscan por el estampado.
+  if (color && (familiaDe(color) === FAMILIA_ESTAMPADO || estampadoDe([color]))) color = null;
 
-  const consultas = consultasPara(tipo, color);
+  const estampadoConcreto = !!estampado && estampado !== "estampado";
+  const consultas = consultasPara(tipo, color, estampado);
   const lotes = await Promise.all(
     TIENDAS.flatMap((t) =>
       t.plataforma === "shopify"
@@ -550,7 +603,7 @@ export async function buscarEnCatalogos(
         continue;
       }
 
-      if (color && !esDelColor(p, color)) continue;
+      if (color && !esDelColor(p, color, estampado ? patronTermino(estampado) : null, estampadoConcreto)) continue;
 
       let punto = enTitulo ? 2 : 1;
       for (const frases of rasgos) {

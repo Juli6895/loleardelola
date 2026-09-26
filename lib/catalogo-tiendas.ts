@@ -1,3 +1,5 @@
+import { detallesEn, patronesDe } from "./detalles-distintivos";
+
 // =====================================================================
 // Búsqueda dentro del catálogo propio de las tiendas
 // =====================================================================
@@ -31,6 +33,11 @@ export type ProductoTienda = {
 // prendas se parecen — una usuaria que buscó un vestido rojo no quiere
 // ver uno verde de primero por más que los dos sean midi y florales.
 export type ConsultaPrenda = {
+  // Exigir también las texturas que definen la prenda (lentejuelas,
+  // encaje, cuero...), no solo el estampado. Lo pide la búsqueda por
+  // foto, donde la prenda es una de verdad y tiene que parecerse; el
+  // manual y las combinaciones las sugieren como idea, no como exigencia.
+  estricto?: boolean;
   // Tipo de prenda. Obligatorio: sin esto no hay parecido que valga.
   tipo: string;
   color: string | null;
@@ -262,8 +269,8 @@ function coloresPrincipales(titulo: string, ignorarEstampado = false): Set<numbe
 function esDelColor(
   p: Indexado,
   color: string,
-  estampado: RegExp | null,
-  estampadoConcreto: boolean
+  esEstampada: boolean,
+  patronesEstampado: RegExp[]
 ): boolean {
   const fam = familiaDe(color);
   if (fam === null) {
@@ -273,38 +280,18 @@ function esDelColor(
   // Si se busca una prenda estampada ("falda roja de cuadros"), que el
   // título diga "Estampada" no le quita el color: se mira el color que
   // nombra aparte del estampado.
-  const principales = coloresPrincipales(p.titulo_n, !!estampado);
+  const principales = coloresPrincipales(p.titulo_n, esEstampada);
   if (principales) return principales.has(fam);
   if (PATRONES_DE_FAMILIA[fam].some((re) => re.test(p.meta_n))) return true;
   // El título no nombra color, pero sí el mismo estampado concreto
   // ("Falda Midi Cuadros" para una falda roja de cuadros): el estampado
-  // es lo que más se ve, así que es la más parecida que hay. "Estampado"
-  // a secas no alcanza: ahí cualquier estampado pasaría.
-  return estampadoConcreto && !!estampado && estampado.test(p.titulo_n);
+  // es lo que más se ve, así que es la más parecida que hay.
+  return patronesEstampado.some((re) => re.test(p.titulo_n));
 }
 
-// ---------------------------------------------------------------------
-// Estampados
-// ---------------------------------------------------------------------
 // Un estampado no es un color: "falda de cuadros" se busca por el
 // estampado, y su color (si lo hay) es el del fondo.
 const FAMILIA_ESTAMPADO = FAMILIAS_DE_COLOR.findIndex((f) => f[0] === "multicolor");
-
-const ESTAMPADOS = [
-  "cuadros", "rayas", "lunares", "floral", "flores", "estampado", "animal print",
-  "leopardo", "cebra", "tie dye", "geometrico", "pata de gallo", "escoces",
-  "tropical", "cachemir", "paisley", "tartan",
-];
-
-/** El estampado de los rasgos pedidos, si hay alguno: el que va a la búsqueda. */
-function estampadoDe(rasgos: string[]): string | null {
-  for (const r of rasgos) {
-    const n = normalizar(r);
-    const e = ESTAMPADOS.find((x) => patronTermino(x).test(n));
-    if (e) return e;
-  }
-  return null;
-}
 
 /** Cómo se le pregunta el color al buscador de la tienda. */
 function colorParaBuscar(color: string): string {
@@ -562,14 +549,26 @@ export async function buscarEnCatalogos(
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();
   if (!tipo) return [];
-  const estampado = estampadoDe([c.color ?? "", ...c.rasgos]);
+  const pedidos = [c.color ?? "", ...c.rasgos].join(" | ");
+  const { estampados, texturas } = detallesEn(pedidos);
+  const esEstampada = estampados.length > 0 || /\bestampad/.test(normalizar(pedidos));
+  // Lo que define cómo se ve la prenda, y sin lo cual no es "parecida":
+  // una falda de cuadros sin cuadros es otra falda. Si ninguna tienda la
+  // tiene, es mejor no mostrar nada que mostrar otras.
+  const obligatorios = [...estampados, ...(c.estricto ? texturas : [])];
+  // En la búsqueda por foto, una camiseta estampada pide otra estampada
+  // aunque no se sepa cuál estampado: una lisa no es parecida.
+  if (c.estricto && esEstampada && estampados.length === 0) obligatorios.push("estampado");
+  const patronesObligatorios = obligatorios.map(patronesDe);
+
   let color = c.color ? normalizar(c.color).trim() : null;
   // "Multicolor", "estampado", "cuadros" no son un color que se pueda
   // exigir en el título: esas prendas se buscan por el estampado.
-  if (color && (familiaDe(color) === FAMILIA_ESTAMPADO || estampadoDe([color]))) color = null;
+  if (color && (familiaDe(color) === FAMILIA_ESTAMPADO || detallesEn(color).estampados.length > 0 || /\bestampad/.test(color))) {
+    color = null;
+  }
 
-  const estampadoConcreto = !!estampado && estampado !== "estampado";
-  const consultas = consultasPara(tipo, color, estampado);
+  const consultas = consultasPara(tipo, color, obligatorios[0] ?? (esEstampada ? "estampado" : null));
   const lotes = await Promise.all(
     TIENDAS.flatMap((t) =>
       t.plataforma === "shopify"
@@ -603,7 +602,16 @@ export async function buscarEnCatalogos(
         continue;
       }
 
-      if (color && !esDelColor(p, color, estampado ? patronTermino(estampado) : null, estampadoConcreto)) continue;
+      // La descripción no cuenta: ahí aparecen detalles de OTRAS prendas.
+      if (
+        patronesObligatorios.some(
+          (patrones) => !patrones.some((re) => re.test(p.titulo_n) || re.test(p.meta_n))
+        )
+      ) {
+        continue;
+      }
+
+      if (color && !esDelColor(p, color, esEstampada, estampados.flatMap(patronesDe))) continue;
 
       let punto = enTitulo ? 2 : 1;
       for (const frases of rasgos) {

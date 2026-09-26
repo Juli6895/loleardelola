@@ -20,7 +20,50 @@
 // enlace para ver de qué se trata. Sin filtro de marca se sigue usando
 // `tbm=shop`, que ahí funciona bien.
 
+import {
+  ESTAMPADOS,
+  TEXTURAS_DISTINTIVAS,
+  normalizarDetalle,
+  patronesDe,
+} from "./detalles-distintivos";
+
 const BASE = "https://www.google.com/search";
+
+/**
+ * Pone entre comillas lo que define la prenda: el tipo (la primera
+ * palabra del término, "falda") y su estampado o textura ("cuadros",
+ * "lentejuelas"). Sin comillas Google trata cada palabra como opcional
+ * y, si no tiene faldas de cuadros, muestra faldas cualquiera. Con
+ * comillas las exige: si no hay, no muestra otras.
+ *
+ * "Estampado" a secas no se exige: no dice cuál estampado.
+ */
+export function exigirDetalles(termino: string): string {
+  const t = termino.trim();
+  if (!t || t.includes('"')) return t;
+  const n = normalizarDetalle(t);
+  // Rangos [inicio, fin) del texto que va entre comillas.
+  const rangos: Array<[number, number]> = [];
+  const primera = t.search(/\s|$/);
+  if (primera > 0) rangos.push([0, primera]);
+  for (const d of [...ESTAMPADOS, ...TEXTURAS_DISTINTIVAS]) {
+    if (d === "estampado") continue;
+    for (const re of patronesDe(d)) {
+      const g = new RegExp(re.source, "g");
+      let m: RegExpExecArray | null;
+      while ((m = g.exec(n))) rangos.push([m.index, m.index + m[0].length]);
+    }
+  }
+  rangos.sort((a, b) => a[0] - b[0]);
+  let salida = "";
+  let hasta = 0;
+  for (const [i, j] of rangos) {
+    if (i < hasta) continue;
+    salida += t.slice(hasta, i) + `"${t.slice(i, j)}"`;
+    hasta = j;
+  }
+  return salida + t.slice(hasta);
+}
 
 // Geo + idioma Colombia
 const COLOMBIA_PARAMS = "gl=co&hl=es-419";
@@ -102,7 +145,8 @@ export function googleShoppingUrl(
           .map((domain) => `-site:${domain}`)
           .join(" ");
 
-  const fullQuery = siteFilter ? `${term.trim()} ${siteFilter}` : term.trim();
+  const termino = exigirDetalles(term);
+  const fullQuery = siteFilter ? `${termino} ${siteFilter}` : termino;
   const q = encodeURIComponent(fullQuery);
 
   // Filtro `ppr_max` desactivado — combinado con las exclusiones por dominio

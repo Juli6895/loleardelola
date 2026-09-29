@@ -51,12 +51,18 @@ type Anchos = {
 
 // La mitad del ancho de frente de cada parte, en proporción humana. Se
 // usan cuando no hay medidas, y para sacar hombro y muslo cuando sí.
+//
+// El hombro es el ancho de hombro a hombro contando el músculo del
+// hombro, que es donde empieza el brazo: en un cuerpo real es unos 8 cm
+// más ancho que el busto. Con un hombro más angosto, el brazo tenía que
+// salirse del hombro con un bulto (se veía como una hombrera) para poder
+// bajar por fuera del cuerpo.
 const PROPORCIONES: Record<Silueta, Anchos> = {
-  reloj_de_arena: { hombro: 30, busto: 31, cintura: 22, cadera: 33, muslo: 17 },
-  pera: { hombro: 27.5, busto: 27, cintura: 23, cadera: 36, muslo: 19 },
-  manzana: { hombro: 30.5, busto: 32, cintura: 31, cadera: 30.5, muslo: 16 },
-  rectangulo: { hombro: 29.5, busto: 29, cintura: 27, cadera: 29.5, muslo: 16 },
-  triangulo_invertido: { hombro: 34.5, busto: 32, cintura: 25, cadera: 28, muslo: 15 },
+  reloj_de_arena: { hombro: 38, busto: 31, cintura: 22, cadera: 33, muslo: 17 },
+  pera: { hombro: 35, busto: 27, cintura: 23, cadera: 36, muslo: 19 },
+  manzana: { hombro: 38.5, busto: 32, cintura: 31, cadera: 30.5, muslo: 16 },
+  rectangulo: { hombro: 37, busto: 29, cintura: 27, cadera: 29.5, muslo: 16 },
+  triangulo_invertido: { hombro: 43, busto: 32, cintura: 25, cadera: 28, muslo: 15 },
 };
 
 export type MedidasCm = {
@@ -85,7 +91,7 @@ function anchosDe(silueta: Silueta, cm?: MedidasCm | null): Anchos {
     busto,
     cintura,
     cadera,
-    hombro: entre(busto * (base.hombro / base.busto), 24, 40),
+    hombro: entre(busto * (base.hombro / base.busto), 30, 50),
     muslo: entre(cadera * (base.muslo / base.cadera), 13, 23),
   };
 }
@@ -155,9 +161,15 @@ function simetrico(mitad: Punto[]): string {
 // ---------------------------------------------------------------------
 // El cuerpo: un solo contorno, del cuello a los pies
 // ---------------------------------------------------------------------
-// Baja por fuera del lado derecho hasta el pie, sube por dentro de esa
-// pierna hasta la entrepierna y hace lo mismo del otro lado. El espacio
-// entre las piernas queda fuera del contorno, así que se ve vacío.
+// Baja del cuello por fuera del brazo derecho, da la vuelta a la mano,
+// sube por dentro del brazo hasta la axila, baja por el costado del
+// torso y por fuera de la pierna hasta el pie, sube por dentro de la
+// pierna hasta la entrepierna, y lo mismo del otro lado.
+//
+// El brazo es parte del MISMO contorno —como cuando se dibuja una figura
+// a mano— y no una pieza pegada detrás: por eso el hombro fluye hacia
+// el brazo sin costura. Los espacios entre brazo y torso y entre las
+// piernas quedan fuera del contorno, así que se ven vacíos.
 function entreMuslos(a: Anchos): number {
   return Math.max(1.8, a.cadera * 0.5 - a.muslo * 0.66);
 }
@@ -168,10 +180,10 @@ function bordeExterior(a: Anchos): Punto[] {
     [6.2, Y.menton - 6],
     [6, Y.cuello - 3],
     [7.6, Y.cuello + 2],
-    [15, Y.cuello + 6.5],
-    [a.hombro - 4, Y.hombro - 2.5],
-    [a.hombro, Y.hombro + 2],
-    [a.hombro - 1.2, Y.hombro + 10],
+    [15, Y.cuello + 4.5],
+    [a.hombro - 5.5, Y.hombro],
+    [a.busto - 1, Y.hombro + 6],
+    [a.busto - 1.6, Y.hombro + 12],
     [a.busto - 1.8, Y.axila],
     [a.busto, Y.busto],
     [a.busto - 2, Y.bajoBusto],
@@ -211,7 +223,19 @@ function bordeInterior(a: Anchos): Punto[] {
 }
 
 function cuerpo(a: Anchos): string {
-  return simetrico([...bordeExterior(a), ...pie().slice(1), ...bordeInterior(a).slice(1)]);
+  const borde = bordeExterior(a);
+  // Del cuello hasta arriba del hombro; de ahí sigue el brazo.
+  const cuelloYHombro = borde.slice(0, 5);
+  // Del busto para abajo; el tramo del hombro a la axila lo hace el brazo.
+  const torso = borde.slice(borde.findIndex(([, y]) => y === Y.busto));
+  return simetrico([
+    ...cuelloYHombro,
+    ...brazo(a),
+    [a.busto - 2, Y.axila + 3],
+    ...torso,
+    ...pie().slice(1),
+    ...bordeInterior(a).slice(1),
+  ]);
 }
 
 /** Ancho del torso a una altura, leyendo el mismo borde que dibuja el cuerpo. */
@@ -228,48 +252,56 @@ function torsoEn(a: Anchos, y: number): number {
 // ---------------------------------------------------------------------
 // Los brazos
 // ---------------------------------------------------------------------
-// Van detrás del cuerpo y cuelgan casi rectos, apenas abiertos: no se
-// meten hacia la cintura aunque sea angosta (un brazo no sigue esa
-// curva), y pasan por fuera de la cadera. La punta de los dedos queda a
-// media altura del muslo, como en un cuerpo real.
+// Cuelgan relajados, con el codo apenas flexionado: el hombro redondo,
+// el brazo más lleno arriba, el codo un poco más angosto, el antebrazo
+// que vuelve a llenarse y se afina hasta la muñeca, y la mano de perfil
+// —la palma mira al muslo— con el pulgar adelante. No se meten hacia la
+// cintura aunque sea angosta (un brazo no sigue esa curva) y pasan por
+// fuera de la cadera. La punta de los dedos llega a media altura del
+// muslo, como en un cuerpo real.
 function brazo(a: Anchos): Punto[] {
   const tramos: Array<[number, number, number]> = [
-    // [y, aire respecto al torso, grosor]
-    [Y.axila, -0.6, 9.4],
-    [108, 1, 8.6],
-    [Y.cintura + 5, 2.2, 7.4],
-    [160, 3, 6.3],
-    [Y.entrepierna - 2, 3.4, 5.2],
+    // [y, aire respecto al torso, grosor mínimo]
+    [94, 0.8, 7.4],
+    [112, 1.3, 7.2],
+    [133, 2.7, 6.9], // codo
+    [150, 3.1, 7.2], // antebrazo
+    [171, 2.5, 4.9], // muñeca
   ];
   // Un cuerpo más lleno tiene brazos más llenos.
   const escala = entre((a.busto + a.cadera) / 64, 0.85, 1.45);
   let masAncho = 0;
   let anterior = 0;
-  const pasos = tramos.map(([y, aire, g]) => {
-    const grosor = g * escala;
+  const pasos = tramos.map(([y, aire, g], i) => {
     masAncho = Math.max(masAncho, torsoEn(a, y));
-    const x = Math.max(torsoEn(a, y) + aire, masAncho - 3.5, anterior - 0.5);
+    const x = Math.max(torsoEn(a, y) + aire, masAncho - 3.5, anterior - 0.6);
     anterior = x;
+    // Arriba, el borde de afuera del brazo sigue la línea del hombro (que
+    // se afina apenas al bajar); más abajo manda el grosor del brazo.
+    const bajaDelHombro = [a.hombro - 0.6, a.hombro - 1.8][i];
+    const grosor = Math.max(g * escala, bajaDelHombro !== undefined ? bajaDelHombro - x : 0);
     return { y, x, grosor };
   });
+  const arriba = pasos[0];
   const m = pasos[pasos.length - 1];
   const afuera: Punto[] = [
-    [a.hombro - 3.5, Y.hombro - 3],
-    [a.hombro + 3, Y.hombro + 6],
+    // El hombro, redondo, que se continúa en el brazo.
+    [a.hombro - 1.6, Y.hombro + 3],
+    [Math.max(a.hombro - 0.3, arriba.x + arriba.grosor), Y.hombro + 11],
     ...pasos.map(({ y, x, grosor }): Punto => [x + grosor, y]),
-    // Mano: un poco más ancha que la muñeca, con los dedos juntos.
-    [m.x + m.grosor + 1.2, Y.entrepierna + 10],
-    [m.x + m.grosor * 0.6, Y.entrepierna + 21],
-    [m.x + m.grosor * 0.25, Y.entrepierna + 23],
+    // La mano: el canto de afuera y la punta de los dedos.
+    [m.x + m.grosor + 0.8, 184],
+    [m.x + m.grosor * 0.7, 196],
+    [m.x + m.grosor * 0.2, 200],
   ];
   const adentro: Punto[] = [
-    [m.x - 0.2, Y.entrepierna + 19],
+    [m.x - 0.6, 197.5],
     // El pulgar, que asoma hacia adelante.
-    [m.x - 1.6, Y.entrepierna + 10],
-    [m.x - 0.4, Y.entrepierna + 3],
+    [m.x - 1.5, 188],
+    [m.x - 0.5, 180],
     ...[...pasos].reverse().map(({ y, x }): Punto => [x, y]),
-    [torsoEn(a, 74) - 4, 74],
-    [a.hombro - 3.5, Y.hombro - 3],
+    // La axila.
+    [a.busto - 2.6, Y.axila - 1.5],
   ];
   return [...afuera, ...adentro];
 }
@@ -279,7 +311,7 @@ function brazo(a: Anchos): Punto[] {
 // ---------------------------------------------------------------------
 /** El top de tiras: del escote al comienzo de la cadera. */
 function zonaTop(a: Anchos): string {
-  const tira = (a.hombro + 7) / 2;
+  const tira = (a.hombro + 2) / 2;
   const mitad: Punto[] = [
     [0, Y.busto - 16],
     [6, Y.busto - 17],
@@ -287,21 +319,40 @@ function zonaTop(a: Anchos): string {
     // La tira sube por el hombro, a mitad de camino entre el cuello y el borde.
     [tira - 2.2, Y.cuello - 4],
     [tira + 2.2, Y.cuello - 4],
-    [tira + 2.8, Y.hombro + 2],
-    [a.hombro - 5, Y.hombro + 12],
-    [torsoEn(a, Y.axila) + 6, Y.axila + 1],
-    [60, Y.axila + 2],
-    [60, Y.caderaAlta + 2],
+    [tira + 3, Y.hombro + 1],
+    [a.busto - 2.5, Y.axila - 4],
+    // De la sisa para abajo sigue el costado del torso, sin tocar el brazo.
+    ...[Y.axila + 2, Y.busto, Y.bajoBusto, Y.cintura, Y.caderaAlta + 2].map(
+      (y): Punto => [torsoEn(a, y) + 1.4, y]
+    ),
     [0, Y.caderaAlta + 4],
+  ];
+  // Con curva: un escote de tela no tiene esquinas. Lo que sobresale del
+  // cuerpo lo recorta el contorno.
+  return simetrico(mitad);
+}
+
+/** Los leggings: de la cadera al tobillo, por el borde de la pierna (las manos quedan afuera). */
+function zonaLeggings(a: Anchos): string {
+  const desde = Y.caderaAlta - 1;
+  const pierna = bordeExterior(a).filter(([, y]) => y > desde && y <= Y.tobillo);
+  const mitad: Punto[] = [
+    [0, desde],
+    [torsoEn(a, desde) + 0.3, desde],
+    // Con margen: entre dos puntos el borde de la pierna se curva hacia
+    // afuera, y sin margen quedaría una rayita de piel. Lo que sobra lo
+    // recorta el contorno; las manos quedan más afuera todavía.
+    ...pierna.map(([x, y]): Punto => [x + 2, y]),
+    [12, Y.tobillo + 1],
+    [0, Y.tobillo + 1],
   ];
   const d = mitad.map(der);
   const i = [...mitad].reverse().map(izq);
-  // Rectas: es un recorte, la curva la pone el cuerpo.
   return `M ${[...d, ...i.slice(1)].map(([x, y]) => `${r(x)} ${r(y)}`).join(" L ")} Z`;
 }
 
-function zonaEntre(desde: number, hasta: number): string {
-  return `M 0 ${desde} L ${ANCHO} ${desde} L ${ANCHO} ${hasta} L 0 ${hasta} Z`;
+function zonaZapatos(): string {
+  return `M ${EJE - 14} ${Y.tobillo + 1} L ${EJE + 14} ${Y.tobillo + 1} L ${EJE + 14} ${ALTO} L ${EJE - 14} ${ALTO} Z`;
 }
 
 /** Sombra suave bajo el busto, sobre la tela. */
@@ -433,9 +484,11 @@ function peloAdelante(largo: Largo): string[] {
       [cx + l * 13.5, cy - 4],
       [cx + l * 16.8, cy + 2],
       [cx + l * 18.6, cy + 16],
-      [cx + l * afuera, hasta - 6],
-      [cx + l * (afuera - 2.5), hasta + 1],
-      [cx + l * (afuera - 9), hasta - 4],
+      [cx + l * afuera, hasta - 7],
+      [cx + l * (afuera - 0.8), hasta],
+      [cx + l * (afuera - 3.8), hasta - 2.6],
+      [cx + l * (afuera - 5.6), hasta + 1.2],
+      [cx + l * (afuera - 9.2), hasta - 5],
       [cx + l * 12.4, Y.menton + 8],
       [cx + l * 12.6, cy + 12],
       [cx + l * 13.2, cy + 2],
@@ -483,13 +536,10 @@ export default function SiluetaIcon({
       </defs>
       <g stroke={TRAZO} strokeWidth={0.9} strokeLinejoin="round">
         {atras && <path d={atras} fill={pelo} stroke="none" />}
-        {[brazo(a).map(der), brazo(a).map(izq)].map((p, i) => (
-          <path key={i} d={cerrado(p)} fill={piel.base} />
-        ))}
         <path d={cuerpoD} fill={piel.base} />
         <g clipPath={`url(#${idRecorte})`} stroke="none">
-          <path d={zonaEntre(Y.caderaAlta - 1, Y.tobillo + 1)} fill={ROPA.leggings} />
-          <path d={zonaEntre(Y.tobillo + 1, ALTO)} fill={ROPA.zapatos} />
+          <path d={zonaLeggings(a)} fill={ROPA.leggings} />
+          <path d={zonaZapatos()} fill={ROPA.zapatos} />
           <path d={zonaTop(a)} fill={ROPA.top} />
           {/* Sombra bajo el mentón, para que la cabeza no se vea pegada. */}
           <ellipse cx={EJE} cy={Y.menton + 1} rx={8} ry={4} fill={piel.sombra} opacity={0.55} />

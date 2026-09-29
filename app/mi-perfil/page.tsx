@@ -481,9 +481,18 @@ export default function MiPerfilPage() {
         <div className="grid grid-cols-1 gap-6 rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:grid-cols-[auto_1fr] sm:p-8">
           <SiluetaIcon
             silueta={perfil.silueta}
-            // El ancho va atado al alto (el lienzo es 120x300), para que
+            tonoPiel={perfil.tono_piel}
+            colorCabello={perfil.color_cabello}
+            largoCabello={perfil.largo_cabello}
+            medidas={{
+              busto: perfil.bust_cm,
+              cintura: perfil.waist_cm,
+              cadera: perfil.hip_cm,
+              estatura: perfil.height_cm,
+            }}
+            // El ancho va atado al alto (el lienzo es 150x340), para que
             // la figura no quede flotando con aire a los lados.
-            className="h-44 w-[70px] shrink-0 text-rosa-500 sm:h-56 sm:w-[90px]"
+            className="mx-auto h-60 w-[106px] shrink-0 sm:h-72 sm:w-[127px]"
           />
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">

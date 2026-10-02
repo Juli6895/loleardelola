@@ -36,7 +36,6 @@ import type { ClosetCategory, PrendaDetalle, VisionResult } from "@/types";
 // Sonnet cuesta más por token que Haiku. En volumen de pruebas son
 // centavos; cuando haya usuarias reales hay que volver a medirlo.
 const MODEL_OUTFIT = "claude-sonnet-5";
-const MODEL_PRENDA = "claude-haiku-4-5";
 
 // System prompt: persona + instrucciones de formato. Cacheable porque no
 // cambia entre llamadas.
@@ -441,10 +440,17 @@ export async function analyzeImageWithClaude(
 }
 
 // =====================================================================
-// Analizador de UNA prenda para el Clóset digital (Fase 1 del roadmap
-// premium). A diferencia de analyzeImageWithClaude (que mira un outfit
-// completo puesto por una persona), esto clasifica una sola prenda —
-// normalmente una foto plana ("flat lay") o colgada, sin modelo.
+// Analizador de UNA prenda para el Clóset digital. A diferencia de
+// analyzeImageWithClaude (que mira un outfit completo puesto por una
+// persona), esto clasifica una sola prenda: una foto plana, colgada, o
+// puesta por alguien.
+//
+// Antes iba con Haiku y solo pedía una de 6 categorías generales: sin
+// definir qué es cada tipo, confundía buzo con blusa o cárdigan con
+// chaqueta, y en fotos con una persona agarraba cualquiera de las
+// prendas que tenía puestas. Ahora va con el mismo modelo que la
+// búsqueda de outfits, con una guía de tipos tal como se usan en
+// Colombia, y la usuaria puede decir cuál prenda es.
 // =====================================================================
 
 // ClosetCategory vive en types/index.ts (fuente de verdad única,
@@ -459,40 +465,80 @@ export type ClosetItemAnalysis = {
   label: string;
 };
 
-const CLOSET_SYSTEM_PROMPT = `Eres una estilista colombiana organizando el clóset digital de una usuaria. Te llega la foto de UNA sola prenda (puede estar sobre una superficie, colgada, o puesta por alguien) y la tienes que clasificar para un guardarropa digital — no es un outfit completo.
+// Cada tipo con su categoría: la categoría sale del tipo, así nunca se
+// contradicen (un "cárdigan" no puede quedar guardado como "bottom").
+const TIPOS_CLOSET: Record<string, ClosetCategory> = {
+  blusa: "top", camisa: "top", camiseta: "top", top: "top", body: "top",
+  "corsé": "top", buzo: "top", "suéter": "top", "cárdigan": "top", chaleco: "top",
+  "pantalón": "bottom", jean: "bottom", leggings: "bottom", falda: "bottom", short: "bottom",
+  vestido: "vestido", enterizo: "vestido",
+  chaqueta: "abrigo", blazer: "abrigo", abrigo: "abrigo", ruana: "abrigo", kimono: "abrigo",
+  tenis: "calzado", sandalia: "calzado", tacones: "calzado", zapato: "calzado", bota: "calzado",
+  bolso: "accesorio", "cinturón": "accesorio", aretes: "accesorio", collar: "accesorio",
+  pulsera: "accesorio", gafas: "accesorio", gorra: "accesorio", bufanda: "accesorio",
+};
 
-REGLAS:
+// Lo que la usuaria puede marcar antes de subir la foto.
+export type PistaPrenda = ClosetCategory;
 
-1. category: elige EXACTAMENTE una de estas 6 opciones según la prenda:
-   - "top": camisas, blusas, camisetas, tops, sacos, buzos
-   - "bottom": pantalones, jeans, faldas, shorts, pantalonetas
-   - "vestido": vestidos y enterizos
-   - "abrigo": chaquetas, blazers, abrigos, ruanas
-   - "calzado": tenis, botas, tacones, sandalias
-   - "accesorio": bolsos, gorras, gafas, cinturones, joyería, bufandas
+const NOMBRE_PISTA: Record<PistaPrenda, string> = {
+  top: "la prenda de ARRIBA (blusa, camiseta, buzo, top...)",
+  bottom: "la prenda de ABAJO (pantalón, jean, falda, short...)",
+  vestido: "el VESTIDO o enterizo",
+  abrigo: "la prenda EXTERIOR (chaqueta, blazer, abrigo...)",
+  calzado: "el CALZADO",
+  accesorio: "el ACCESORIO (bolso, cinturón, joyería...)",
+};
 
-2. color: el color principal en español, una sola palabra (negro, blanco, azul, café, beige, crema, rosa, etc). Si de verdad no es claro, usa null.
+const CLOSET_SYSTEM_PROMPT = `Eres una estilista colombiana organizando el clóset digital de una usuaria. Te llega la foto de UNA prenda que ella tiene: puede estar sobre una superficie, colgada, o puesta por una persona. Tu trabajo es decir con precisión QUÉ prenda es.
 
-3. tags: 2-4 palabras sueltas en español que describan la prenda para poder combinarla después — tipo de tela aparente, corte, estampado, ocasión. Ej: ["denim", "wide leg", "casual"] o ["cuero", "formal"].
+QUÉ PRENDA MIRAR
+- Si te dicen cuál es (por ejemplo "la prenda de abajo"), clasifica ESA, aunque se vean otras.
+- Si no te dicen y hay una persona con varias prendas, clasifica la protagonista: la que se ve completa y ocupa el centro de la foto. Nunca mezcles rasgos de dos prendas distintas.
 
-4. label: nombre corto para mostrar en la app, tipo "Jean wide leg azul" o "Blazer beige oversize" — prenda + color + (corte si aplica), máximo 4 palabras, SIN marcas.
+TIPO: elige el que corresponde, mirando cómo está hecha la prenda, no solo su forma general:
+- blusa: parte de arriba de tela liviana y fluida (seda, satín, chifón, viscosa, lino, encaje), a menudo con detalles: boleros, mangas abullonadas, fruncidos, escotes. Puede tener botones.
+- camisa: tiene cuello de camisa y botones de arriba a abajo.
+- camiseta: de punto de algodón (tipo T-shirt), cuello redondo o en V, sin botones adelante.
+- top: corto o sin mangas: strapless, de tiras, crop top, halter.
+- body: se cierra en la entrepierna, como un vestido de baño.
+- corsé: top estructurado, con varillas, ajuste o cordones.
+- buzo: pullover casual de manga larga, cerrado adelante, de felpa, punto grueso o terciopelo, casi siempre holgado u oversize, con cuello redondo o capucha (lo que en otros países llaman sudadera o hoodie).
+- suéter: tejido de punto (lana, hilo, punto fino), cerrado adelante.
+- cárdigan: tejido de punto ABIERTO adelante, con botones o sin cierre.
+- chaleco: sin mangas, se usa encima de otra prenda.
+- chaqueta: prenda exterior con cierre o botones (jean, cuero, bomber, rompevientos).
+- blazer: chaqueta de sastre, con solapas y estructura.
+- abrigo: prenda exterior larga para frío. ruana: tejida, de abrir, sin mangas. kimono: abierto, de tela liviana, mangas anchas.
+- pantalón: de tela (no denim). jean: de denim. leggings: licra ajustada. short. falda.
+- vestido: una pieza de arriba a abajo. enterizo: una pieza con pantalón o short.
+- calzado: tenis, sandalia, tacones, zapato (bajo: baletas, mocasines, oxford), bota.
+- accesorios: bolso, cinturón, aretes, collar, pulsera, gafas, gorra, bufanda.
 
-Llama SIEMPRE a la herramienta report_garment. No respondas con texto plano.`;
+color: el color principal, en español, una o dos palabras (negro, blanco, beige, camel, vinotinto, azul oscuro...). Si es estampado, el color de fondo, y el estampado va en los tags. Si de verdad no se distingue, déjalo vacío.
+
+tags: 2-4 palabras sueltas en español para poder combinarla después: tela aparente, corte, estampado, ocasión. Ej: ["denim", "wide leg", "casual"]. Describen SOLO esa prenda: si es una parte de abajo, nada de mangas ni escotes de la de arriba.
+
+label: nombre corto para mostrar, máximo 4 palabras, que EMPIEZA por el tipo: "Blusa satinada vinotinto", "Jean wide leg azul". Sin marcas.
+
+Llama SIEMPRE a report_garment.`;
 
 const REPORT_GARMENT_TOOL: Anthropic.Tool = {
   name: "report_garment",
   description: "Reporta la clasificación de una prenda de clóset.",
+  // Garantiza que la respuesta respete el esquema (sin campos rotos).
+  strict: true,
   input_schema: {
     type: "object",
     properties: {
-      category: {
+      tipo: {
         type: "string",
-        enum: ["top", "bottom", "vestido", "abrigo", "calzado", "accesorio"],
-        description: "Categoría de la prenda, una de las 6 permitidas.",
+        enum: Object.keys(TIPOS_CLOSET),
+        description: "Qué prenda es, según la guía del sistema.",
       },
       color: {
         type: "string",
-        description: "Color principal en español, una palabra. Vacío si no es claro.",
+        description: "Color principal en español. Vacío si no se distingue.",
       },
       tags: {
         type: "array",
@@ -501,22 +547,26 @@ const REPORT_GARMENT_TOOL: Anthropic.Tool = {
       },
       label: {
         type: "string",
-        description: "Nombre corto para mostrar, máx 4 palabras, sin marcas.",
+        description: "Nombre corto para mostrar, máx 4 palabras, empieza por el tipo, sin marcas.",
       },
     },
-    required: ["category", "tags", "label"],
+    required: ["tipo", "color", "tags", "label"],
+    additionalProperties: false,
   },
 };
 
+const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /**
- * Clasifica una sola prenda (foto de clóset) con Claude: categoría, color,
+ * Clasifica una sola prenda (foto de clóset): tipo, categoría, color,
  * tags y un nombre corto para mostrar en la grilla del clóset.
  *
- * @throws si falta ANTHROPIC_API_KEY, la imagen no se puede descargar, la
- * API responde con error, o Claude devuelve una categoría inválida.
+ * `pista` es lo que la usuaria marcó antes de subir ("es la de abajo"),
+ * para fotos donde se ven varias prendas.
  */
 export async function analyzeClosetItem(
-  imageUrl: string
+  imageUrl: string,
+  pista?: PistaPrenda | null
 ): Promise<ClosetItemAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
@@ -524,30 +574,22 @@ export async function analyzeClosetItem(
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
   const client = new Anthropic({ apiKey });
 
+  const pedido = pista
+    ? `La usuaria dice que la prenda que está subiendo es ${NOMBRE_PISTA[pista]}. Clasifica esa y reporta con report_garment.`
+    : "Clasifica esta prenda de clóset y reporta con report_garment.";
+
   const response = await client.messages.create({
-    model: MODEL_PRENDA,
-    max_tokens: 512,
-    system: [
-      {
-        type: "text",
-        text: CLOSET_SYSTEM_PROMPT,
-        cache_control: { type: "ephemeral" },
-      },
-    ],
+    model: MODEL_OUTFIT,
+    max_tokens: 2000,
+    system: [{ type: "text", text: CLOSET_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     tools: [REPORT_GARMENT_TOOL],
     tool_choice: { type: "tool", name: "report_garment" },
     messages: [
       {
         role: "user",
         content: [
-          {
-            type: "image",
-            source: { type: "base64", media_type: mediaType, data: base64 },
-          },
-          {
-            type: "text",
-            text: "Clasifica esta prenda de clóset y reporta con report_garment.",
-          },
+          { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+          { type: "text", text: pedido },
         ],
       },
     ],
@@ -560,31 +602,20 @@ export async function analyzeClosetItem(
     throw new Error("Claude no devolvió un report_garment válido");
   }
 
-  const input = toolUse.input as {
-    category?: string;
-    color?: string;
-    tags?: string[];
-    label?: string;
-  };
+  const input = toolUse.input as { tipo?: string; color?: string; tags?: string[]; label?: string };
+  const tipo = input.tipo && TIPOS_CLOSET[input.tipo] ? input.tipo : null;
+  // Si la usuaria dijo cuál era, manda su categoría.
+  const category: ClosetCategory = pista ?? (tipo ? TIPOS_CLOSET[tipo] : "accesorio");
 
-  const VALID_CATEGORIES: ClosetCategory[] = [
-    "top",
-    "bottom",
-    "vestido",
-    "abrigo",
-    "calzado",
-    "accesorio",
-  ];
-  const category: ClosetCategory = VALID_CATEGORIES.includes(
-    input.category as ClosetCategory
-  )
-    ? (input.category as ClosetCategory)
-    : "accesorio"; // fallback razonable si Claude devuelve algo inesperado
+  // El nombre siempre empieza por el tipo: es lo que lee "Buscar
+  // combinaciones" para saber qué prenda es.
+  let label = input.label?.trim() || (tipo ? mayuscula(tipo) : "Prenda sin nombre");
+  if (tipo && !label.toLowerCase().startsWith(tipo)) label = `${mayuscula(tipo)} ${label}`;
 
   return {
     category,
     color: input.color?.trim() || null,
-    tags: Array.isArray(input.tags) ? input.tags : [],
-    label: input.label?.trim() || "Prenda sin nombre",
+    tags: Array.isArray(input.tags) ? input.tags.slice(0, 4) : [],
+    label,
   };
 }

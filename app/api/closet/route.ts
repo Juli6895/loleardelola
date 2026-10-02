@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
 import { uploadImage } from "@/lib/cloudinary";
-import { analyzeClosetItem } from "@/lib/garment-ai";
+import { analyzeClosetItem, type PistaPrenda } from "@/lib/garment-ai";
 
 // El tope de prendas ya no vive acá: está en lib/planes.ts junto con
 // los de búsquedas y outfits, y se aplica con revisarTope().
@@ -42,7 +42,10 @@ export async function GET(req: Request) {
 }
 
 // POST /api/closet → sube una foto de prenda, la analiza con Claude y la
-// guarda. Body: { imageBase64: "data:image/..." }
+// guarda. Body: { imageBase64: "data:image/...", pista?: categoría }
+//
+// "pista" es lo que la usuaria marcó antes de subir ("es la de abajo"),
+// para fotos donde una persona lleva puestas varias prendas.
 export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user) {
@@ -72,7 +75,9 @@ export async function POST(req: Request) {
 
   try {
     const imageUrl = await uploadImage(body.imageBase64);
-    const analysis = await analyzeClosetItem(imageUrl);
+    const PISTAS: PistaPrenda[] = ["top", "bottom", "vestido", "abrigo", "calzado", "accesorio"];
+    const pista = PISTAS.includes(body.pista) ? (body.pista as PistaPrenda) : null;
+    const analysis = await analyzeClosetItem(imageUrl, pista);
 
     const { data: item, error } = await sb
       .from("closet_items")

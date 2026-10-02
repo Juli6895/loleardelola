@@ -75,6 +75,10 @@ export const EVENTOS = [
   // Shopping, que no dice a cuál tienda entró) — de dónde: buscar,
   // clóset, manual o el directorio de Instagram.
   "comercio_clic",
+
+  // Ilustración de la usuaria hecha con Gemini (Mi perfil)
+  "figura_generada",
+  "figura_error",
 ] as const;
 
 export type NombreEvento = (typeof EVENTOS)[number];

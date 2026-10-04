@@ -11,6 +11,7 @@ type Estado = {
   falta: string[];
   manual: unknown | null;
   desactualizado: boolean;
+  formatoViejo?: boolean;
 };
 
 /**
@@ -95,7 +96,9 @@ export default function GenerarManual() {
       )}
       {estado?.desactualizado && (
         <p className="mt-3 text-xs text-noche/50">
-          Cambiaste algo de tu perfil: vuelve a armarlo con tus datos nuevos.
+          {estado.formatoViejo
+            ? "Hay una versión nueva de tu manual, armada como una asesoría completa. Actualizarlo no gasta de tus manuales del mes."
+            : "Cambiaste algo de tu perfil: vuelve a armarlo con tus datos nuevos."}
         </p>
       )}
     </section>

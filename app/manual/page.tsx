@@ -5,7 +5,15 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import type { ManualListo, OutfitListo, PrendaClaveLista } from "@/lib/manual-estilo";
+import type {
+  ColorPintado,
+  FavoritaManual,
+  ManualListo,
+  OutfitListo,
+  PrendaClaveLista,
+} from "@/lib/manual-estilo";
+import { svgSiluetas } from "@/lib/manual-figuras";
+import { CABELLO_HEX, PIEL_HEX } from "@/lib/manual-colores";
 import type { ProductoTienda } from "@/lib/catalogo-tiendas";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
@@ -36,6 +44,8 @@ type Estado = {
   manual: ManualListo | null;
   generadoEl: string | null;
   desactualizado: boolean;
+  // El manual guardado es de antes del formato de asesoría.
+  formatoViejo?: boolean;
 };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
@@ -172,43 +182,29 @@ function Contenido() {
     );
   }
 
+  const manual = estado.manual;
+  const textos = secciones(manual.texto);
+  const basicos = manual.basicos ?? manual.prendasClave ?? [];
+  const personalidad = perfil?.personalidad ? PERSONALIDADES[perfil.personalidad] : null;
+  const silueta = perfil?.silueta ? SILUETAS[perfil.silueta] : null;
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-6">
-      <header className="text-center">
-        <h1 className="font-display text-4xl text-noche sm:text-5xl">
-          Tu manual de estilo
-        </h1>
-        {estado.generadoEl && (
-          <p className="mt-2 text-xs text-noche/40">
-            Armado el {new Date(estado.generadoEl).toLocaleDateString("es-CO")}
-          </p>
-        )}
-        <button
-          onClick={descargarHtml}
-          disabled={descargando}
-          className="mt-4 inline-flex items-center gap-2 rounded-full border border-rosa-300 px-5 py-2 text-sm font-medium text-noche transition hover:bg-rosa-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4">
-            <path
-              d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14"
-              stroke="currentColor"
-              strokeWidth="1.8"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-          {descargando ? "Preparando..." : "Descargar como página HTML"}
-        </button>
-        <p className="mt-1.5 text-xs text-noche/40">
-          Se guarda en tu celular o computador — lo puedes abrir sin internet,
-          imprimirlo o mandarlo por WhatsApp.
-        </p>
-      </header>
+    <div className="mx-auto max-w-4xl space-y-6 py-6">
+      <Portada
+        nombre={nombre}
+        generadoEl={estado.generadoEl}
+        partida={textos["Tu punto de partida"]}
+        fotos={(manual.estilo ?? []).map((p) => p.fotos[0]).filter(Boolean)}
+        onDescargar={descargarHtml}
+        descargando={descargando}
+      />
 
       {estado.desactualizado && (
         <div className="rounded-2xl border border-rosa-300 bg-rosa-50/70 p-5 text-center">
           <p className="text-sm text-noche/70">
-            Cambiaste algo de tu perfil desde que armamos este manual.
+            {estado.formatoViejo
+              ? "Tu manual tiene una versión nueva, armada como una asesoría completa: tu morfología, tu colorimetría, tu estilo, tus prendas favoritas y tu fondo de armario. Actualizarlo no gasta de tus manuales del mes."
+              : "Cambiaste algo de tu perfil desde que armamos este manual."}
           </p>
           <button
             onClick={generar}
@@ -220,12 +216,78 @@ function Contenido() {
         </div>
       )}
 
-      <article className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
-        <Markdown texto={estado.manual.texto} />
-      </article>
+      <LineaDeTiempo />
 
-      <SeccionOutfits outfits={estado.manual.outfits} />
-      <SeccionPrendasClave prendas={estado.manual.prendasClave} />
+      {/* Paso 1: morfología, colorimetría y estilo */}
+      <Lamina id="paso-1" paso={1} titulo="Morfología">
+        {silueta && (
+          <p className="-mt-2 mb-4 text-sm text-noche/60">
+            Tu silueta: <strong className="font-semibold text-noche">{silueta.label}</strong>
+          </p>
+        )}
+        <div
+          className="mx-auto w-full max-w-2xl"
+          dangerouslySetInnerHTML={{ __html: svgSiluetas(perfil?.silueta ?? null, "manual") }}
+        />
+        {textos["Cómo te viste tu figura"] && (
+          <div className="mt-6">
+            <Markdown texto={textos["Cómo te viste tu figura"]} />
+          </div>
+        )}
+        {silueta && (
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <ListaCorta titulo="Te favorece" items={silueta.prendasFavorecen} />
+            <ListaCorta titulo="Te suma menos" items={silueta.prendasEvitar} />
+          </div>
+        )}
+      </Lamina>
+
+      <Lamina titulo="Colorimetría">
+        <Colorimetria
+          contraste={perfil?.contraste ? CONTRASTES[perfil.contraste].label : null}
+          tonoPiel={perfil?.tono_piel ?? null}
+          colorCabello={perfil?.color_cabello ?? null}
+          paleta={manual.paleta ?? []}
+          evitar={manual.evitar ?? []}
+        />
+        {textos["Tus colores"] && (
+          <div className="mt-6">
+            <Markdown texto={textos["Tus colores"]} />
+          </div>
+        )}
+      </Lamina>
+
+      <Lamina titulo={personalidad ? `Estilo ${personalidad.label}` : "Tu estilo"}>
+        {manual.estilo && manual.estilo.length > 0 && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <FotosDePrenda fotos={manual.estilo.map((p) => p.fotos[0])} soloFoto />
+          </div>
+        )}
+        {textos["Tu sello"] && (
+          <div className="mt-6">
+            <Markdown texto={textos["Tu sello"]} />
+          </div>
+        )}
+        {textos["Cuando chocan"] && (
+          <div className="mt-6 rounded-xl bg-rosa-50/70 p-5">
+            <h3 className="font-display text-xl text-noche">Cuando tus pilares chocan</h3>
+            <div className="mt-2">
+              <Markdown texto={textos["Cuando chocan"]} />
+            </div>
+          </div>
+        )}
+        {/* Manual viejo sin secciones reconocibles: se muestra completo. */}
+        {Object.keys(textos).length === 0 && <Markdown texto={manual.texto} />}
+      </Lamina>
+
+      {/* Paso 2 */}
+      <SeccionOutfits outfits={manual.outfits} />
+
+      {/* Paso 3 */}
+      <SeccionFavoritas favoritas={manual.favoritas} viejo={!manual.version} />
+
+      {/* Paso 4 */}
+      <SeccionFondoDeArmario basicos={basicos} />
 
       <div className="text-center">
         <button
@@ -236,6 +298,228 @@ function Contenido() {
           {generando ? "Armando..." : "Volver a armarlo"}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------
+// Las láminas de la asesoría
+// ---------------------------------------------------------------------
+
+const PASOS = [
+  "Morfología, estilo y colorimetría",
+  "Outfits para momentos específicos",
+  "Prendas favoritas (cómo combinar)",
+  "Básicos de armario",
+];
+
+/** Parte el texto del manual por sus títulos (## ...). */
+function secciones(texto: string): Record<string, string> {
+  const salida: Record<string, string> = {};
+  let actual: string | null = null;
+  for (const linea of texto.split("\n")) {
+    const titulo = linea.match(/^##\s+(.+?)\s*$/);
+    if (titulo) {
+      actual = titulo[1];
+      salida[actual] = "";
+    } else if (actual) {
+      salida[actual] += linea + "\n";
+    }
+  }
+  for (const k of Object.keys(salida)) salida[k] = salida[k].trim();
+  return salida;
+}
+
+function Portada({
+  nombre,
+  generadoEl,
+  partida,
+  fotos,
+  onDescargar,
+  descargando,
+}: {
+  nombre: string;
+  generadoEl: string | null;
+  partida?: string;
+  fotos: ProductoTienda[];
+  onDescargar: () => void;
+  descargando: boolean;
+}) {
+  return (
+    <header className="grid grid-cols-1 overflow-hidden rounded-2xl border border-rosa-100 bg-white shadow-sm sm:grid-cols-[1.4fr_1fr]">
+      <div className="flex flex-col justify-center p-7 sm:p-10">
+        <p className="text-xs font-semibold uppercase tracking-widest text-rosa-500">Tu manual de estilo</p>
+        <h1 className="mt-2 font-display text-4xl text-noche sm:text-5xl" style={{ textWrap: "balance" }}>
+          Asesoría {nombre || "de estilo"}
+        </h1>
+        <p className="mt-3 text-noche/60">¡Te enseñaré a conocerte y verte mejor de lo que ya eres!</p>
+        {partida && <p className="mt-5 text-sm leading-relaxed text-noche/75">{negritas(partida)}</p>}
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <button
+            onClick={onDescargar}
+            disabled={descargando}
+            className="inline-flex items-center gap-2 rounded-full border border-rosa-300 px-5 py-2 text-sm font-medium text-noche transition hover:bg-rosa-50 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <svg viewBox="0 0 24 24" fill="none" className="h-4 w-4" aria-hidden>
+              <path d="M12 3v12m0 0 4-4m-4 4-4-4M5 21h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            {descargando ? "Preparando..." : "Descargar"}
+          </button>
+          {generadoEl && (
+            <span className="text-xs text-noche/40">
+              Armado el {new Date(generadoEl).toLocaleDateString("es-CO")}
+            </span>
+          )}
+        </div>
+      </div>
+      {fotos.length > 0 ? (
+        <div className="grid grid-cols-2 gap-1 bg-rosa-50">
+          {fotos.slice(0, 4).map((f) =>
+            f.imagen ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img key={f.url} src={f.imagen} alt="" className="aspect-[3/4] h-full w-full object-cover" />
+            ) : null
+          )}
+        </div>
+      ) : (
+        <div className="hidden bg-gradient-to-br from-rosa-100 to-rosa-300 sm:block" />
+      )}
+    </header>
+  );
+}
+
+/** "¿Qué haremos?": los cuatro pasos de la asesoría, en orden. */
+function LineaDeTiempo() {
+  return (
+    <section className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
+      <h2 className="font-display text-3xl text-noche">¿Qué haremos?</h2>
+      <p className="mt-1 text-sm text-noche/60">Así va tu asesoría, paso a paso.</p>
+      <ol className="relative mt-6 grid grid-cols-1 gap-5 sm:grid-cols-4 sm:gap-4">
+        <span className="absolute left-[7px] top-2 h-[calc(100%-16px)] w-px bg-rosa-200 sm:left-0 sm:right-0 sm:top-[7px] sm:h-px sm:w-full" aria-hidden />
+        {PASOS.map((paso, i) => (
+          <li key={paso} className="relative flex gap-3 sm:block">
+            <span className="relative mt-0.5 block h-[15px] w-[15px] shrink-0 rounded-full border-2 border-white bg-rosa-500 ring-1 ring-rosa-300" />
+            <a href={`#paso-${i + 1}`} className="group sm:mt-3 sm:block">
+              <span className="block text-sm font-semibold text-rosa-600">{i + 1}.</span>
+              <span className="block text-sm text-noche/75 group-hover:text-noche">{paso}</span>
+            </a>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
+
+function Lamina({
+  id,
+  paso,
+  titulo,
+  children,
+}: {
+  id?: string;
+  paso?: number;
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-6 rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
+      {paso && (
+        <p className="text-xs font-semibold uppercase tracking-widest text-rosa-500">
+          Paso {paso} · {PASOS[paso - 1]}
+        </p>
+      )}
+      <h2 className="mt-1 font-display text-3xl text-noche sm:text-4xl">{titulo}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
+
+function ListaCorta({ titulo, items }: { titulo: string; items: string[] }) {
+  return (
+    <div>
+      <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">{titulo}</p>
+      <ul className="mt-2 space-y-1.5">
+        {items.map((it) => (
+          <li key={it} className="flex gap-2 text-sm text-noche/75">
+            <span className="text-rosa-400">·</span>
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Colorimetria({
+  contraste,
+  tonoPiel,
+  colorCabello,
+  paleta,
+  evitar,
+}: {
+  contraste: string | null;
+  tonoPiel: string | null;
+  colorCabello: string | null;
+  paleta: ColorPintado[];
+  evitar: ColorPintado[];
+}) {
+  const tuyos = [
+    tonoPiel && PIEL_HEX[tonoPiel] ? { nombre: `Piel ${tonoPiel}`, hex: PIEL_HEX[tonoPiel] } : null,
+    colorCabello && CABELLO_HEX[colorCabello] ? { nombre: `Cabello ${colorCabello}`, hex: CABELLO_HEX[colorCabello] } : null,
+  ].filter((c): c is ColorPintado => c !== null);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-wrap items-end gap-6">
+        {contraste && (
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">Tu color</p>
+            <p className="mt-1 font-display text-2xl text-noche">{contraste}</p>
+          </div>
+        )}
+        {tuyos.length > 0 && (
+          <div className="flex gap-3">
+            {tuyos.map((c) => (
+              <div key={c.nombre} className="text-center">
+                <span className="block h-12 w-16 rounded-lg border border-noche/10" style={{ backgroundColor: c.hex }} />
+                <span className="mt-1 block text-[11px] text-noche/50">{c.nombre}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {paleta.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">Tu paleta</p>
+          <div className="mt-2 grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+            {paleta.map((c) => (
+              <div key={c.nombre + c.hex}>
+                <span
+                  className="block aspect-square w-full rounded-md border border-noche/10"
+                  style={{ backgroundColor: c.hex }}
+                  title={c.nombre}
+                />
+                <span className="mt-1 block truncate text-[10px] text-noche/50">{c.nombre}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {evitar.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-noche/50">Lejos de tu cara</p>
+          <div className="mt-2 flex flex-wrap gap-3">
+            {evitar.map((c) => (
+              <span key={c.nombre + c.hex} className="flex items-center gap-1.5 text-xs text-noche/55">
+                <span className="h-5 w-5 rounded border border-noche/10 opacity-70" style={{ backgroundColor: c.hex }} />
+                {c.nombre}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -252,6 +536,9 @@ function armarResumenPerfil(perfil: PerfilSilueta | null) {
       perfil.bust_cm && perfil.waist_cm && perfil.hip_cm
         ? `${perfil.bust_cm} · ${perfil.waist_cm} · ${perfil.hip_cm} cm`
         : null,
+    silueta_clave: perfil.silueta ?? null,
+    tono_piel: perfil.tono_piel ?? null,
+    color_cabello: perfil.color_cabello ?? null,
   };
 }
 
@@ -270,12 +557,7 @@ function describir(p: { tipo: string; color: string; rasgos: string[] }): string
   return [p.tipo, p.color, ...p.rasgos].filter(Boolean).join(" · ");
 }
 
-/**
- * La paleta de un outfit, en puntos de color. Antes los colores solo se
- * leían en el nombre de cada prenda ("blazer azul denim") y por eso no
- * se veían como paleta — esto los saca como una fila de circulitos, en
- * el mismo orden en que aparecen las prendas.
- */
+/** La paleta de un outfit, en puntos de color, sin repetir. */
 function PaletaDeColores({ prendas }: { prendas: Array<{ color: string }> }) {
   const vistos = new Set<string>();
   const colores = prendas
@@ -303,56 +585,100 @@ function PaletaDeColores({ prendas }: { prendas: Array<{ color: string }> }) {
   );
 }
 
-/** "Tres outfits para ti" — cada uno ya trae solo prendas confirmadas. */
+/** Paso 2: outfits para momentos específicos, con prendas confirmadas. */
 function SeccionOutfits({ outfits }: { outfits: OutfitListo[] }) {
   if (outfits.length === 0) return null;
 
   return (
-    <div className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
-      <h2 className="font-display text-2xl text-noche">Tres outfits para ti</h2>
-      <p className="mt-1 text-sm text-noche/60">
-        Las fotos son de las tiendas de nuestra lista — el corte y el color son
-        una guía; la prenda exacta puede variar.
+    <Lamina id="paso-2" paso={2} titulo="Outfits para momentos específicos">
+      <p className="-mt-2 text-sm text-noche/60">
+        Las fotos son de las tiendas de nuestra lista: el corte y el color son la guía; la prenda
+        exacta puede variar.
       </p>
-
       <div className="mt-6 space-y-8">
         {outfits.map((o, i) => (
           <div key={i}>
-            <p className="text-xs font-semibold uppercase tracking-wide text-rosa-500">
-              {o.titulo}
-            </p>
-            {o.descripcion && (
-              <p className="mt-1 text-sm text-noche/70">{o.descripcion}</p>
-            )}
+            <p className="text-xs font-semibold uppercase tracking-wide text-rosa-500">{o.titulo}</p>
+            {o.descripcion && <p className="mt-1 text-sm text-noche/70">{o.descripcion}</p>}
             <PaletaDeColores prendas={o.prendas} />
+            {/* Una foto por prenda: con dos, el outfit se leía como dos
+                pantalones y dos aretes, no como un look. */}
             <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {o.prendas.map((p, j) => (
-                <FotosDePrenda key={j} fotos={p.fotos.slice(0, 2)} />
-              ))}
+              <FotosDePrenda fotos={o.prendas.map((p) => p.fotos[0])} />
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </Lamina>
   );
 }
 
-/** "Lo primero que compraría", con foto y el porqué de cada una. */
-function SeccionPrendasClave({ prendas }: { prendas: PrendaClaveLista[] }) {
-  if (prendas.length === 0) return null;
+/** Paso 3: las prendas que YA tiene en su clóset, y cómo combinarlas. */
+function SeccionFavoritas({ favoritas, viejo }: { favoritas?: FavoritaManual[]; viejo: boolean }) {
+  // En un manual de antes de la asesoría esta sección no existía.
+  if (viejo) return null;
 
   return (
-    <div className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
-      <h2 className="font-display text-2xl text-noche">Lo primero que compraría</h2>
-      <p className="mt-1 text-sm text-noche/60">En orden de prioridad.</p>
+    <Lamina id="paso-3" paso={3} titulo="Prendas favoritas">
+      {favoritas && favoritas.length > 0 ? (
+        <>
+          <p className="-mt-2 text-sm text-noche/60">Las que ya tienes en tu clóset, y cómo sacarles partido.</p>
+          <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            {favoritas.map((f) => (
+              <div key={f.id} className="flex gap-4">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={f.foto}
+                  alt={f.label}
+                  className="h-28 w-24 shrink-0 rounded-xl border border-rosa-100 bg-rosa-50 object-cover"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-noche">{f.label}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-noche/70">{f.comoCombinar}</p>
+                  {f.conQue.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {f.conQue.map((c) => (
+                        <span key={c} className="rounded-full bg-rosa-50 px-2.5 py-1 text-[11px] font-medium text-rosa-600">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      ) : (
+        <p className="text-sm text-noche/60">
+          Sube a{" "}
+          <Link href="/mi-closet" className="font-medium text-rosa-600 underline">
+            Mi clóset
+          </Link>{" "}
+          las prendas que más usas y vuelve a armar tu manual: te decimos cómo combinar cada una.
+        </p>
+      )}
+    </Lamina>
+  );
+}
 
-      <div className="mt-6 space-y-5">
-        {prendas.map((p, i) => (
-          <div key={i} className="flex gap-4">
-            <span className="mt-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-xs font-semibold text-rosa-600">
-              {i + 1}
-            </span>
-            <div className="min-w-0 flex-1">
+/** Paso 4: el fondo de armario, con los básicos adaptados a ella. */
+function SeccionFondoDeArmario({ basicos }: { basicos: PrendaClaveLista[] }) {
+  if (basicos.length === 0) return null;
+
+  return (
+    <Lamina id="paso-4" paso={4} titulo="Fondo de armario">
+      <p className="-mt-2 text-sm text-noche/60">
+        Los básicos que sostienen todo lo demás, en el corte y el color que te funcionan. En orden de
+        prioridad.
+      </p>
+      <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-[1fr_1fr]">
+        <div className="grid grid-cols-3 gap-2 self-start">
+          <FotosDePrenda fotos={basicos.map((p) => p.fotos[0])} soloFoto />
+        </div>
+        <ol className="divide-y divide-rosa-100">
+          {basicos.map((p, i) => (
+            <li key={i} className="py-3 first:pt-0">
               <p className="flex items-center gap-2 text-sm font-medium text-noche">
                 <span
                   className="h-3.5 w-3.5 shrink-0 rounded-full border border-noche/10"
@@ -362,14 +688,11 @@ function SeccionPrendasClave({ prendas }: { prendas: PrendaClaveLista[] }) {
                 {describir(p)}
               </p>
               {p.porque && <p className="mt-0.5 text-sm text-noche/60">{p.porque}</p>}
-              <div className="mt-3 grid grid-cols-4 gap-2">
-                <FotosDePrenda fotos={p.fotos.slice(0, 4)} soloFoto />
-              </div>
-            </div>
-          </div>
-        ))}
+            </li>
+          ))}
+        </ol>
       </div>
-    </div>
+    </Lamina>
   );
 }
 

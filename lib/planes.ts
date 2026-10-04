@@ -51,14 +51,60 @@ export const TOPES: Record<Plan, Topes> = {
   },
 };
 
-// El anual sale a $4.000 por mes: un 20% de descuento frente a pagar
-// mes a mes. Es a propósito — Bold cobra un fijo de $900 por
-// transacción, así que doce cobros de $5.000 dejan mucho menos que uno
-// solo de $48.000.
+// Cada uso de la IA cuesta (en dólares): una búsqueda por foto ~$160,
+// una combinación ~$125, una prenda al clóset ~$60, un manual ~$280 y
+// una ilustración con Gemini ~$270 (pesos, con el dólar a ~$4.000). Con
+// los límites de TOPES_MES_MEMBRESIA, una usuaria que lo use TODO hasta
+// el tope cuesta ~$7.300 al mes, y la membresía deja ~$13.500 (mensual)
+// o ~$9.500 al mes (anual) después de la comisión de Bold: hay utilidad
+// incluso en el peor caso.
+//
+// El anual sale a ~$9.900 por mes (33% menos que mes a mes). Bold cobra
+// un fijo de $900 por transacción, así que un solo cobro al año deja
+// más que doce cobros mensuales.
 export const PRECIOS = {
-  mensual: 5000,
-  anual: 48000,
+  mensual: 14900,
+  anual: 119000,
 } as const;
+
+// ---------------------------------------------------------------------
+// Límites mensuales de la membresía
+// ---------------------------------------------------------------------
+// La membresía no es ilimitada: cada uso de la IA se paga. Se cuentan
+// desde el día 1 de cada mes (hora de Colombia) y se renuevan solos.
+export type UsoMensual =
+  | "busquedas"
+  | "prendasCloset"
+  | "combinaciones"
+  | "ilustraciones"
+  | "manuales";
+
+export const TOPES_MES_MEMBRESIA: Record<UsoMensual, number> = {
+  busquedas: 20,
+  prendasCloset: 25,
+  combinaciones: 12,
+  ilustraciones: 2,
+  manuales: 2,
+};
+
+// Sin membresía, "Buscar combinaciones" funciona en las primeras prendas
+// (ver combinacionesClosetGratis) pero con un tope total: si no, se
+// podría buscar sin fin sobre esas mismas prendas.
+export const COMBINACIONES_GRATIS_TOTAL = 4;
+
+const NOMBRE_USO: Record<UsoMensual, string> = {
+  busquedas: "búsquedas",
+  prendasCloset: "prendas nuevas en tu clóset",
+  combinaciones: "combinaciones",
+  ilustraciones: "ilustraciones",
+  manuales: "manuales nuevos",
+};
+
+/** El mensaje al llegar a un tope del mes, con la fecha en que se renueva. */
+export function mensajeTopeMensual(uso: UsoMensual, renueva: Date): string {
+  const fecha = renueva.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
+  return `Llegaste a tus ${TOPES_MES_MEMBRESIA[uso]} ${NOMBRE_USO[uso]} de este mes. Se renuevan el ${fecha}.`;
+}
 
 export type TipoPlan = keyof typeof PRECIOS;
 
@@ -127,7 +173,7 @@ export function mensajeDeTope(
     return `${llegaste} Crea tu cuenta gratis con tu correo y sigues.`;
   }
   if (destrabaCon === "membresia") {
-    return `${llegaste} Con la membresía no tienes tope.`;
+    return `${llegaste} Con la membresía tienes mucho más cada mes.`;
   }
   return llegaste;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { PRECIOS, TOPES } from "@/lib/planes";
+import { COMBINACIONES_GRATIS_TOTAL, PRECIOS, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
 import SubNavCuenta from "@/components/SubNavCuenta";
@@ -23,21 +23,44 @@ export default function MembresiaPage() {
   const { usuario } = useUsuario();
   const conMembresia = tieneMembresia(usuario);
 
-  const filas = [
+  const mes = (n: number) => `${n} al mes`;
+  const enPrimeras = `${COMBINACIONES_GRATIS_TOTAL}, en tus ${TOPES.gratis.combinacionesClosetGratis} primeras prendas`;
+  const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
     {
       que: "Búsquedas de outfits",
-      sin: TOPES.anonimo.busquedas,
-      gratis: TOPES.gratis.busquedas,
+      sin: TOPES.anonimo.busquedas ?? "—",
+      gratis: TOPES.gratis.busquedas ?? "—",
+      membresia: mes(TOPES_MES_MEMBRESIA.busquedas),
     },
     {
       que: "Outfits guardados",
-      sin: TOPES.anonimo.outfits,
-      gratis: TOPES.gratis.outfits,
+      sin: TOPES.anonimo.outfits ?? "—",
+      gratis: TOPES.gratis.outfits ?? "—",
+      membresia: "Sin tope",
     },
     {
       que: "Prendas en tu clóset",
-      sin: TOPES.anonimo.prendasCloset,
-      gratis: TOPES.gratis.prendasCloset,
+      sin: TOPES.anonimo.prendasCloset ?? "—",
+      gratis: TOPES.gratis.prendasCloset ?? "—",
+      membresia: `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
+    },
+    {
+      que: "Buscar combinaciones",
+      sin: enPrimeras,
+      gratis: enPrimeras,
+      membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
+    },
+    {
+      que: "Tu ilustración personalizada",
+      sin: "—",
+      gratis: "—",
+      membresia: mes(TOPES_MES_MEMBRESIA.ilustraciones),
+    },
+    {
+      que: "Manual de estilo",
+      sin: "—",
+      gratis: "—",
+      membresia: `Sí, ${TOPES_MES_MEMBRESIA.manuales} nuevos al mes`,
     },
   ];
 
@@ -51,9 +74,9 @@ export default function MembresiaPage() {
           La membresía
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-noche/60">
-          Sin topes, y tu manual de estilo completo: tus medidas, tu silueta,
-          tu paleta de colores, las prendas que te favorecen y outfits armados
-          para ti.
+          Mucho más espacio para buscar y combinar, tu ilustración
+          personalizada y tu manual de estilo completo: tu silueta, tu paleta
+          de colores, las prendas que te favorecen y outfits armados para ti.
         </p>
       </header>
 
@@ -102,19 +125,16 @@ export default function MembresiaPage() {
                   {f.gratis}
                 </td>
                 <td className="px-3 py-3 text-center font-medium text-noche">
-                  Sin tope
+                  {f.membresia}
                 </td>
               </tr>
             ))}
-            <tr>
-              <td className="px-5 py-3 text-noche/80">Manual de estilo</td>
-              <td className="px-3 py-3 text-center text-noche/30">—</td>
-              <td className="px-3 py-3 text-center text-noche/30">—</td>
-              <td className="px-3 py-3 text-center font-medium text-noche">Sí</td>
-            </tr>
           </tbody>
         </table>
       </div>
+      <p className="-mt-5 text-center text-xs text-noche/40">
+        Los límites de la membresía se renuevan el 1 de cada mes.
+      </p>
 
       <div>
         {conMembresia && (
@@ -146,7 +166,9 @@ export default function MembresiaPage() {
             <p className="mt-2 font-display text-3xl text-noche">
               {pesos(PRECIOS.anual)}
             </p>
-            <p className="mt-1 mb-5 text-xs text-noche/50">al año</p>
+            <p className="mt-1 mb-5 text-xs text-noche/50">
+              al año · equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes
+            </p>
             <div className="mt-auto">
               <BotonPago
                 plan="anual"

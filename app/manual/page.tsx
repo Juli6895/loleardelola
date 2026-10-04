@@ -205,6 +205,21 @@ function Contenido() {
         </p>
       </header>
 
+      {estado.desactualizado && (
+        <div className="rounded-2xl border border-rosa-300 bg-rosa-50/70 p-5 text-center">
+          <p className="text-sm text-noche/70">
+            Cambiaste algo de tu perfil desde que armamos este manual.
+          </p>
+          <button
+            onClick={generar}
+            disabled={generando}
+            className="mt-3 rounded-full bg-noche px-5 py-2 text-sm font-medium text-white transition hover:bg-rosa-500 disabled:opacity-50"
+          >
+            {generando ? "Armando tu manual..." : "Actualizar mi manual"}
+          </button>
+        </div>
+      )}
+
       <article className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
         <Markdown texto={estado.manual.texto} />
       </article>

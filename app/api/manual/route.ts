@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
+import { revisarUsoMensual } from "@/lib/limites";
+import { contextoDe, registrar } from "@/lib/eventos";
 import {
   adjuntarFotos,
   COLUMNAS_PERFIL,
@@ -65,8 +67,10 @@ export async function GET(req: Request) {
   return NextResponse.json({
     conMembresia,
     falta,
-    // El manual solo viaja si de verdad tiene membresía.
-    manual: conMembresia && alDia ? parsearManual(r.guardado.manual_md) : null,
+    // El manual solo viaja si de verdad tiene membresía. Si su perfil
+    // cambió se manda igual (con el aviso de abajo): si ya usó sus
+    // manuales del mes, no se queda sin ninguno.
+    manual: conMembresia ? parsearManual(r.guardado.manual_md) : null,
     generadoEl: conMembresia ? r.guardado.manual_generado_at : null,
     // Hay manual guardado pero el perfil cambió desde entonces.
     desactualizado: conMembresia && !!r.guardado.manual_md && !alDia,
@@ -96,6 +100,12 @@ export async function POST(req: Request) {
     return NextResponse.json({ manual: yaGuardado, reusado: true });
   }
 
+  // Cada manual nuevo cuesta: la membresía tiene un tope por mes.
+  const mensual = await revisarUsoMensual(r.usuario, "manuales");
+  if (!mensual.permitido) {
+    return NextResponse.json({ error: mensual.mensaje, limite: true }, { status: 429 });
+  }
+
   try {
     const crudo = await generarManual(r.datos);
     // Se filtra ANTES de guardar: lo que queda en manual_md ya es solo
@@ -109,6 +119,7 @@ export async function POST(req: Request) {
         manual_generado_at: new Date().toISOString(),
       })
       .eq("id", r.usuario.id);
+    await registrar("manual_generado", contextoDe(req, r.usuario.id));
 
     return NextResponse.json({ manual, reusado: false });
   } catch (e) {

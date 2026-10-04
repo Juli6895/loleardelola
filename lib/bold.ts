@@ -124,6 +124,9 @@ export async function consultarPago(orden: string): Promise<Voucher | null> {
     const res = await fetch(`${API}/v2/payment-voucher/${encodeURIComponent(orden)}`, {
       headers: { Authorization: `x-api-key ${k.identidad}` },
       signal: control.signal,
+      // Nunca de la caché de Next.js: una respuesta vieja ("pendiente")
+      // dejaría sin reconocer un pago que ya se aprobó.
+      cache: "no-store",
     });
 
     // 404 = Bold no conoce esa orden. No es un fallo nuestro: es que

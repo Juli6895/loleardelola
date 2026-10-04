@@ -12,13 +12,16 @@ type Props = {
   // sacar fotos, pero si la tienda tiene web con catálogo, se muestra
   // una prenda suya de verdad — la más parecida a la de la foto.
   grupos: GrupoProductos[];
+  // Del mismo tipo y color pero sin exigir el estampado: si la tienda no
+  // tiene nada idéntico, igual se muestra una prenda suya de ese tipo.
+  flexibles: GrupoProductos[];
 };
 
 // Muestra las tiendas del directorio curado que venden el TIPO de prenda
 // que se detectó en la foto. Importante: no afirma que tengan esa prenda
 // exacta en stock — no tenemos forma de saberlo sin una API de productos,
 // y el copy lo deja explícito para no prometer de más.
-export default function TiendasInstagram({ tiendas, categorias, grupos }: Props) {
+export default function TiendasInstagram({ tiendas, categorias, grupos, flexibles }: Props) {
   if (tiendas.length === 0 || categorias.length === 0) return null;
 
   const relevantes = tiendas.filter((t) =>
@@ -38,7 +41,7 @@ export default function TiendasInstagram({ tiendas, categorias, grupos }: Props)
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
         {relevantes.map((t) => {
-          const prenda = prendaDeTienda(grupos, t.dominio);
+          const prenda = prendaDeTienda(grupos, t.dominio) ?? prendaDeTienda(flexibles, t.dominio);
           return (
           <a
             key={t.handle}

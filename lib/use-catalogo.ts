@@ -39,6 +39,10 @@ export type GrupoProductos = {
 
 export function useCatalogo(consultas: ConsultaPrenda[]) {
   const [grupos, setGrupos] = useState<GrupoProductos[]>([]);
+  // Búsqueda flexible (mismo tipo y color, sin exigir estampado): solo
+  // para ponerle foto a las tarjetas de Instagram cuando la estricta no
+  // trajo nada de esa tienda.
+  const [flexibles, setFlexibles] = useState<GrupoProductos[]>([]);
   const [cargando, setCargando] = useState(false);
 
   // La clave evita relanzar la búsqueda cuando React vuelve a renderizar
@@ -49,9 +53,24 @@ export function useCatalogo(consultas: ConsultaPrenda[]) {
     const lista: ConsultaPrenda[] = JSON.parse(clave);
     if (lista.length === 0) {
       setGrupos([]);
+      setFlexibles([]);
       return;
     }
     let vigente = true;
+    Promise.all(
+      lista.map(async (c) => {
+        try {
+          const params = new URLSearchParams({ tipo: c.tipo, flexible: "1" });
+          if (c.color) params.set("color", c.color);
+          const json = await (await fetch(`/api/catalogo?${params}`)).json();
+          return { etiqueta: c.etiqueta, productos: (json.productos ?? []) as ProductoTienda[] };
+        } catch {
+          return { etiqueta: c.etiqueta, productos: [] as ProductoTienda[] };
+        }
+      })
+    ).then((r) => {
+      if (vigente) setFlexibles(r.filter((g) => g.productos.length > 0));
+    });
     setCargando(true);
     Promise.all(
       lista.map(async (c) => {
@@ -81,7 +100,7 @@ export function useCatalogo(consultas: ConsultaPrenda[]) {
     };
   }, [clave]);
 
-  return { grupos, cargando };
+  return { grupos, flexibles, cargando };
 }
 
 /** La mejor prenda encontrada en una tienda puntual, si hay alguna. */

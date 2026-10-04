@@ -353,6 +353,10 @@ async function pedir(url: string, ms = 9000): Promise<Response> {
   try {
     return await fetch(url, {
       signal: control.signal,
+      // Este archivo ya guarda sus resultados media hora (ver conCache).
+      // Sin esto, Next.js además los guardaba en su propia caché, por más
+      // tiempo y sobreviviendo a publicaciones nuevas.
+      cache: "no-store",
       headers: {
         "user-agent": "LoleardLola/1.0 (+https://loleardelola.vercel.app)",
       },

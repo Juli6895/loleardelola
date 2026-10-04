@@ -44,7 +44,7 @@ export default function SearchResult({ data }: { data: Result }) {
   // Prendas de verdad, con foto, sacadas del catálogo de las tiendas.
   // Se pide acá y no dentro de cada sección porque el resultado lo usan
   // dos: la fila de prendas parecidas y las tarjetas de Instagram.
-  const { grupos, cargando: cargandoCatalogo } = useCatalogo(
+  const { grupos, flexibles, cargando: cargandoCatalogo } = useCatalogo(
     visibleIndices.map((i) => {
       const p = prendas[i];
       return {
@@ -273,6 +273,7 @@ export default function SearchResult({ data }: { data: Result }) {
                 .filter((c): c is ClosetCategory => !!c)
             }
             grupos={grupos}
+            flexibles={flexibles}
           />
         </div>
       </div>

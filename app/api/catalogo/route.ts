@@ -17,12 +17,35 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Falta el tipo de prenda" }, { status: 400 });
   }
 
+  const color = params.get("color")?.trim() || null;
+
+  // ?flexible=1 lo piden las tarjetas de Instagram: no buscan "la misma
+  // prenda" sino una prenda de ESA tienda para ponerle foto a la
+  // tarjeta. Con la búsqueda estricta casi nunca había una (una tienda
+  // rara vez tiene justo el mismo estampado), y las tarjetas quedaban
+  // sin foto. Mismo tipo y color, sin exigir estampado ni rasgos; si
+  // así no hay, solo el tipo.
+  if (params.get("flexible") === "1") {
+    try {
+      const [conColor, soloTipo] = await Promise.all([
+        color ? buscarEnCatalogos({ tipo, color, rasgos: [] }, 24) : Promise.resolve([]),
+        buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 24),
+      ]);
+      const vistos = new Set<string>();
+      const productos = [...conColor, ...soloTipo].filter((p) => !vistos.has(p.url) && !!vistos.add(p.url));
+      return NextResponse.json({ productos });
+    } catch (e) {
+      console.error("[api/catalogo] flexible falló:", e);
+      return NextResponse.json({ productos: [] });
+    }
+  }
+
   const consulta: ConsultaPrenda = {
     // Esto lo usa la búsqueda por foto: la prenda es una de verdad, así
     // que su estampado y su textura (lentejuelas, encaje...) se exigen.
     estricto: true,
     tipo,
-    color: params.get("color")?.trim() || null,
+    color,
     rasgos: (params.get("rasgos") ?? "")
       .split("|")
       .map((r) => r.trim())

@@ -15,7 +15,13 @@
 const MODELO = "gemini-3.1-flash-image";
 const URL_API = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
-export type ImagenGenerada = { base64: string; mimeType: string };
+export type ImagenGenerada = {
+  base64: string;
+  mimeType: string;
+  // Si Gemini rechazó el formato pedido (vertical), por qué: queda
+  // anotado para poder corregirlo sin adivinar.
+  formatoRechazado: string | null;
+};
 
 /**
  * Busca la imagen en la respuesta. La API de Gemini cambió de forma más
@@ -29,7 +35,7 @@ function encontrarImagen(nodo: unknown): ImagenGenerada | null {
   const datos = o.data ?? o.bytesBase64Encoded;
   const tipo = o.mime_type ?? o.mimeType ?? "image/png";
   if (typeof datos === "string" && datos.length > 1000 && String(tipo).startsWith("image/")) {
-    return { base64: datos, mimeType: String(tipo) };
+    return { base64: datos, mimeType: String(tipo), formatoRechazado: null };
   }
   for (const valor of Object.values(o)) {
     const encontrada = encontrarImagen(valor);
@@ -66,13 +72,17 @@ export async function generarImagen(
     },
   });
   // Si el modelo no acepta el formato pedido, se intenta sin él: es
-  // mejor una imagen cuadrada que ninguna.
-  if (res.status === 400) res = await pedir(llave, base);
+  // mejor una imagen en otro formato que ninguna. El motivo se guarda.
+  let formatoRechazado: string | null = null;
+  if (res.status === 400) {
+    formatoRechazado = (await res.text()).slice(0, 300);
+    res = await pedir(llave, base);
+  }
 
   const texto = await res.text();
   if (!res.ok) throw new Error(`Gemini respondió ${res.status}: ${texto.slice(0, 300)}`);
 
   const imagen = encontrarImagen(JSON.parse(texto));
   if (!imagen) throw new Error("Gemini no devolvió ninguna imagen");
-  return imagen;
+  return { ...imagen, formatoRechazado };
 }

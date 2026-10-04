@@ -25,12 +25,12 @@ const LO_DE_LA_MEMBRESIA = [
     detalle: "Tus cuatro pilares cruzados en un documento: figura, color, sello y lo que quieres proyectar, con tres outfits armados para ti.",
   },
   {
-    titulo: "Clóset sin tope",
-    detalle: "Hoy puedes subir 2 prendas. Con membresía, las que quieras.",
+    titulo: "Clóset más grande",
+    detalle: "Hoy puedes subir 2 prendas. Con membresía, 25 nuevas cada mes, y combinaciones para todas.",
   },
   {
-    titulo: "Búsquedas y outfits sin tope",
-    detalle: "Sin contador: busca y guarda cuanto quieras.",
+    titulo: "Más búsquedas y tu ilustración",
+    detalle: "20 búsquedas al mes, outfits guardados sin tope y tu ilustración personalizada.",
   },
 ];
 

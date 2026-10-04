@@ -6,6 +6,7 @@ import { uploadImage } from "@/lib/cloudinary";
 import { generarImagen } from "@/lib/gemini";
 import { describirFigura, huellaFigura, type DatosFigura } from "@/lib/figura";
 import { contextoDe, registrar } from "@/lib/eventos";
+import { revisarUsoMensual } from "@/lib/limites";
 
 // GET  /api/perfil/figura → la ilustración guardada y si se puede pedir una
 // POST /api/perfil/figura { otra?: boolean } → la dibuja con Gemini
@@ -14,8 +15,7 @@ import { contextoDe, registrar } from "@/lib/eventos";
 // - solo con membresía (o la cuenta de administración, para probar);
 // - si los datos del perfil no cambiaron, se devuelve la que ya está
 //   guardada, salvo que pida "otra" porque no le gustó;
-// - máximo GENERACIONES_POR_DIA por usuaria.
-const GENERACIONES_POR_DIA = 3;
+// - tope mensual de la membresía (TOPES_MES_MEMBRESIA.ilustraciones).
 
 const COLUMNAS =
   "silueta, tono_piel, color_cabello, largo_cabello, rango_edad, bust_cm, waist_cm, hip_cm, height_cm, figura_url, figura_hash";
@@ -72,17 +72,9 @@ export async function POST(req: Request) {
   }
 
   const sb = supabaseAdmin();
-  const { count } = await sb
-    .from("eventos")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", r.usuario.id)
-    .eq("nombre", "figura_generada")
-    .gte("created_at", new Date(Date.now() - 86400_000).toISOString());
-  if ((count ?? 0) >= GENERACIONES_POR_DIA) {
-    return NextResponse.json(
-      { error: `Ya creaste ${GENERACIONES_POR_DIA} ilustraciones hoy. Prueba de nuevo mañana.`, limite: true },
-      { status: 429 }
-    );
+  const mensual = await revisarUsoMensual(r.usuario, "ilustraciones");
+  if (!mensual.permitido) {
+    return NextResponse.json({ error: mensual.mensaje, limite: true }, { status: 429 });
   }
 
   try {

@@ -6,8 +6,9 @@ import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import { TOPES } from "@/lib/planes";
+import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
+import { useUsuario } from "@/lib/use-usuario";
 
 // El tope vive en lib/planes.ts, junto con los de búsquedas y outfits.
 // Acá solo se muestra; quien lo hace cumplir es la API.
@@ -19,6 +20,8 @@ const TOPE_GRATIS = TOPES.gratis.prendasCloset ?? 2;
 export default function MiClosetPage() {
   useAnotarUnaVez("closet_visto");
   const [items, setItems] = useState<ClosetItem[] | null>(null);
+  const { usuario } = useUsuario();
+  const conMembresia = usuario?.plan === "membresia";
 
   useEffect(() => {
     fetchConDispositivo("/api/closet")
@@ -28,7 +31,10 @@ export default function MiClosetPage() {
   }, []);
 
   const count = items?.length ?? 0;
-  const atLimit = count >= TOPE_GRATIS;
+  // Con membresía el tope es de prendas nuevas al mes, no el de las 2
+  // gratis: antes le salía "Ya subiste tus 2 prendas gratis" aunque
+  // hubiera pagado.
+  const atLimit = !conMembresia && count >= TOPE_GRATIS;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -49,6 +55,7 @@ export default function MiClosetPage() {
 
       <div className="mx-auto max-w-2xl">
         <ClosetUpload
+          conCuenta={!!usuario?.conSesion}
           onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
         />
         {atLimit ? (
@@ -67,6 +74,10 @@ export default function MiClosetPage() {
               Ver la membresía
             </a>
           </div>
+        ) : conMembresia ? (
+          <p className="mt-2 text-center text-xs text-noche/40">
+            Con tu membresía subes {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas cada mes.
+          </p>
         ) : (
           <p className="mt-2 text-center text-xs text-noche/40">
             {count}/{TOPE_GRATIS} prendas gratis.
@@ -94,6 +105,9 @@ export default function MiClosetPage() {
           items={items}
           onDelete={(id) =>
             setItems((prev) => prev?.filter((it) => it.id !== id) ?? null)
+          }
+          onUpdate={(item) =>
+            setItems((prev) => prev?.map((it) => (it.id === item.id ? item : it)) ?? null)
           }
         />
       )}

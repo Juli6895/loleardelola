@@ -566,17 +566,26 @@ const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  */
 export async function analyzeClosetItem(
   imageUrl: string,
-  pista?: PistaPrenda | null
+  pista?: PistaPrenda | null,
+  // La foto real que subió, cuando imageUrl es la foto de catálogo que
+  // hizo Gemini a partir de ella (ver lib/foto-prenda.ts). La de
+  // catálogo tiene la prenda sola y se lee mejor; la real sirve para
+  // confirmar el color, por si Gemini lo movió.
+  urlReal?: string | null
 ): Promise<ClosetItemAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
 
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
+  const real = urlReal ? await fetchImageAsBase64(urlReal).catch(() => null) : null;
   const client = new Anthropic({ apiKey });
 
-  const pedido = pista
+  const cual = pista
     ? `La usuaria dice que la prenda que está subiendo es ${NOMBRE_PISTA[pista]}. Clasifica esa y reporta con report_garment.`
     : "Clasifica esta prenda de clóset y reporta con report_garment.";
+  const pedido = real
+    ? `La primera foto es la prenda sola, en foto de catálogo hecha a partir de la segunda, que es la foto real que subió la usuaria. Clasifica la prenda de la primera foto; si el color o el estampado se ven distintos entre las dos, manda la foto real. ${cual}`
+    : cual;
 
   const response = await client.messages.create({
     model: MODEL_OUTFIT,
@@ -589,6 +598,9 @@ export async function analyzeClosetItem(
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
+          ...(real
+            ? [{ type: "image" as const, source: { type: "base64" as const, media_type: real.mediaType, data: real.base64 } }]
+            : []),
           { type: "text", text: pedido },
         ],
       },

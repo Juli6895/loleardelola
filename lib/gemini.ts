@@ -1,27 +1,35 @@
 // =====================================================================
 // Gemini (Google) para generar imágenes
 // =====================================================================
-// Se usa para la ilustración de la usuaria en Mi perfil: un dibujo de
-// ella con su silueta, su tono de piel y su pelo. Claude sigue siendo
-// quien lee las fotos (búsqueda y clóset); Gemini solo dibuja.
+// Se usa en el clóset, a partir de fotos reales:
+// - la foto de catálogo de cada prenda que sube la usuaria (la prenda
+//   sola, de frente, en fondo limpio), que es la que después lee Claude
+//   para clasificarla y buscar con qué combinarla;
+// - la foto del outfit armado: su prenda junto a las prendas reales de
+//   las tiendas que se le sugirieron.
+// Claude sigue siendo quien lee las fotos; Gemini solo las compone.
 //
 // La llave va en la variable de entorno GEMINI_API_KEY (Vercel y
 // .env.local). Se crea en https://aistudio.google.com. Cada imagen se
 // cobra (~US$0,067 con gemini-3.1-flash-image a 1K, sin capa gratis):
-// por eso quien llama guarda el resultado y no la vuelve a pedir si los
-// datos no cambiaron.
+// por eso cada uso tiene tope (ver lib/planes.ts).
 // =====================================================================
 
 const MODELO = "gemini-3.1-flash-image";
 const URL_API = "https://generativelanguage.googleapis.com/v1beta/interactions";
 
+// Los formatos de foto que Gemini acepta como referencia.
+const TIPOS_REFERENCIA = ["image/png", "image/jpeg", "image/webp"];
+
 export type ImagenGenerada = {
   base64: string;
   mimeType: string;
-  // Si Gemini rechazó el formato pedido (vertical), por qué: queda
-  // anotado para poder corregirlo sin adivinar.
+  // Si Gemini rechazó el formato pedido, por qué: queda anotado para
+  // poder corregirlo sin adivinar.
   formatoRechazado: string | null;
 };
+
+export type Referencia = { base64: string; mimeType: string };
 
 /**
  * Busca la imagen en la respuesta. La API de Gemini cambió de forma más
@@ -53,21 +61,67 @@ async function pedir(llave: string, cuerpo: unknown): Promise<Response> {
   });
 }
 
-/** Genera una imagen a partir de una descripción. */
+/**
+ * Descarga una foto para dársela a Gemini como referencia. Las de
+ * Cloudinary se piden en JPG y a 1024 px (Cloudinary puede entregar
+ * AVIF, que Gemini no recibe). Devuelve null si no se pudo o si llega
+ * en un formato que Gemini no acepta: quien llama decide si sigue sin
+ * esa foto.
+ */
+export async function referenciaDesde(url: string): Promise<Referencia | null> {
+  const pedida = url.includes("res.cloudinary.com") && url.includes("/image/upload/")
+    ? url.replace("/image/upload/", "/image/upload/f_jpg,w_1024,c_limit/")
+    : url;
+  try {
+    const res = await fetch(pedida, {
+      headers: {
+        "User-Agent":
+          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        Accept: "image/jpeg,image/png,image/webp;q=0.9",
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
+    });
+    if (!res.ok) return null;
+    const tipo = (res.headers.get("content-type") ?? "").split(";")[0].trim().toLowerCase();
+    if (!TIPOS_REFERENCIA.includes(tipo)) return null;
+    const datos = Buffer.from(await res.arrayBuffer());
+    // Una "foto" de pocos bytes es un pixel de rastreo o un error.
+    if (datos.length < 2000 || datos.length > 8 * 1024 * 1024) return null;
+    return { base64: datos.toString("base64"), mimeType: tipo };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Genera una imagen a partir de una descripción y, si se dan, de fotos
+ * de referencia (van en el orden en que se nombran en la descripción).
+ */
 export async function generarImagen(
   descripcion: string,
-  formato: { aspecto?: string } = {}
+  opciones: { aspecto?: string; referencias?: Referencia[] } = {}
 ): Promise<ImagenGenerada> {
   const llave = process.env.GEMINI_API_KEY;
   if (!llave) throw new Error("Falta GEMINI_API_KEY");
 
-  const base = { model: MODELO, input: [{ type: "text", text: descripcion }] };
+  const base = {
+    model: MODELO,
+    input: [
+      { type: "text", text: descripcion },
+      ...(opciones.referencias ?? []).map((r) => ({
+        type: "image",
+        mime_type: r.mimeType,
+        data: r.base64,
+      })),
+    ],
+  };
   let res = await pedir(llave, {
     ...base,
     response_format: {
       type: "image",
       mime_type: "image/png",
-      aspect_ratio: formato.aspecto ?? "2:3",
+      aspect_ratio: opciones.aspecto ?? "1:1",
       image_size: "1K",
     },
   });

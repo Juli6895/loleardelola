@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import FiguraUsuaria from "@/components/FiguraUsuaria";
 import CabeceraCuenta from "@/components/CabeceraCuenta";
 import SubNavCuenta from "@/components/SubNavCuenta";
 import { fetchConDispositivo } from "@/lib/device-id";
@@ -478,8 +477,7 @@ export default function MiPerfilPage() {
       </form>
 
       {info && perfil?.silueta && (
-        <div className="grid grid-cols-1 gap-6 rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:grid-cols-[auto_1fr] sm:p-8">
-          <FiguraUsuaria perfil={{ ...perfil, silueta: perfil.silueta }} />
+        <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
           <div>
             <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
               Tu silueta

@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { comoSeLlama, tieneMembresia, useUsuario } from "@/lib/use-usuario";
+import { TOPES_MES_MEMBRESIA } from "@/lib/planes";
 
 // El enlace al tablero solo aparece para administración. No es una
 // medida de seguridad —el permiso se revisa en el servidor, ver
@@ -26,11 +27,11 @@ const LO_DE_LA_MEMBRESIA = [
   },
   {
     titulo: "Clóset más grande",
-    detalle: "Hoy puedes subir 2 prendas. Con membresía, 25 nuevas cada mes, y combinaciones para todas.",
+    detalle: `Hoy puedes subir 2 prendas. Con membresía, ${TOPES_MES_MEMBRESIA.prendasCloset} nuevas cada mes en foto de catálogo, y combinaciones para todas.`,
   },
   {
-    titulo: "Más búsquedas y tu ilustración",
-    detalle: "20 búsquedas al mes, outfits guardados sin tope y tu ilustración personalizada.",
+    titulo: "Más búsquedas y combinaciones",
+    detalle: `${TOPES_MES_MEMBRESIA.busquedas} búsquedas y ${TOPES_MES_MEMBRESIA.combinaciones} combinaciones al mes, cada una con la foto del outfit armado.`,
   },
 ];
 

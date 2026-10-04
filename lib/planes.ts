@@ -51,13 +51,14 @@ export const TOPES: Record<Plan, Topes> = {
   },
 };
 
-// Cada uso de la IA cuesta (en dólares): una búsqueda por foto ~$160,
-// una combinación ~$125, una prenda al clóset ~$60, un manual ~$280 y
-// una ilustración con Gemini ~$270 (pesos, con el dólar a ~$4.000). Con
-// los límites de TOPES_MES_MEMBRESIA, una usuaria que lo use TODO hasta
-// el tope cuesta ~$7.300 al mes, y la membresía deja ~$13.500 (mensual)
-// o ~$9.500 al mes (anual) después de la comisión de Bold: hay utilidad
-// incluso en el peor caso.
+// Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000): una
+// búsqueda por foto ~$160; una prenda al clóset ~$345 (su foto de
+// catálogo con Gemini ~$275 + Claude leyéndola); una combinación ~$405
+// (Claude ~$125 + la foto del outfit con Gemini ~$280); un manual ~$280.
+// Con los límites de TOPES_MES_MEMBRESIA, una usuaria que lo use TODO
+// hasta el tope cuesta ~$8.500 al mes, y la membresía deja ~$13.500
+// (mensual) o ~$9.500 al mes (anual) después de la comisión de Bold: hay
+// utilidad incluso en el peor caso.
 //
 // El anual sale a ~$9.900 por mes (33% menos que mes a mes). Bold cobra
 // un fijo de $900 por transacción, así que un solo cobro al año deja
@@ -76,27 +77,26 @@ export type UsoMensual =
   | "busquedas"
   | "prendasCloset"
   | "combinaciones"
-  | "ilustraciones"
   | "manuales";
 
 export const TOPES_MES_MEMBRESIA: Record<UsoMensual, number> = {
-  busquedas: 20,
-  prendasCloset: 25,
-  combinaciones: 12,
-  ilustraciones: 2,
+  busquedas: 12,
+  // Cada prenda nueva lleva su foto de catálogo hecha con Gemini.
+  prendasCloset: 8,
+  // Cada combinación lleva la foto del outfit armado, también con Gemini.
+  combinaciones: 8,
   manuales: 2,
 };
 
 // Sin membresía, "Buscar combinaciones" funciona en las primeras prendas
 // (ver combinacionesClosetGratis) pero con un tope total: si no, se
 // podría buscar sin fin sobre esas mismas prendas.
-export const COMBINACIONES_GRATIS_TOTAL = 4;
+export const COMBINACIONES_GRATIS_TOTAL = 3;
 
 const NOMBRE_USO: Record<UsoMensual, string> = {
   busquedas: "búsquedas",
   prendasCloset: "prendas nuevas en tu clóset",
   combinaciones: "combinaciones",
-  ilustraciones: "ilustraciones",
   manuales: "manuales nuevos",
 };
 

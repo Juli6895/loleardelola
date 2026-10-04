@@ -4,6 +4,11 @@ import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
 import { uploadImage } from "@/lib/cloudinary";
 import { analyzeClosetItem, type PistaPrenda } from "@/lib/garment-ai";
+import { fotoDeCatalogo } from "@/lib/foto-prenda";
+import { contextoDe, registrar } from "@/lib/eventos";
+
+// Gemini puede tardar 20-30 segundos en hacer la foto de catálogo.
+export const maxDuration = 90;
 
 // El tope de prendas ya no vive acá: está en lib/planes.ts junto con
 // los de búsquedas y outfits, y se aplica con revisarTope().
@@ -46,6 +51,11 @@ export async function GET(req: Request) {
 //
 // "pista" es lo que la usuaria marcó antes de subir ("es la de abajo"),
 // para fotos donde una persona lleva puestas varias prendas.
+//
+// Con cuenta, antes de analizarla Gemini hace la foto de catálogo: la
+// prenda sola y en fondo limpio (ver lib/foto-prenda.ts). Esa es la que
+// se guarda y la que lee Claude — se lee mejor y la búsqueda de
+// combinaciones sale mejor. Si Gemini falla, se sigue con la foto real.
 export async function POST(req: Request) {
   const user = await getUser(req);
   if (!user) {
@@ -74,10 +84,23 @@ export async function POST(req: Request) {
   }
 
   try {
-    const imageUrl = await uploadImage(body.imageBase64);
+    const urlReal = await uploadImage(body.imageBase64);
     const PISTAS: PistaPrenda[] = ["top", "bottom", "vestido", "abrigo", "calzado", "accesorio"];
     const pista = PISTAS.includes(body.pista) ? (body.pista as PistaPrenda) : null;
-    const analysis = await analyzeClosetItem(imageUrl, pista);
+
+    let imageUrl = urlReal;
+    if (tope.usuario.conSesion) {
+      try {
+        imageUrl = await fotoDeCatalogo(urlReal, pista);
+        registrar("foto_catalogo_generada", contextoDe(req, user.id), { origen: "subida" });
+      } catch (e) {
+        console.warn("[/api/closet] sin foto de catálogo:", e);
+        registrar("foto_catalogo_error", contextoDe(req, user.id), {
+          motivo: e instanceof Error ? e.message.slice(0, 120) : "desconocido",
+        });
+      }
+    }
+    const analysis = await analyzeClosetItem(imageUrl, pista, imageUrl !== urlReal ? urlReal : null);
 
     const { data: item, error } = await sb
       .from("closet_items")

@@ -35,8 +35,8 @@ const SILUETA: Record<Silueta, string> = {
 };
 
 const PIEL: Record<TonoPiel, string> = {
-  blanca: "fair light skin",
-  canela: "warm light-medium cinnamon (trigueña) skin",
+  blanca: "fair, light peach skin (a light-skinned woman, not tanned)",
+  canela: "light-medium golden-tan (trigueña) skin",
   morena: "warm medium-deep brown skin",
   negra: "deep dark brown skin",
 };
@@ -87,11 +87,20 @@ export function describirFigura(d: DatosFigura): string {
   ].join(" ");
 }
 
-/** Huella de los datos: si no cambian, la ilustración guardada sigue sirviendo. */
+/**
+ * Huella de los DATOS: si no cambian, la ilustración guardada sigue
+ * sirviendo. No incluye el texto de la descripción a propósito: mejorar
+ * esa redacción no debe obligar a nadie a pagar una ilustración nueva.
+ */
 export function huellaFigura(d: DatosFigura): string {
   return crypto
     .createHash("sha256")
-    .update(JSON.stringify([describirFigura(d)]))
+    .update(
+      JSON.stringify([
+        d.silueta, d.tonoPiel, d.colorCabello, d.largoCabello, d.edad,
+        d.busto, d.cintura, d.cadera, d.estatura,
+      ])
+    )
     .digest("hex")
     .slice(0, 32);
 }

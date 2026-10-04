@@ -84,7 +84,9 @@ export async function POST(req: Request) {
       .from("users")
       .update({ figura_url: url, figura_hash: r.huella, figura_generada_at: new Date().toISOString() })
       .eq("id", r.usuario.id);
-    await registrar("figura_generada", contextoDe(req, r.usuario.id));
+    await registrar("figura_generada", contextoDe(req, r.usuario.id), {
+      formato: imagen.formatoRechazado ? `rechazado: ${imagen.formatoRechazado}` : "2:3",
+    });
     return NextResponse.json({ figuraUrl: url, reusada: false });
   } catch (e) {
     console.error("[api/perfil/figura] falló:", e);

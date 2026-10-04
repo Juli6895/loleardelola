@@ -6,6 +6,17 @@ import SiluetaIcon from "@/components/SiluetaIcon";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { PerfilSilueta, Silueta } from "@/types";
 
+/**
+ * La ilustración siempre en vertical y con la figura centrada: Cloudinary
+ * la recorta al entregarla, así una imagen que llegó horizontal (Gemini
+ * no siempre respeta el formato pedido) se ve bien sin volver a pagarla.
+ */
+function enVertical(url: string): string {
+  return url.includes("/image/upload/")
+    ? url.replace("/image/upload/", "/image/upload/c_fill,ar_2:3,g_center/")
+    : url;
+}
+
 type Estado = {
   figuraUrl: string | null;
   desactualizada?: boolean;
@@ -64,7 +75,7 @@ export default function FiguraUsuaria({
       {mostrarIlustracion ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={estado!.figuraUrl!}
+          src={enVertical(estado!.figuraUrl!)}
           alt="Tu ilustración"
           className="h-[225px] w-[150px] rounded-xl object-contain sm:h-[255px] sm:w-[170px]"
         />

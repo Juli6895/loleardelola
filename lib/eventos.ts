@@ -65,6 +65,8 @@ export const EVENTOS = [
   // Manual
   "manual_visto",
   "manual_generado",
+  // Un manual guardado que se pasó al formato nuevo (no cuenta en el tope).
+  "manual_formato_nuevo",
   "manual_error",
 
   // Combinar desde el clóset

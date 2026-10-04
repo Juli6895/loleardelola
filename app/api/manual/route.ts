@@ -10,9 +10,35 @@ import {
   generarManual,
   huella,
   loQueFalta,
+  VERSION_MANUAL,
   type DatosManual,
   type ManualListo,
+  type PrendaDelClosetManual,
 } from "@/lib/manual-estilo";
+import { esFotoDeCatalogo } from "@/lib/foto-catalogo";
+
+// Claude escribe el manual y después se buscan ~25 prendas en los
+// catálogos de las tiendas: puede pasar del minuto.
+export const maxDuration = 120;
+
+/**
+ * Las prendas del clóset para "Prendas favoritas (cómo combinar)": hasta
+ * 4, primero las que ya tienen foto de catálogo (se ven mejor en el
+ * manual) y después las más nuevas.
+ */
+async function prendasFavoritas(userId: string): Promise<PrendaDelClosetManual[]> {
+  const { data } = await supabaseAdmin()
+    .from("closet_items")
+    .select("id, label, image_url")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(30);
+  return (data ?? [])
+    .filter((p) => p.label && p.image_url)
+    .sort((a, b) => Number(esFotoDeCatalogo(b.image_url)) - Number(esFotoDeCatalogo(a.image_url)))
+    .slice(0, 4)
+    .map((p) => ({ id: p.id, label: p.label, foto: p.image_url }));
+}
 
 // GET  /api/manual → devuelve el manual guardado, o qué falta para armarlo
 // POST /api/manual → lo genera (o lo regenera si el perfil cambió)
@@ -37,6 +63,12 @@ function parsearManual(manualMd: string | null): ManualListo | null {
   } catch {
     return null;
   }
+}
+
+/** Hay un manual guardado, pero con la forma de antes de la asesoría. */
+function esFormatoViejo(manualMd: string | null): boolean {
+  const m = parsearManual(manualMd);
+  return !!m && (m.version ?? 1) < VERSION_MANUAL;
 }
 
 async function cargar(req: Request) {
@@ -74,6 +106,9 @@ export async function GET(req: Request) {
     generadoEl: conMembresia ? r.guardado.manual_generado_at : null,
     // Hay manual guardado pero el perfil cambió desde entonces.
     desactualizado: conMembresia && !!r.guardado.manual_md && !alDia,
+    // ...o lo que cambió fue la forma del manual, no su perfil: la
+    // pantalla lo dice distinto ("hay una versión nueva").
+    formatoViejo: conMembresia && esFormatoViejo(r.guardado.manual_md),
   });
 }
 
@@ -100,14 +135,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ manual: yaGuardado, reusado: true });
   }
 
-  // Cada manual nuevo cuesta: la membresía tiene un tope por mes.
-  const mensual = await revisarUsoMensual(r.usuario, "manuales");
-  if (!mensual.permitido) {
-    return NextResponse.json({ error: mensual.mensaje, limite: true }, { status: 429 });
+  // Cada manual nuevo cuesta: la membresía tiene un tope por mes. Pasar
+  // un manual guardado al formato nuevo no cuenta: no lo pidió ella.
+  const formatoViejo = esFormatoViejo(r.guardado.manual_md);
+  if (!formatoViejo) {
+    const mensual = await revisarUsoMensual(r.usuario, "manuales");
+    if (!mensual.permitido) {
+      return NextResponse.json({ error: mensual.mensaje, limite: true }, { status: 429 });
+    }
   }
 
   try {
-    const crudo = await generarManual(r.datos);
+    const crudo = await generarManual(r.datos, await prendasFavoritas(r.usuario.id));
     // Se filtra ANTES de guardar: lo que queda en manual_md ya es solo
     // lo que de verdad existe en el catálogo, con sus fotos adjuntas.
     const manual = await adjuntarFotos(crudo);
@@ -119,7 +158,7 @@ export async function POST(req: Request) {
         manual_generado_at: new Date().toISOString(),
       })
       .eq("id", r.usuario.id);
-    await registrar("manual_generado", contextoDe(req, r.usuario.id));
+    await registrar(formatoViejo ? "manual_formato_nuevo" : "manual_generado", contextoDe(req, r.usuario.id));
 
     return NextResponse.json({ manual, reusado: false });
   } catch (e) {

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
 import type { OutfitDelCloset } from "@/lib/combinaciones";
 import { anotarClicComercio } from "@/lib/use-evento";
+import { useUsuario } from "@/lib/use-usuario";
+import { esFotoDeCatalogo } from "@/lib/foto-catalogo";
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
@@ -31,13 +33,18 @@ const CATEGORY_ORDER: ClosetCategory[] = [
 type Props = {
   items: ClosetItem[];
   onDelete: (id: string) => void;
+  // Cuando una prenda cambia (foto de catálogo nueva y releída).
+  onUpdate: (item: ClosetItem) => void;
 };
 
 // Grilla del clóset: filtro por categoría + tarjetas con la foto, el nombre
 // y los tags detectados por Claude.
-export default function ClosetGrid({ items, onDelete }: Props) {
+export default function ClosetGrid({ items, onDelete, onUpdate }: Props) {
+  const { usuario } = useUsuario();
+  const conCuenta = !!usuario?.conSesion;
   const [filter, setFilter] = useState<ClosetCategory | "todas">("todas");
   const [combinando, setCombinando] = useState<string | null>(null);
+  const [mejorando, setMejorando] = useState<string | null>(null);
   const [modal, setModal] = useState<{
     item: ClosetItem;
     outfit: OutfitDelCloset;
@@ -64,6 +71,27 @@ export default function ClosetGrid({ items, onDelete }: Props) {
       toast.success("Prenda eliminada");
     } catch {
       toast.error("No se pudo eliminar");
+    }
+  }
+
+  // Para las prendas subidas antes de la foto de catálogo: la hace y
+  // vuelve a leer la prenda con ella.
+  async function mejorarFoto(item: ClosetItem) {
+    setMejorando(item.id);
+    try {
+      const res = await fetchConDispositivo("/api/closet/foto", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ itemId: item.id }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "No pudimos mejorar la foto.");
+      onUpdate(json.item);
+      toast.success("Lista: tu prenda en foto de catálogo");
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setMejorando(null);
     }
   }
 
@@ -134,9 +162,21 @@ export default function ClosetGrid({ items, onDelete }: Props) {
               <img
                 src={item.image_url}
                 alt={item.label ?? "Prenda del clóset"}
-                className="h-full w-full object-cover transition duration-500 group-hover:scale-105"
+                className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
+                  mejorando === item.id ? "animate-pulse opacity-60" : ""
+                }`}
                 loading="lazy"
               />
+              {conCuenta && !esFotoDeCatalogo(item.image_url) && (
+                <button
+                  onClick={() => mejorarFoto(item)}
+                  disabled={mejorando !== null}
+                  title="La dejamos sola y en fondo limpio, y la volvemos a leer para buscar mejor sus combinaciones"
+                  className="absolute bottom-2 left-2 rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-rosa-600 shadow-sm transition hover:bg-white disabled:opacity-60"
+                >
+                  {mejorando === item.id ? "Mejorando foto…" : "Mejorar foto"}
+                </button>
+              )}
               <button
                 onClick={() => handleDelete(item.id)}
                 aria-label={`Quitar ${item.label ?? "prenda"} del clóset`}
@@ -181,6 +221,7 @@ export default function ClosetGrid({ items, onDelete }: Props) {
           item={modal.item}
           outfit={modal.outfit}
           perfilIncompleto={modal.perfilIncompleto}
+          conCuenta={conCuenta}
           onCerrar={() => setModal(null)}
         />
       )}
@@ -196,11 +237,13 @@ function ModalCombinaciones({
   item,
   outfit,
   perfilIncompleto,
+  conCuenta,
   onCerrar,
 }: {
   item: ClosetItem;
   outfit: OutfitDelCloset;
   perfilIncompleto: boolean;
+  conCuenta: boolean;
   onCerrar: () => void;
 }) {
   return (
@@ -258,6 +301,8 @@ function ModalCombinaciones({
             qué quieres proyectar y cuál es tu personalidad de estilo.
           </p>
         )}
+
+        <FotoDelOutfit item={item} outfit={outfit} conCuenta={conCuenta} />
 
         <div className="mt-5 flex items-center gap-3 rounded-xl border border-rosa-200 bg-rosa-50/40 p-2.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -328,6 +373,95 @@ function ModalCombinaciones({
           </p>
         )}
       </div>
+    </div>
+  );
+}
+
+type EstadoFoto =
+  | { fase: "cargando" }
+  | { fase: "lista"; url: string }
+  | { fase: "sin-cuenta" }
+  | { fase: "error"; mensaje: string }
+  | { fase: "nada" };
+
+/**
+ * La foto del outfit armado (Gemini): su prenda con las prendas de
+ * tienda sugeridas, para VER la combinación. Se pide sola al abrir el
+ * outfit; va incluida en la combinación (ver puedeVerFotoDelOutfit).
+ */
+function FotoDelOutfit({
+  item,
+  outfit,
+  conCuenta,
+}: {
+  item: ClosetItem;
+  outfit: OutfitDelCloset;
+  conCuenta: boolean;
+}) {
+  const [estado, setEstado] = useState<EstadoFoto>({ fase: conCuenta ? "cargando" : "sin-cuenta" });
+  // En desarrollo React corre los efectos dos veces: sin esto se pedían
+  // dos fotos, y la segunda se cobraba aparte.
+  const pedida = useRef(false);
+
+  useEffect(() => {
+    if (!conCuenta || pedida.current) return;
+    pedida.current = true;
+    const piezas = outfit.prendas
+      .map((c) => ({ foto: c.fotos.find((f) => f.imagen)?.imagen ?? null, nombre: `${c.tipo} ${c.color}`.trim() }))
+      .filter((p): p is { foto: string; nombre: string } => !!p.foto)
+      .slice(0, 4);
+    if (piezas.length === 0) {
+      setEstado({ fase: "nada" });
+      return;
+    }
+    fetchConDispositivo("/api/closet/outfit-foto", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId: item.id, piezas }),
+    })
+      .then(async (res) => {
+        const json = await res.json();
+        if (res.ok && json.fotoUrl) setEstado({ fase: "lista", url: json.fotoUrl });
+        else setEstado({ fase: "error", mensaje: json.error ?? "No pudimos armar la foto del outfit." });
+      })
+      .catch(() => setEstado({ fase: "error", mensaje: "No pudimos armar la foto del outfit." }));
+  }, [conCuenta, item.id, outfit]);
+
+  if (estado.fase === "nada") return null;
+
+  if (estado.fase === "sin-cuenta") {
+    return (
+      <p className="mt-5 rounded-xl bg-rosa-50/60 px-3 py-2 text-xs text-noche/60">
+        <Link href="/entrar" className="font-medium text-rosa-600 underline">
+          Crea tu cuenta gratis
+        </Link>{" "}
+        y te mostramos este outfit armado en foto.
+      </p>
+    );
+  }
+
+  if (estado.fase === "error") {
+    return <p className="mt-5 text-xs text-noche/40">{estado.mensaje}</p>;
+  }
+
+  return (
+    <div className="mx-auto mt-5 w-full max-w-xs">
+      {estado.fase === "lista" ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={estado.url}
+          alt={`Tu outfit armado: ${outfit.titulo || item.label || "tu prenda"} con las prendas sugeridas`}
+          className="aspect-[3/4] w-full rounded-xl border border-rosa-100 object-cover"
+        />
+      ) : (
+        <div className="flex aspect-[3/4] w-full animate-pulse flex-col items-center justify-center gap-1 rounded-xl bg-rosa-50 px-6 text-center">
+          <p className="text-sm font-medium text-noche/60">Armando la foto de tu outfit…</p>
+          <p className="text-[11px] text-noche/40">Tarda unos 20 segundos.</p>
+        </div>
+      )}
+      <p className="mt-1.5 text-center text-[10px] text-noche/40">
+        Foto armada con IA a partir de tu prenda y las de las tiendas.
+      </p>
     </div>
   );
 }

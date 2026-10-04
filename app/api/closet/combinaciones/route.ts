@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   const sb = supabaseAdmin();
   const { data: item } = await sb
     .from("closet_items")
-    .select("id, user_id, category, color, tags, label")
+    .select("id, user_id, category, color, tags, label, image_url")
     .eq("id", itemId)
     .maybeSingle();
 
@@ -60,6 +60,7 @@ export async function POST(req: Request) {
         color: item.color,
         tags: item.tags ?? [],
         label: item.label ?? null,
+        foto: item.image_url ?? null,
       },
       perfil
     );

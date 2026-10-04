@@ -18,13 +18,15 @@ const PISTAS: Array<{ valor: ClosetCategory; nombre: string }> = [
 
 type Props = {
   onAdded: (item: ClosetItem) => void;
+  // Con cuenta, cada prenda sale en foto de catálogo (Gemini) y tarda más.
+  conCuenta?: boolean;
 };
 
 // Zona para agregar una prenda al clóset: subir archivo o pegar con Ctrl+V.
 // Mismo patrón de interacción que el uploader de /buscar (SearchBox), pero
 // llama a /api/closet en vez de /api/vision — clasifica UNA prenda, no un
 // outfit completo.
-export default function ClosetUpload({ onAdded }: Props) {
+export default function ClosetUpload({ onAdded, conCuenta }: Props) {
   const [loading, setLoading] = useState(false);
   const [pista, setPista] = useState<ClosetCategory | null>(null);
 
@@ -119,8 +121,15 @@ export default function ClosetUpload({ onAdded }: Props) {
           />
         </svg>
         <span className="text-sm font-medium text-noche">
-          {loading ? "Agregando prenda..." : "Haz clic aquí y pega tu foto con Ctrl+V"}
+          {loading
+            ? conCuenta
+              ? "Dejando tu prenda en foto de catálogo y leyéndola…"
+              : "Agregando prenda..."
+            : "Haz clic aquí y pega tu foto con Ctrl+V"}
         </span>
+        {loading && conCuenta && (
+          <span className="text-[11px] text-noche/40">Tarda unos 30 segundos.</span>
+        )}
         <span className="text-xs text-noche/50">
           o{" "}
           <label className="cursor-pointer font-medium text-rosa-600 underline-offset-2 hover:underline">

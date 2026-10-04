@@ -9,12 +9,13 @@ cloudinary.config({
 });
 
 /**
- * Sube una imagen (base64 o URL remota) a Cloudinary en la carpeta `loleardelola`.
- * Devuelve la URL segura para mostrar la imagen.
+ * Sube una imagen (base64 o URL remota) a Cloudinary, en la carpeta
+ * `loleardelola` o en una subcarpeta (ej. "catalogo", las fotos de
+ * prenda hechas con Gemini). Devuelve la URL segura para mostrarla.
  */
-export async function uploadImage(source: string): Promise<string> {
+export async function uploadImage(source: string, subcarpeta?: string): Promise<string> {
   const result = await cloudinary.uploader.upload(source, {
-    folder: "loleardelola",
+    folder: subcarpeta ? `loleardelola/${subcarpeta}` : "loleardelola",
     resource_type: "image",
     transformation: [{ quality: "auto", fetch_format: "auto" }],
   });

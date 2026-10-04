@@ -68,15 +68,19 @@ function mesEnCurso(): { inicio: Date; renueva: Date } {
 
 // De dónde sale cada conteo: lo que tiene tabla propia se cuenta ahí;
 // lo demás, por los eventos que se anotan al usarlo.
-const ORIGEN_USO: Record<UsoMensual, { tabla: string; evento?: string }> = {
+// "fotosOutfit" no tiene tope propio: va atado a las combinaciones (ver
+// puedeVerFotoDelOutfit).
+type Conteo = UsoMensual | "fotosOutfit";
+
+const ORIGEN_USO: Record<Conteo, { tabla: string; evento?: string }> = {
   busquedas: { tabla: "searches" },
   prendasCloset: { tabla: "closet_items" },
   combinaciones: { tabla: "eventos", evento: "combinacion_buscada" },
-  ilustraciones: { tabla: "eventos", evento: "figura_generada" },
+  fotosOutfit: { tabla: "eventos", evento: "outfit_foto_generada" },
   manuales: { tabla: "eventos", evento: "manual_generado" },
 };
 
-async function usadasDesde(userId: string, uso: UsoMensual, desde: Date | null): Promise<number> {
+async function usadasDesde(userId: string, uso: Conteo, desde: Date | null): Promise<number> {
   const origen = ORIGEN_USO[uso];
   let q = supabaseAdmin()
     .from(origen.tabla)
@@ -196,6 +200,30 @@ export async function puedeVerCombinaciones(
     mensaje: `Buscar combinaciones es gratis en tus primeras ${tope} prendas. Con la membresía tienes ${TOPES_MES_MEMBRESIA.combinaciones} al mes, en todas.`,
     destrabaCon: "membresia",
   };
+}
+
+/**
+ * ¿Puede pedir la foto del outfit armado? Una foto por cada combinación
+ * buscada: la foto no se cobra aparte, va incluida en la combinación,
+ * pero tampoco se puede pedir sin fin para el mismo outfit. Con
+ * membresía se cuenta en el mes; sin ella, desde siempre. Solo con
+ * cuenta: es lo que más cuesta y sin correo se repetiría borrando los
+ * datos del navegador.
+ */
+export async function puedeVerFotoDelOutfit(
+  usuario: UsuarioActual
+): Promise<{ permitido: true } | { permitido: false; mensaje: string }> {
+  if (esAdmin(usuario.email)) return { permitido: true };
+  if (!usuario.conSesion) {
+    return { permitido: false, mensaje: "Crea tu cuenta gratis y te mostramos el outfit armado en foto." };
+  }
+  const desde = usuario.plan === "membresia" ? mesEnCurso().inicio : null;
+  const [fotos, combinaciones] = await Promise.all([
+    usadasDesde(usuario.id, "fotosOutfit", desde),
+    usadasDesde(usuario.id, "combinaciones", desde),
+  ]);
+  if (fotos < combinaciones) return { permitido: true };
+  return { permitido: false, mensaje: "Ya armamos la foto de este outfit." };
 }
 
 /**

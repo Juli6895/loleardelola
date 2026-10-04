@@ -82,8 +82,8 @@ function Resultado() {
           <>
             <p className="font-display text-3xl text-noche">¡Bienvenida!</p>
             <p className="mt-2 text-sm text-noche/70">
-              Tu membresía quedó activa: ya tienes tu manual de estilo, tu
-              ilustración personalizada y mucho más espacio para buscar y combinar.
+              Tu membresía quedó activa: ya tienes tu manual de estilo y
+              mucho más espacio para buscar, subir prendas y ver tus combinaciones.
             </p>
             <Link
               href="/mi-perfil"

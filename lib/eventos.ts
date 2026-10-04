@@ -76,9 +76,17 @@ export const EVENTOS = [
   // clóset, manual o el directorio de Instagram.
   "comercio_clic",
 
-  // Ilustración de la usuaria hecha con Gemini (Mi perfil)
+  // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
+  // usa; queda para leer los eventos viejos.
   "figura_generada",
   "figura_error",
+
+  // Fotos del clóset hechas con Gemini: la foto de catálogo de cada
+  // prenda y la foto del outfit armado.
+  "foto_catalogo_generada",
+  "foto_catalogo_error",
+  "outfit_foto_generada",
+  "outfit_foto_error",
 ] as const;
 
 export type NombreEvento = (typeof EVENTOS)[number];

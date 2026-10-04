@@ -6,6 +6,7 @@ import {
   type ProductoTienda,
 } from "./catalogo-tiendas";
 import { expediente, type DatosManual } from "./manual-estilo";
+import { fetchImageAsBase64 } from "./garment-ai";
 import { PROYECCIONES } from "./image-consulting/proyeccion";
 import { PERSONALIDADES } from "./image-consulting/personalidad";
 import type { ClosetCategory } from "@/types";
@@ -47,6 +48,10 @@ export type PrendaDelCloset = {
   // negro"). Dice más que el color solo: una prenda estampada pide
   // combinaciones lisas.
   label: string | null;
+  // Su foto (la de catálogo, si ya la tiene): Claude VE la prenda al
+  // armar el outfit —el matiz del color, el estampado, qué tan formal
+  // es— en vez de adivinarla por el nombre.
+  foto: string | null;
 };
 
 export type ComboSugerido = {
@@ -172,6 +177,8 @@ async function armarOutfit(
 
   const datosDePerfil = expediente(perfil) || "No llenó su perfil todavía.";
 
+  const foto = p.foto ? await fetchImageAsBase64(p.foto).catch(() => null) : null;
+
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
     model: MODELO,
@@ -182,7 +189,15 @@ async function armarOutfit(
     messages: [
       {
         role: "user",
-        content: `LA PRENDA QUE YA TIENE (la protagonista): ${prenda}.\n\nSU PERFIL:\n\n${datosDePerfil}`,
+        content: [
+          ...(foto
+            ? [{ type: "image" as const, source: { type: "base64" as const, media_type: foto.mediaType, data: foto.base64 } }]
+            : []),
+          {
+            type: "text" as const,
+            text: `LA PRENDA QUE YA TIENE (la protagonista${foto ? ", es la de la foto" : ""}): ${prenda}.\n\nSU PERFIL:\n\n${datosDePerfil}`,
+          },
+        ],
       },
     ],
   });

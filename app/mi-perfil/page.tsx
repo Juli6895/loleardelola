@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import CabeceraCuenta from "@/components/CabeceraCuenta";
 import SubNavCuenta from "@/components/SubNavCuenta";
+import GenerarManual from "@/components/GenerarManual";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
 import { PERSONALIDADES } from "@/lib/image-consulting/personalidad";
@@ -708,6 +709,10 @@ export default function MiPerfilPage() {
           </div>
         )}
       </div>
+
+      {/* Se vuelve a montar cuando se guarda el perfil: lo que falta
+          para el manual cambia con lo que llenó. */}
+      <GenerarManual key={JSON.stringify(perfil)} />
     </div>
   );
 }

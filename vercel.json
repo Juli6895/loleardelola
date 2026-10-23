@@ -3,6 +3,10 @@
     {
       "path": "/api/despertar",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/revisar-precios",
+      "schedule": "0 14 * * *"
     }
   ]
 }

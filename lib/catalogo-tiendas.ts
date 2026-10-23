@@ -22,6 +22,11 @@ import { detallesEn, patronesDe } from "./detalles-distintivos";
 export type ProductoTienda = {
   titulo: string;
   precioCop: number | null;
+  // El precio "antes" que muestra la tienda, cuando está en promoción.
+  // Ojo: hay tiendas que lo ponen en casi todo su catálogo, así que no
+  // basta para decir que algo bajó (eso lo deciden los avisos de rebaja,
+  // contra el precio que la usuaria vio).
+  precioAntesCop?: number | null;
   imagen: string | null;
   url: string;
   tienda: string;
@@ -412,6 +417,7 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
             tags?: string[];
             body?: string;
             price?: string;
+            compare_at_price_max?: string;
             available?: boolean;
             image?: string;
             featured_image?: { url?: string };
@@ -435,10 +441,12 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
       })
       .map((p) => {
         const precio = Number(p.price);
+        const antes = Number(p.compare_at_price_max);
         const clase = p.type ?? "";
         return {
           titulo: p.title!.trim(),
           precioCop: Number.isFinite(precio) && precio > 0 ? Math.round(precio) : null,
+          precioAntesCop: Number.isFinite(antes) && antes > precio ? Math.round(antes) : null,
           imagen: (p.featured_image?.url || p.image)!,
           url: `https://${host}/products/${p.handle}`,
           tienda: t.nombre,
@@ -469,7 +477,7 @@ async function buscarVtex(t: TiendaVtex, q: string): Promise<Indexado[]> {
       categories?: string[];
       items?: Array<{
         images?: Array<{ imageUrl?: string }>;
-        sellers?: Array<{ commertialOffer?: { Price?: number; AvailableQuantity?: number } }>;
+        sellers?: Array<{ commertialOffer?: { Price?: number; ListPrice?: number; AvailableQuantity?: number } }>;
       }>;
     }>;
 
@@ -478,10 +486,13 @@ async function buscarVtex(t: TiendaVtex, q: string): Promise<Indexado[]> {
       .filter((p) => (p.items?.[0]?.sellers?.[0]?.commertialOffer?.AvailableQuantity ?? 1) > 0)
       .map((p) => {
         const precio = p.items?.[0]?.sellers?.[0]?.commertialOffer?.Price;
+        const antes = p.items?.[0]?.sellers?.[0]?.commertialOffer?.ListPrice;
         const clase = (p.categories ?? []).join(" ");
         return {
           titulo: p.productName!.trim(),
           precioCop: typeof precio === "number" && precio > 0 ? Math.round(precio) : null,
+          precioAntesCop:
+            typeof antes === "number" && typeof precio === "number" && antes > precio ? Math.round(antes) : null,
           imagen: p.items![0].images![0].imageUrl!,
           url: `https://${host}/${p.linkText}/p`,
           tienda: t.nombre,
@@ -652,4 +663,60 @@ export async function buscarEnCatalogos(
     if (salida.length >= maximo) break;
   }
   return salida;
+}
+
+// =====================================================================
+// Promociones
+// =====================================================================
+// Para el panel "Promo": prendas de las tiendas de la lista con precio
+// rebajado. Usa la misma búsqueda (mismos filtros de mujer, tipo de
+// prenda y disponibles), y se queda con las que tienen descuento real
+// de al menos PROMO_MINIMA, de mayor a menor, como mucho 2 por tienda
+// para que no salga una sola marca.
+// =====================================================================
+
+const PROMO_MINIMA = 0.2;
+
+// Lo que se muestra cuando todavía no buscó nada.
+const TIPOS_PROMO_GENERAL = ["vestido", "blusa", "pantalón", "falda", "chaqueta", "jean"];
+
+export function descuentoDe(p: ProductoTienda): number {
+  if (!p.precioCop || !p.precioAntesCop) return 0;
+  return 1 - p.precioCop / p.precioAntesCop;
+}
+
+export async function buscarPromos(tipos: string[], maximo = 12): Promise<ProductoTienda[]> {
+  const lista = (tipos.length > 0 ? tipos : TIPOS_PROMO_GENERAL).slice(0, 6);
+  const lotes = await Promise.all(
+    lista.map((tipo) => buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 40).catch(() => []))
+  );
+
+  const vistas = new Set<string>();
+  const enPromo = lotes
+    .flat()
+    .filter((p) => p.imagen && descuentoDe(p) >= PROMO_MINIMA && !vistas.has(p.url) && !!vistas.add(p.url))
+    .sort((a, b) => descuentoDe(b) - descuentoDe(a));
+
+  const porTienda = new Map<string, number>();
+  const salida: ProductoTienda[] = [];
+  for (const p of enPromo) {
+    const n = porTienda.get(p.dominio) ?? 0;
+    if (n >= 2) continue;
+    porTienda.set(p.dominio, n + 1);
+    salida.push(p);
+    if (salida.length >= maximo) break;
+  }
+  return salida;
+}
+
+/** La tienda de la lista a la que pertenece una URL, si es de alguna. */
+export function tiendaDeUrl(url: string): { plataforma: "shopify" | "vtex"; dominio: string; nombre: string } | null {
+  let host: string;
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+  const t = TIENDAS.find((x) => host === (x.host ?? x.dominio).replace(/^www\./, "") || host === x.dominio);
+  return t ? { plataforma: t.plataforma, dominio: t.dominio, nombre: t.nombre } : null;
 }

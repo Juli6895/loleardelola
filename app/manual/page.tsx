@@ -24,6 +24,7 @@ import { construirInformeHtml } from "@/lib/informe-html";
 import { colorAHex } from "@/lib/color-swatch";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 import { useAnotarUnaVez, anotarClicComercio } from "@/lib/use-evento";
+import BotonAvisame from "@/components/BotonAvisame";
 
 // El manual de estilo: lo que da la membresía.
 //
@@ -714,7 +715,8 @@ function FotosDePrenda({
           onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "manual" })}
           className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
         >
-          <div className="aspect-[3/4] overflow-hidden bg-rosa-50">
+          <div className="relative aspect-[3/4] overflow-hidden bg-rosa-50">
+            <BotonAvisame prenda={{ url: p.url, titulo: p.titulo, imagen: p.imagen, precioCop: p.precioCop }} />
             {p.imagen && (
               // eslint-disable-next-line @next/next/no-img-element
               <img

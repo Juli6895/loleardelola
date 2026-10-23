@@ -14,6 +14,8 @@ import { useEffect, useState } from "react";
 export type ProductoTienda = {
   titulo: string;
   precioCop: number | null;
+  // El precio "antes" de la tienda, si está en promoción.
+  precioAntesCop?: number | null;
   imagen: string | null;
   url: string;
   tienda: string;

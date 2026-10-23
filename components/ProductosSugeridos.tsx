@@ -2,6 +2,7 @@
 
 import type { GrupoProductos } from "@/lib/use-catalogo";
 import { anotarClicComercio } from "@/lib/use-evento";
+import BotonAvisame from "@/components/BotonAvisame";
 
 // Prendas con foto sacadas del catálogo que publican las tiendas.
 // Ver lib/catalogo-tiendas.ts para el porqué y sus límites: solo cubre
@@ -63,7 +64,8 @@ export default function ProductosSugeridos({
                   onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "buscar" })}
                   className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
                 >
-                  <div className="aspect-[3/4] overflow-hidden bg-rosa-50">
+                  <div className="relative aspect-[3/4] overflow-hidden bg-rosa-50">
+                    <BotonAvisame prenda={{ url: p.url, titulo: p.titulo, imagen: p.imagen, precioCop: p.precioCop }} />
                     {/* <img> normal y no next/image: las fotos vienen de
                         los CDN de cada tienda, y configurar cada dominio
                         en next.config obligaría a tocar el código cada

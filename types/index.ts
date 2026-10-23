@@ -123,6 +123,17 @@ export type PrendaDetalle = {
   abertura: string | null;
   tela: string | null;
   ocasion: string | null;
+  // Los otros colores de ESA prenda (del estampado, ribetes, botones).
+  coloresSecundarios: string[];
+  // Qué dibujo tiene, de qué tamaño y en qué colores ("cerezas rojas
+  // pequeñas sobre fondo azul marino"). null si es lisa.
+  estampado: string | null;
+  // Detalles de forma o confección que la hacen reconocible ("volantes
+  // en el ruedo", "botones dorados al frente").
+  detalles: string[];
+  // Todo junto, en una o dos frases, como la describiría una vendedora
+  // para encontrarla igual. Es lo que se le muestra a la usuaria.
+  descripcion: string | null;
   searchTerm: string;
   searchTermEspecifico: string | null;
 };

@@ -53,14 +53,19 @@ export default function SearchResult({ data }: { data: Result }) {
         // la prenda igual ("vestido floral rojo").
         tipo: p?.tipo || terms[i].split(" ")[0],
         color: p?.color ?? null,
+        // Todo lo que la distingue cuenta para encontrar la más parecida:
+        // el estampado ("cerezas rojas..."), y detalles como "volantes"
+        // o "botones dorados" suben en el orden a las que los tienen.
         rasgos: [
           p?.detalle,
+          p?.estampado,
           p?.largo,
           p?.corte,
           p?.escote,
           p?.manga,
           p?.abertura,
           p?.tela,
+          ...(p?.detalles ?? []),
         ].filter((r): r is string => !!r),
       };
     })
@@ -172,20 +177,28 @@ export default function SearchResult({ data }: { data: Result }) {
                               {p.tipo}
                             </span>
                           )}
-                          {p.color && (
-                            <span className="inline-flex items-center gap-1">
-                              <span
-                                className="h-2.5 w-2.5 rounded-full border border-noche/10"
-                                style={{ backgroundColor: colorAHex(p.color) }}
-                                aria-hidden
-                              />
-                              {p.color}
-                            </span>
-                          )}
-                          {facetas.map((f) => (
-                            <span key={f}>· {f}</span>
-                          ))}
+                          {[p.color, ...(p.coloresSecundarios ?? [])]
+                            .filter((c): c is string => !!c)
+                            .map((c) => (
+                              <span key={c} className="inline-flex items-center gap-1">
+                                <span
+                                  className="h-2.5 w-2.5 rounded-full border border-noche/10"
+                                  style={{ backgroundColor: colorAHex(c) }}
+                                  aria-hidden
+                                />
+                                {c}
+                              </span>
+                            ))}
+                          {/* Con la descripción completa, las facetas sueltas
+                              sobran: ya están dichas abajo, en una frase. */}
+                          {!p.descripcion &&
+                            facetas.map((f) => <span key={f}>· {f}</span>)}
                         </div>
+                        {p.descripcion && (
+                          <p className="max-w-sm text-xs leading-relaxed text-noche/70">
+                            {p.descripcion}
+                          </p>
+                        )}
                         {p.searchTermEspecifico && (
                           <a
                             href={googleShoppingUrl(p.searchTermEspecifico, {

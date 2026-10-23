@@ -55,7 +55,6 @@ export default function MiClosetPage() {
 
       <div className="mx-auto max-w-2xl">
         <ClosetUpload
-          conCuenta={!!usuario?.conSesion}
           onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
         />
         {atLimit ? (
@@ -105,9 +104,6 @@ export default function MiClosetPage() {
           items={items}
           onDelete={(id) =>
             setItems((prev) => prev?.filter((it) => it.id !== id) ?? null)
-          }
-          onUpdate={(item) =>
-            setItems((prev) => prev?.map((it) => (it.id === item.id ? item : it)) ?? null)
           }
         />
       )}

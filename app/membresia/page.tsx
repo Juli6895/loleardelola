@@ -51,12 +51,6 @@ export default function MembresiaPage() {
       membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
     },
     {
-      que: "Fotos con IA: tu prenda en foto de catálogo y el outfit armado en foto",
-      sin: "—",
-      gratis: "Sí",
-      membresia: "Sí, en cada prenda y cada combinación",
-    },
-    {
       que: "Manual de estilo",
       sin: "—",
       gratis: "—",
@@ -74,8 +68,7 @@ export default function MembresiaPage() {
           La membresía
         </h1>
         <p className="mx-auto mt-3 max-w-xl text-noche/60">
-          Mucho más espacio para buscar y combinar, tus prendas en foto de
-          catálogo con el outfit armado en foto, y tu manual de estilo completo: tu silueta, tu paleta
+          Mucho más espacio para buscar y combinar, y tu manual de estilo completo: tu silueta, tu paleta
           de colores, las prendas que te favorecen y outfits armados para ti.
         </p>
       </header>

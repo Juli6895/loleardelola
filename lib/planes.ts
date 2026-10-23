@@ -52,13 +52,14 @@ export const TOPES: Record<Plan, Topes> = {
 };
 
 // Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000): una
-// búsqueda por foto ~$160; una prenda al clóset ~$345 (su foto de
-// catálogo con Gemini ~$275 + Claude leyéndola); una combinación ~$405
-// (Claude ~$125 + la foto del outfit con Gemini ~$280); un manual ~$280.
-// Con los límites de TOPES_MES_MEMBRESIA, una usuaria que lo use TODO
-// hasta el tope cuesta ~$8.500 al mes, y la membresía deja ~$13.500
-// (mensual) o ~$9.500 al mes (anual) después de la comisión de Bold: hay
-// utilidad incluso en el peor caso.
+// búsqueda por foto ~$160, una prenda al clóset ~$60, una combinación
+// ~$125 y un manual ~$280. Con los límites de TOPES_MES_MEMBRESIA, una
+// usuaria que lo use TODO hasta el tope cuesta ~$6.800 al mes, y la
+// membresía deja ~$13.500 (mensual) o ~$9.500 al mes (anual) después de
+// la comisión de Bold: hay utilidad incluso en el peor caso.
+//
+// Ya no se generan imágenes con Gemini (foto de catálogo de la prenda,
+// foto del outfit): costaban ~$275 cada una y no daban utilidad.
 //
 // El anual sale a ~$9.900 por mes (33% menos que mes a mes). Bold cobra
 // un fijo de $900 por transacción, así que un solo cobro al año deja
@@ -80,18 +81,16 @@ export type UsoMensual =
   | "manuales";
 
 export const TOPES_MES_MEMBRESIA: Record<UsoMensual, number> = {
-  busquedas: 12,
-  // Cada prenda nueva lleva su foto de catálogo hecha con Gemini.
-  prendasCloset: 8,
-  // Cada combinación lleva la foto del outfit armado, también con Gemini.
-  combinaciones: 8,
+  busquedas: 20,
+  prendasCloset: 25,
+  combinaciones: 12,
   manuales: 2,
 };
 
 // Sin membresía, "Buscar combinaciones" funciona en las primeras prendas
 // (ver combinacionesClosetGratis) pero con un tope total: si no, se
 // podría buscar sin fin sobre esas mismas prendas.
-export const COMBINACIONES_GRATIS_TOTAL = 3;
+export const COMBINACIONES_GRATIS_TOTAL = 4;
 
 const NOMBRE_USO: Record<UsoMensual, string> = {
   busquedas: "búsquedas",

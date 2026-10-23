@@ -78,6 +78,12 @@ export const EVENTOS = [
   // clóset, manual o el directorio de Instagram.
   "comercio_clic",
 
+  // La app instalable (PWA): cuántas la instalan y cuántas la abren
+  // como app y no desde el navegador.
+  "app_instalar_clic",
+  "app_instalada",
+  "app_abierta",
+
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
   // usa; queda para leer los eventos viejos.
   "figura_generada",

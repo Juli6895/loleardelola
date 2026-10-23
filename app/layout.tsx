@@ -1,8 +1,9 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
+import InstalarApp from "@/components/InstalarApp";
 
 // Fuentes — Playfair para titulares, Inter para cuerpo
 const inter = Inter({
@@ -20,6 +21,14 @@ export const metadata: Metadata = {
   title: "LoleardLola — Encuentra dónde comprar el outfit que te enamoró",
   description:
     "Conecta tu Pinterest, sube una inspiración y te decimos dónde comprar prendas similares online. Moda para Colombia.",
+  // Como app instalada (ver app/manifest.ts): en iPhone, el ícono de la
+  // pantalla de inicio y el nombre bajo él salen de acá.
+  applicationName: "LoleardLola",
+  appleWebApp: { capable: true, title: "LoleardLola", statusBarStyle: "default" },
+  icons: {
+    icon: [{ url: "/iconos/icono-192.png", sizes: "192x192", type: "image/png" }],
+    apple: [{ url: "/iconos/icono-180.png", sizes: "180x180" }],
+  },
   openGraph: {
     title: "LoleardLola",
     description:
@@ -27,6 +36,10 @@ export const metadata: Metadata = {
     type: "website",
     locale: "es_CO",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#db627f",
 };
 
 export default function RootLayout({
@@ -48,6 +61,7 @@ export default function RootLayout({
               Hecho con amor en Colombia · {new Date().getFullYear()}
             </p>
           </footer>
+          <InstalarApp />
         </Providers>
       </body>
     </html>

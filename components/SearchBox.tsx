@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
+import { fetchConDispositivo } from "@/lib/device-id";
 import type { TiendaInstagram, VisionResult } from "@/types";
 
 export type SearchResult = {
@@ -51,7 +52,10 @@ export default function SearchBox({ onResult }: Props) {
   async function postAnalysis(payload: Record<string, unknown>) {
     // Cuando reactivemos presupuesto, volver a leer parseBudget() y mandarlo.
     const budgetCop = BUDGET_ENABLED ? parseBudget() : null;
-    const res = await fetch("/api/vision", {
+    // Con el header de dispositivo: sin él, quien no ha entrado con su
+    // correo (o abre la app instalada sin sesión) no tiene cómo ser
+    // identificada, y el tope de búsquedas la rechazaba.
+    const res = await fetchConDispositivo("/api/vision", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ ...payload, budgetCop }),

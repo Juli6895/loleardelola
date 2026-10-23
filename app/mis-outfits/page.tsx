@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { Outfit } from "@/types";
+import MisAvisos from "@/components/MisAvisos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página "Mis Outfits": outfits guardados en este dispositivo.
@@ -65,6 +66,8 @@ export default function MisOutfitsPage() {
           Mis outfits 💕
         </h1>
       </header>
+
+      <MisAvisos />
 
       <section>
         <h2 className="font-display text-2xl text-noche">

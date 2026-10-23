@@ -84,6 +84,12 @@ export const EVENTOS = [
   "app_instalada",
   "app_abierta",
 
+  // Avisos de rebaja (membresía): quién activa las notificaciones, qué
+  // prendas sigue y cuántos avisos salen.
+  "push_suscrito",
+  "seguimiento_creado",
+  "aviso_rebaja_enviado",
+
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
   // usa; queda para leer los eventos viejos.
   "figura_generada",

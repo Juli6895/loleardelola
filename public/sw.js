@@ -7,7 +7,9 @@
 //   dinosaurio del navegador.
 // - NUNCA guarda las páginas ni lo que responde /api: las búsquedas, el
 //   clóset, los topes y los pagos siempre se leen frescos.
-const VERSION = "v1";
+// - Muestra los avisos de rebaja (notificaciones push) y, al tocarlos,
+//   abre la prenda en la tienda.
+const VERSION = "v2";
 const CACHE = `loleardlola-${VERSION}`;
 const SIN_INTERNET = "/sin-internet.html";
 
@@ -52,4 +54,29 @@ self.addEventListener("fetch", (event) => {
       )
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  let n = {};
+  try {
+    n = event.data ? event.data.json() : {};
+  } catch {
+    n = { cuerpo: event.data ? event.data.text() : "" };
+  }
+  event.waitUntil(
+    self.registration.showNotification(n.titulo || "LoleardLola", {
+      body: n.cuerpo || "",
+      icon: "/iconos/icono-192.png",
+      badge: "/iconos/icono-192.png",
+      image: n.imagen || undefined,
+      data: { url: n.url || "/" },
+      lang: "es-CO",
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/";
+  event.waitUntil(self.clients.openWindow(url));
 });

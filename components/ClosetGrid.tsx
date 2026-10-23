@@ -7,6 +7,7 @@ import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetCategory, ClosetItem } from "@/types";
 import type { OutfitDelCloset } from "@/lib/combinaciones";
 import { anotarClicComercio } from "@/lib/use-evento";
+import BotonAvisame from "@/components/BotonAvisame";
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 
@@ -290,8 +291,9 @@ function ModalCombinaciones({
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={() => anotarClicComercio({ tienda: f.tienda, dominio: f.dominio, origen: "closet" })}
-                    className="flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:shadow-suave"
+                    className="relative flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:shadow-suave"
                   >
+                    <BotonAvisame prenda={{ url: f.url, titulo: f.titulo, imagen: f.imagen, precioCop: f.precioCop }} />
                     {f.imagen ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img

@@ -118,6 +118,10 @@ REGLAS:
    - abertura: abertura o cierre visible (ej: "abertura lateral", "abertura frontal", "botones", "cremallera atrás", "espalda descubierta")
    - tela: tela aparente si se distingue (ej: "denim", "lino", "punto", "satín", "cuero", "encaje", "gasa")
    - ocasion: una de "casual", "trabajo", "formal", "fiesta", "deportivo"
+   - coloresSecundarios: los OTROS colores que se ven en ESA prenda (los del estampado, ribetes, botones, forro), en orden de cuánto se ven. [] si es de un solo color.
+   - estampado: si tiene dibujo, di QUÉ es exactamente, de qué tamaño y en qué colores, y sobre qué fondo. Ej: "cerezas rojas pequeñas sobre fondo azul marino", "rayas verticales finas blancas y azul cielo", "flores grandes fucsia y verdes sobre crema", "cuadros príncipe de Gales gris y negro", "lunares blancos medianos sobre negro". "" si es lisa. Aquí sí puedes usar matices finos ("azul marino", "verde botella").
+   - detalles: 0 a 5 detalles de forma o confección que SE VEN y la hacen reconocible. Ej: "volantes en el ruedo", "fruncido en la cintura", "botones dorados al frente", "lazo en el cuello", "bolsillos de parche", "pliegues al frente", "cinturón del mismo tono", "hombreras", "dobladillo deshilachado", "ribete en contraste". [] si no hay nada que destaque.
+   - descripcion: 1 o 2 frases con TODO lo anterior junto, como la describiría una vendedora para que otra persona encuentre ESA prenda y no otra parecida: tipo, color exacto, estampado, forma o corte, largo, escote, manga, tela y detalles. Ej: "Vestido midi azul marino con estampado de cerezas rojas pequeñas, escote en V cruzado, manga corta abullonada, cintura fruncida y falda con vuelo, en tela liviana y fluida." Solo lo que de verdad se ve (regla a).
 
    Sé especialmente detallada con vestidos y prendas de arriba: escote, manga y largo son justo lo que la usuaria quiere comparar. En accesorios y calzado, muchos de estos campos no aplican — déjalos en "".
 
@@ -133,7 +137,7 @@ REGLAS:
 
 11. DOS términos de búsqueda por prenda:
    - searchTerm: el CORTO, máximo 5 palabras (ver regla 2). Es el principal — trae más resultados.
-   - searchTermEspecifico: la versión detallada, 6 a 10 palabras, sumando al término corto las características que MÁS distinguen a esa prenda de otra parecida. Para un vestido eso suele ser: largo + escote o manga + tela o detalle. Ej: "vestido mini lentejuelas plateado tirantes finos mujer" o "vestido midi lino verde manga farol mujer". Siempre termina también en el GÉNERO. No metas las 10 características a la fuerza: escoge las 3-4 más reconocibles, porque una query demasiado larga no devuelve nada.
+   - searchTermEspecifico: la versión detallada, 6 a 10 palabras, sumando al término corto las características que MÁS distinguen a esa prenda de otra parecida. Si tiene un estampado reconocible, el motivo va primero ("vestido cerezas azul marino midi mujer"). Para un vestido liso suele ser: largo + escote o manga + tela o detalle. Ej: "vestido mini lentejuelas plateado tirantes finos mujer" o "vestido midi lino verde manga farol mujer". Siempre termina también en el GÉNERO. No metas las 10 características a la fuerza: escoge las 3-4 más reconocibles, porque una query demasiado larga no devuelve nada.
 
 12. Devuelve también:
    - dominantColors: 2-4 colores principales del outfit en español
@@ -201,13 +205,31 @@ const REPORT_TOOL: Anthropic.Tool = {
               enum: ["casual", "trabajo", "formal", "fiesta", "deportivo", ""],
               description: "Ocasión para la que sirve la prenda.",
             },
+            coloresSecundarios: {
+              type: "array",
+              items: { type: "string" },
+              description: "Los otros colores de ESA prenda (estampado, ribetes, botones), en orden de cuánto se ven. [] si es de un solo color.",
+            },
+            estampado: {
+              type: "string",
+              description: "Qué dibujo tiene, de qué tamaño, en qué colores y sobre qué fondo. Ej: 'cerezas rojas pequeñas sobre fondo azul marino'. '' si es lisa.",
+            },
+            detalles: {
+              type: "array",
+              items: { type: "string" },
+              description: "0 a 5 detalles de forma o confección que se ven. Ej: 'volantes en el ruedo', 'botones dorados al frente'.",
+            },
+            descripcion: {
+              type: "string",
+              description: "1-2 frases con todo junto (tipo, color exacto, estampado, forma, largo, escote, manga, tela, detalles), para encontrar ESA prenda y no otra parecida.",
+            },
             searchTermEspecifico: {
               type: "string",
               description:
                 "Búsqueda detallada de 6 a 9 palabras sumando corte/tela/detalle al término corto, terminando en el GÉNERO. Ej: 'vestido mini lentejuelas plateado tirantes mujer'.",
             },
           },
-          required: ["categoria", "tipo", "searchTermEspecifico"],
+          required: ["categoria", "tipo", "descripcion", "searchTermEspecifico"],
         },
       },
       dominantColors: {
@@ -377,6 +399,8 @@ export async function analyzeImageWithClaude(
   const rawPrendas = Array.isArray(input.prendas) ? input.prendas : [];
   const texto = (v: unknown): string | null =>
     typeof v === "string" && v.trim() ? v.trim() : null;
+  const lista = (v: unknown): string[] =>
+    Array.isArray(v) ? v.map(texto).filter((x): x is string => x !== null) : [];
 
   const CATEGORIAS: ClosetCategory[] = [
     "top",
@@ -404,6 +428,10 @@ export async function analyzeImageWithClaude(
       abertura: texto(p.abertura),
       tela: texto(p.tela),
       ocasion: texto(p.ocasion),
+      coloresSecundarios: lista(p.coloresSecundarios).slice(0, 4),
+      estampado: texto(p.estampado),
+      detalles: lista(p.detalles).slice(0, 5),
+      descripcion: texto(p.descripcion),
       searchTerm: term,
       searchTermEspecifico: texto(p.searchTermEspecifico),
     };
@@ -566,26 +594,17 @@ const mayuscula = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
  */
 export async function analyzeClosetItem(
   imageUrl: string,
-  pista?: PistaPrenda | null,
-  // La foto real que subió, cuando imageUrl es la foto de catálogo que
-  // hizo Gemini a partir de ella (ver lib/foto-prenda.ts). La de
-  // catálogo tiene la prenda sola y se lee mejor; la real sirve para
-  // confirmar el color, por si Gemini lo movió.
-  urlReal?: string | null
+  pista?: PistaPrenda | null
 ): Promise<ClosetItemAnalysis> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
 
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
-  const real = urlReal ? await fetchImageAsBase64(urlReal).catch(() => null) : null;
   const client = new Anthropic({ apiKey });
 
-  const cual = pista
+  const pedido = pista
     ? `La usuaria dice que la prenda que está subiendo es ${NOMBRE_PISTA[pista]}. Clasifica esa y reporta con report_garment.`
     : "Clasifica esta prenda de clóset y reporta con report_garment.";
-  const pedido = real
-    ? `La primera foto es la prenda sola, en foto de catálogo hecha a partir de la segunda, que es la foto real que subió la usuaria. Clasifica la prenda de la primera foto; si el color o el estampado se ven distintos entre las dos, manda la foto real. ${cual}`
-    : cual;
 
   const response = await client.messages.create({
     model: MODEL_OUTFIT,
@@ -598,9 +617,6 @@ export async function analyzeClosetItem(
         role: "user",
         content: [
           { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-          ...(real
-            ? [{ type: "image" as const, source: { type: "base64" as const, media_type: real.mediaType, data: real.base64 } }]
-            : []),
           { type: "text", text: pedido },
         ],
       },

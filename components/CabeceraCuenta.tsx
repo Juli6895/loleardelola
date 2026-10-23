@@ -27,11 +27,11 @@ const LO_DE_LA_MEMBRESIA = [
   },
   {
     titulo: "Clóset más grande",
-    detalle: `Hoy puedes subir 2 prendas. Con membresía, ${TOPES_MES_MEMBRESIA.prendasCloset} nuevas cada mes en foto de catálogo, y combinaciones para todas.`,
+    detalle: `Hoy puedes subir 2 prendas. Con membresía, ${TOPES_MES_MEMBRESIA.prendasCloset} nuevas cada mes, y combinaciones para todas.`,
   },
   {
     titulo: "Más búsquedas y combinaciones",
-    detalle: `${TOPES_MES_MEMBRESIA.busquedas} búsquedas y ${TOPES_MES_MEMBRESIA.combinaciones} combinaciones al mes, cada una con la foto del outfit armado.`,
+    detalle: `${TOPES_MES_MEMBRESIA.busquedas} búsquedas y ${TOPES_MES_MEMBRESIA.combinaciones} combinaciones al mes, con prendas reales de las tiendas.`,
   },
 ];
 

@@ -15,16 +15,14 @@ import {
   type ManualListo,
   type PrendaDelClosetManual,
 } from "@/lib/manual-estilo";
-import { esFotoDeCatalogo } from "@/lib/foto-catalogo";
 
 // Claude escribe el manual y después se buscan ~25 prendas en los
 // catálogos de las tiendas: puede pasar del minuto.
 export const maxDuration = 120;
 
 /**
- * Las prendas del clóset para "Prendas favoritas (cómo combinar)": hasta
- * 4, primero las que ya tienen foto de catálogo (se ven mejor en el
- * manual) y después las más nuevas.
+ * Las prendas del clóset para "Prendas favoritas (cómo combinar)": las 4
+ * más nuevas.
  */
 async function prendasFavoritas(userId: string): Promise<PrendaDelClosetManual[]> {
   const { data } = await supabaseAdmin()
@@ -32,10 +30,9 @@ async function prendasFavoritas(userId: string): Promise<PrendaDelClosetManual[]
     .select("id, label, image_url")
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(10);
   return (data ?? [])
     .filter((p) => p.label && p.image_url)
-    .sort((a, b) => Number(esFotoDeCatalogo(b.image_url)) - Number(esFotoDeCatalogo(a.image_url)))
     .slice(0, 4)
     .map((p) => ({ id: p.id, label: p.label, foto: p.image_url }));
 }

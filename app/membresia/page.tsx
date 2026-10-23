@@ -99,7 +99,31 @@ export default function MembresiaPage() {
       )}
 
       <div className="overflow-hidden rounded-2xl border border-rosa-100 bg-white shadow-sm">
-        <table className="w-full text-sm">
+        {/* En el celular las cuatro columnas no caben (la de Membresía
+            quedaba cortada): cada fila se vuelve una tarjeta con los tres
+            planes uno al lado del otro. */}
+        <ul className="divide-y divide-rosa-100 sm:hidden">
+          {filas.map((f) => (
+            <li key={f.que} className="px-4 py-4">
+              <p className="text-sm font-medium text-noche">{f.que}</p>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+                <div className="rounded-lg bg-rosa-50/60 px-1.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-noche/45">Sin cuenta</p>
+                  <p className="mt-0.5 text-xs tabular-nums text-noche/70">{f.sin}</p>
+                </div>
+                <div className="rounded-lg bg-rosa-50/60 px-1.5 py-2">
+                  <p className="text-[10px] uppercase tracking-wide text-noche/45">Gratis</p>
+                  <p className="mt-0.5 text-xs tabular-nums text-noche/70">{f.gratis}</p>
+                </div>
+                <div className="rounded-lg border border-rosa-200 bg-white px-1.5 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rosa-500">Membresía</p>
+                  <p className="mt-0.5 text-xs font-medium text-noche">{f.membresia}</p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+        <table className="hidden w-full text-sm sm:table">
           <thead>
             <tr className="border-b border-rosa-100 text-left">
               <th className="px-5 py-3 font-medium text-noche/60"></th>

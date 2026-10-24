@@ -6,13 +6,12 @@ import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { TOPES } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 import { useUsuario } from "@/lib/use-usuario";
 
 // El tope vive en lib/planes.ts, junto con los de búsquedas y outfits.
 // Acá solo se muestra; quien lo hace cumplir es la API.
-const TOPE_GRATIS = TOPES.gratis.prendasCloset ?? 2;
 
 // Página "Mi Clóset": la usuaria sube fotos de sus prendas y las ve
 // organizadas por categoría. Fase 1 del roadmap premium — base de datos
@@ -22,6 +21,8 @@ export default function MiClosetPage() {
   const [items, setItems] = useState<ClosetItem[] | null>(null);
   const { usuario } = useUsuario();
   const conMembresia = usuario?.plan === "membresia";
+  // Sin cuenta es 1 prenda; con cuenta gratis, 2.
+  const TOPE_GRATIS = (usuario?.conSesion ? TOPES.gratis.prendasCloset : TOPES.anonimo.prendasCloset) ?? 1;
 
   useEffect(() => {
     fetchConDispositivo("/api/closet")
@@ -75,7 +76,7 @@ export default function MiClosetPage() {
           </div>
         ) : conMembresia ? (
           <p className="mt-2 text-center text-xs text-noche/40">
-            Con tu membresía subes {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas cada mes.
+            Con tu membresía subes todas las prendas que quieras.
           </p>
         ) : (
           <p className="mt-2 text-center text-xs text-noche/40">

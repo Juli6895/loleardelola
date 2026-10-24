@@ -16,10 +16,8 @@ export type Topes = {
   outfits: number | null;
   prendasCloset: number | null;
   manualDeEstilo: boolean;
-  // Cuántas de las PRIMERAS prendas subidas al clóset (por orden de
-  // fecha) dejan usar "Buscar combinaciones". No es un conteo de veces
-  // usado (eso se podría repetir sin límite en esas prendas): es cuáles
-  // prendas califican. null = cualquier prenda, sin límite.
+  // Cuántas veces en total puede usar "Buscar combinaciones" sin
+  // membresía (desde siempre, no por mes). null = sin tope.
   combinacionesClosetGratis: number | null;
 };
 
@@ -28,16 +26,16 @@ export const TOPES: Record<Plan, Topes> = {
   // Sin cuenta: alcanza para probar la app de verdad antes de pedirle
   // el correo a nadie.
   anonimo: {
-    busquedas: 10,
-    outfits: 5,
-    prendasCloset: 2,
+    busquedas: 2,
+    outfits: 1,
+    prendasCloset: 1,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 2,
+    combinacionesClosetGratis: 1,
   },
   // Con cuenta gratis: un poco más, a cambio del correo.
   gratis: {
-    busquedas: 15,
-    outfits: 10,
+    busquedas: 5,
+    outfits: 3,
     prendasCloset: 2,
     manualDeEstilo: false,
     combinacionesClosetGratis: 2,
@@ -53,21 +51,17 @@ export const TOPES: Record<Plan, Topes> = {
 
 // Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000): una
 // búsqueda por foto ~$160, una prenda al clóset ~$60, una combinación
-// ~$125 y un manual ~$280. Con los límites de TOPES_MES_MEMBRESIA, una
-// usuaria que lo use TODO hasta el tope cuesta ~$6.800 al mes.
+// ~$125 y un manual ~$280. Guardar outfits no cuesta nada (es una fila
+// en la base; la foto ya se subió al buscar).
 //
-// Octubre de 2026: el precio bajó (antes $14.900 y $119.000) al quitar
-// las imágenes con Gemini (~$275 cada una). Después de la comisión de
-// Bold (~3,5% + $900 por cobro) la membresía deja ~$11.550 (mensual) o
-// ~$7.960 al mes (anual): hay utilidad incluso en el peor caso, y una
-// usuaria normal usa bastante menos que el tope.
-//
-// El anual sale a ~$8.325 por mes (35% menos que mes a mes). Bold cobra
-// un fijo de $900 por transacción, así que un solo cobro al año deja
-// más que doce cobros mensuales.
+// Octubre de 2026, precios de Juliana: mensual $12.900 y anual $69.900.
+// Después de la comisión de Bold (~3,5% + $900 por cobro) dejan
+// ~$11.550 y ~$5.550 al mes. Una usuaria muy activa (20 búsquedas, 15
+// prendas y 15 combinaciones al mes) cuesta ~$5.900: el anual queda
+// justo con ella y con utilidad en una usuaria normal.
 export const PRECIOS = {
   mensual: 12900,
-  anual: 99900,
+  anual: 69900,
 } as const;
 
 // ---------------------------------------------------------------------
@@ -83,15 +77,18 @@ export type UsoMensual =
 
 export const TOPES_MES_MEMBRESIA: Record<UsoMensual, number> = {
   busquedas: 20,
-  prendasCloset: 25,
-  combinaciones: 12,
+  // En pantalla dicen "sin tope": estos números son solo un freno de
+  // seguridad (ver USO_JUSTO) para que nadie suba cientos al mes.
+  prendasCloset: 100,
+  combinaciones: 60,
   manuales: 2,
 };
 
-// Sin membresía, "Buscar combinaciones" funciona en las primeras prendas
-// (ver combinacionesClosetGratis) pero con un tope total: si no, se
-// podría buscar sin fin sobre esas mismas prendas.
-export const COMBINACIONES_GRATIS_TOTAL = 4;
+// Usos que la membresía ofrece "sin tope". Igual tienen un máximo muy
+// alto en TOPES_MES_MEMBRESIA, que una persona usando la app para ella
+// no alcanza: cada prenda y cada combinación se pagan, y sin ningún
+// freno una sola cuenta podría costar más de lo que paga.
+export const USO_JUSTO: UsoMensual[] = ["prendasCloset", "combinaciones"];
 
 const NOMBRE_USO: Record<UsoMensual, string> = {
   busquedas: "búsquedas",
@@ -103,6 +100,9 @@ const NOMBRE_USO: Record<UsoMensual, string> = {
 /** El mensaje al llegar a un tope del mes, con la fecha en que se renueva. */
 export function mensajeTopeMensual(uso: UsoMensual, renueva: Date): string {
   const fecha = renueva.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
+  if (USO_JUSTO.includes(uso)) {
+    return `Llegaste al máximo de uso de este mes (${TOPES_MES_MEMBRESIA[uso]} ${NOMBRE_USO[uso]}). Es un límite de seguridad: se renueva el ${fecha}.`;
+  }
   return `Llegaste a tus ${TOPES_MES_MEMBRESIA[uso]} ${NOMBRE_USO[uso]} de este mes. Se renuevan el ${fecha}.`;
 }
 

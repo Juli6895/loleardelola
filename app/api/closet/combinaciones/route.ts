@@ -39,6 +39,7 @@ export async function POST(req: Request) {
 
   const permiso = await puedeVerCombinaciones(usuario, itemId);
   if (!permiso.permitido) {
+    registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso: "combinaciones", plan: usuario.plan });
     return NextResponse.json(
       { error: permiso.mensaje, destrabaCon: permiso.destrabaCon, limite: true },
       { status: 402 }

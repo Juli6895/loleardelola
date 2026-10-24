@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "./supabase";
 import { usuarioActual, type UsuarioActual } from "./sesion";
 import { esAdmin } from "./admin-correos";
+import { contextoDe, registrar } from "./eventos";
 import {
   mensajeDeTope,
   mensajeTopeMensual,
@@ -123,6 +124,7 @@ export async function revisarTope(
   if (usuario.plan === "membresia" && (recurso === "busquedas" || recurso === "prendasCloset")) {
     const mensual = await revisarUsoMensual(usuario, recurso);
     if (mensual.permitido) return { permitido: true, usuario, usadas: 0, tope: null };
+    registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan });
     return { permitido: false, usuario, mensaje: mensual.mensaje, destrabaCon: null, usadas: 0, tope: TOPES_MES_MEMBRESIA[recurso] };
   }
 
@@ -137,6 +139,8 @@ export async function revisarTope(
     veredicto.destrabaCon === "gratis" || veredicto.destrabaCon === "membresia"
       ? veredicto.destrabaCon
       : null;
+  // Para el tablero: dónde se topan con los límites y de qué plan.
+  registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan });
 
   return {
     permitido: false,

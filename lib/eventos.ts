@@ -91,6 +91,12 @@ export const EVENTOS = [
   "aviso_rebaja_enviado",
   "aviso_error",
 
+  // Cuánto tiempo pasó en cada sección (segundos, solo con la pestaña a
+  // la vista) y los errores de la página en el navegador.
+  "tiempo_pagina",
+  "inicio_visto",
+  "pagina_error",
+
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
   // usa; queda para leer los eventos viejos.
   "figura_generada",

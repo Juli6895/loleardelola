@@ -11,3 +11,6 @@ dist
 coverage
 .claude/settings.local.json
 *.tsbuildinfo
+
+# Copias locales antes de borrar datos de la base (no se suben)
+respaldos/

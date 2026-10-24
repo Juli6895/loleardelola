@@ -712,7 +712,7 @@ function FotosDePrenda({
           href={p.url}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "manual" })}
+          onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "manual", prenda: p.titulo })}
           className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
         >
           <div className="relative aspect-[3/4] overflow-hidden bg-rosa-50">

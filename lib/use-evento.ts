@@ -56,6 +56,8 @@ export function anotarClicComercio(datos: {
   tienda: string;
   dominio: string | null;
   origen: string;
+  // El nombre de la prenda en la tienda, para saber cuáles atraen más.
+  prenda?: string;
 }): void {
   anotar("comercio_clic", datos);
 }
@@ -70,4 +72,47 @@ export function useAnotarUnaVez(nombre: string, props: Record<string, unknown> =
     // Las props se serializan para no relanzar por identidad de objeto.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nombre, JSON.stringify(props)]);
+
+  // Las páginas ("closet_visto", "membresia_vista"...) también anotan
+  // cuánto tiempo se quedó la usuaria en ellas.
+  const seccion = /_vist[oa]$/.test(nombre) ? nombre.replace(/_vist[oa]$/, "") : null;
+  useTiempoEnPagina(seccion);
+}
+
+/**
+ * Cuánto tiempo de verdad pasó en una sección: solo cuenta mientras la
+ * pestaña está a la vista (si se va a WhatsApp y vuelve, no suma), y se
+ * anota cuando sale de la página o la deja de ver.
+ */
+function useTiempoEnPagina(seccion: string | null) {
+  useEffect(() => {
+    if (!seccion || typeof document === "undefined") return;
+    let desde = document.visibilityState === "visible" ? Date.now() : null;
+    let acumulado = 0;
+
+    const pausar = () => {
+      if (desde !== null) acumulado += Date.now() - desde;
+      desde = null;
+    };
+    const enviar = () => {
+      pausar();
+      const segundos = Math.round(acumulado / 1000);
+      acumulado = 0;
+      // Menos de 2 segundos es un rebote o un clic de paso.
+      if (segundos >= 2) anotar("tiempo_pagina", { seccion, segundos: Math.min(segundos, 3600) });
+    };
+    const alCambiar = () => {
+      if (document.visibilityState === "hidden") enviar();
+      else desde = Date.now();
+    };
+
+    document.addEventListener("visibilitychange", alCambiar);
+    window.addEventListener("pagehide", enviar);
+    return () => {
+      document.removeEventListener("visibilitychange", alCambiar);
+      window.removeEventListener("pagehide", enviar);
+      // Al navegar a otra sección dentro de la app.
+      enviar();
+    };
+  }, [seccion]);
 }

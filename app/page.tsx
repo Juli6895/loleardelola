@@ -1,9 +1,12 @@
 import Hero from "@/components/Hero";
+import AnotarVista from "@/components/AnotarVista";
 import Link from "next/link";
 
 export default function HomePage() {
   return (
     <div className="space-y-16">
+      {/* El primer paso del embudo, y el tiempo en el inicio. */}
+      <AnotarVista nombre="inicio_visto" />
       <Hero />
 
       <section className="grid grid-cols-1 gap-6 md:grid-cols-2">

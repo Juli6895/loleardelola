@@ -290,7 +290,7 @@ function ModalCombinaciones({
                     href={f.url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    onClick={() => anotarClicComercio({ tienda: f.tienda, dominio: f.dominio, origen: "closet" })}
+                    onClick={() => anotarClicComercio({ tienda: f.tienda, dominio: f.dominio, origen: "closet", prenda: f.titulo })}
                     className="relative flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:shadow-suave"
                   >
                     <BotonAvisame prenda={{ url: f.url, titulo: f.titulo, imagen: f.imagen, precioCop: f.precioCop }} />

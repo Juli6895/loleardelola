@@ -5,7 +5,7 @@ import SubNavCuenta from "@/components/SubNavCuenta";
 import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
 import { fetchConDispositivo } from "@/lib/device-id";
-import type { Outfit } from "@/types";
+import type { Outfit, TiendaInstagram } from "@/types";
 import MisAvisos from "@/components/MisAvisos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
@@ -19,6 +19,7 @@ export default function MisOutfitsPage() {
   // una lista cerrada de comercios.
   const [excludedMerchants, setExcludedMerchants] = useState<string[]>([]);
   const [allowedMerchants, setAllowedMerchants] = useState<string[]>([]);
+  const [tiendasInstagram, setTiendasInstagram] = useState<TiendaInstagram[]>([]);
 
   useEffect(() => {
     fetchConDispositivo("/api/outfits")
@@ -35,6 +36,7 @@ export default function MisOutfitsPage() {
       .then((j) => {
         setExcludedMerchants(j.excludedMerchants ?? []);
         setAllowedMerchants(j.allowedMerchants ?? []);
+        setTiendasInstagram(j.tiendasInstagram ?? []);
       })
       .catch(() => {
         setExcludedMerchants([]);
@@ -107,6 +109,7 @@ export default function MisOutfitsPage() {
                 onDelete={handleDelete}
                 excludeMerchants={excludedMerchants}
                 includeMerchants={allowedMerchants}
+                tiendasInstagram={tiendasInstagram}
               />
             ))}
           </div>

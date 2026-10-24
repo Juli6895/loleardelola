@@ -107,16 +107,21 @@ export async function activarNotificaciones(): Promise<string | null> {
     return "Sin permiso de notificaciones no te podemos avisar. Actívalo en la configuración del navegador para LoleardLola.";
   }
 
-  const registro = await navigator.serviceWorker.ready;
-  const sub =
-    (await registro.pushManager.getSubscription()) ??
-    (await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: llaveABytes(llave) }));
+  let sub: PushSubscription;
+  try {
+    const registro = await navigator.serviceWorker.ready;
+    sub =
+      (await registro.pushManager.getSubscription()) ??
+      (await registro.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: llaveABytes(llave) }));
+  } catch (e: any) {
+    return `El celular no dejó activar los avisos (${e?.name ?? "error"}). Cierra la app, ábrela de nuevo e inténtalo otra vez.`;
+  }
 
   const res = await fetchConDispositivo("/api/push/suscribir", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(sub.toJSON()),
   });
-  if (!res.ok) return (await res.json().catch(() => null))?.error ?? "No pudimos activar los avisos.";
+  if (!res.ok) return (await res.json().catch(() => null))?.error ?? `No pudimos activar los avisos (error ${res.status}).`;
   return null;
 }

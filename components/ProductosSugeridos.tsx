@@ -49,13 +49,19 @@ export default function ProductosSugeridos({
       <ExplicaCampanita />
 
       <div className="mt-6 space-y-8">
-        {grupos.map((g) => (
+        {grupos.map((g, i) => (
           <div key={g.etiqueta}>
-            {variasPrendas && (
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-noche/50">
-                {g.etiqueta}
-              </p>
-            )}
+            <p className="mb-3 flex items-baseline gap-2">
+              {variasPrendas && (
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rosa-100 text-xs font-semibold text-rosa-600">
+                  {i + 1}
+                </span>
+              )}
+              <span className="text-base font-bold text-noche">{g.etiqueta}</span>
+              <span className="text-xs text-noche/40">
+                {Math.min(g.productos.length, POR_PRENDA)} parecidas
+              </span>
+            </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {g.productos.slice(0, POR_PRENDA).map((p) => (
                 <a

@@ -3,6 +3,7 @@
 import type { GrupoProductos } from "@/lib/use-catalogo";
 import { anotarClicComercio } from "@/lib/use-evento";
 import BotonAvisame from "@/components/BotonAvisame";
+import ExplicaCampanita from "@/components/ExplicaCampanita";
 
 // Prendas con foto sacadas del catálogo que publican las tiendas.
 // Ver lib/catalogo-tiendas.ts para el porqué y sus límites: solo cubre
@@ -45,6 +46,7 @@ export default function ProductosSugeridos({
         Salen del catálogo que estas tiendas publican, así que el precio y la
         foto son los de ellas. Haz clic para ir directo a la prenda.
       </p>
+      <ExplicaCampanita />
 
       <div className="mt-6 space-y-8">
         {grupos.map((g) => (
@@ -61,7 +63,7 @@ export default function ProductosSugeridos({
                   href={p.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "buscar" })}
+                  onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "buscar", prenda: p.titulo })}
                   className="group flex flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md"
                 >
                   <div className="relative aspect-[3/4] overflow-hidden bg-rosa-50">
@@ -94,6 +96,16 @@ export default function ProductosSugeridos({
           </div>
         ))}
       </div>
+      <p className="mt-5 flex items-start gap-2 rounded-xl bg-rosa-50/70 px-4 py-3 text-xs leading-relaxed text-noche/60">
+        <svg viewBox="0 0 24 24" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rosa-500" aria-hidden>
+          <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span>
+          Al dar clic vas a la página de cada comercio (o a su Instagram). Allá ves tallas y
+          disponibilidad, y la compra la haces directamente con ellos: LoleardLola no vende las prendas
+          ni cobra por ellas.
+        </span>
+      </p>
     </div>
   );
 }

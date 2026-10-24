@@ -55,7 +55,7 @@ export default function PanelPromos({ tipos }: { tipos: string[] }) {
                 href={p.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "promo" })}
+                onClick={() => anotarClicComercio({ tienda: p.tienda, dominio: p.dominio, origen: "promo", prenda: p.titulo })}
                 className="group relative flex w-32 shrink-0 flex-col overflow-hidden rounded-xl border border-rosa-100 transition hover:border-rosa-300 hover:shadow-md lg:w-auto"
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-rosa-50">

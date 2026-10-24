@@ -9,6 +9,10 @@
 // /admin; esto solo decide si se muestra el atajo.
 const CORREOS_ADMIN = ["contacto@lakaja.co"];
 
+// Cuentas de prueba: lo que hagan no cuenta en el tablero (ni lo que
+// pase en los navegadores donde entraron con ellas).
+export const CORREOS_PRUEBA = ["contacto@lakaja.co", "julyalvarez9@hotmail.com"];
+
 export function esAdmin(correo: string | null | undefined): boolean {
   if (!correo) return false;
   return CORREOS_ADMIN.includes(correo.trim().toLowerCase());

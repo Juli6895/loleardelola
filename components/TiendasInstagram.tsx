@@ -132,7 +132,7 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={() =>
-                        anotarClicComercio({ tienda: t.nombre, dominio: t.dominio ?? t.nombre, origen: "pagina" })
+                        anotarClicComercio({ tienda: t.nombre, dominio: t.dominio ?? t.nombre, origen: "pagina", prenda: t.prenda?.titulo })
                       }
                       className="text-xs font-medium text-rosa-600 underline-offset-2 hover:underline"
                     >
@@ -145,6 +145,16 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
           );
         })}
       </div>
+      <p className="mt-5 flex items-start gap-2 rounded-xl bg-rosa-50/70 px-4 py-3 text-xs leading-relaxed text-noche/60">
+        <svg viewBox="0 0 24 24" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rosa-500" aria-hidden>
+          <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+        <span>
+          Al dar clic vas a la página de cada comercio (o a su Instagram). Allá ves tallas y
+          disponibilidad, y la compra la haces directamente con ellos: LoleardLola no vende las prendas
+          ni cobra por ellas.
+        </span>
+      </p>
     </div>
   );
 }

@@ -47,7 +47,7 @@ export default function TagChip({
             : `Buscar "${term}" en Google Imágenes`
         }
       >
-        <span>{term}</span>
+        <span className="font-semibold">{term}</span>
         {priceLabel && (
           <span className="rounded-full bg-rosa-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rosa-600">
             {priceLabel}

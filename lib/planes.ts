@@ -54,19 +54,20 @@ export const TOPES: Record<Plan, Topes> = {
 // Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000): una
 // búsqueda por foto ~$160, una prenda al clóset ~$60, una combinación
 // ~$125 y un manual ~$280. Con los límites de TOPES_MES_MEMBRESIA, una
-// usuaria que lo use TODO hasta el tope cuesta ~$6.800 al mes, y la
-// membresía deja ~$13.500 (mensual) o ~$9.500 al mes (anual) después de
-// la comisión de Bold: hay utilidad incluso en el peor caso.
+// usuaria que lo use TODO hasta el tope cuesta ~$6.800 al mes.
 //
-// Ya no se generan imágenes con Gemini (foto de catálogo de la prenda,
-// foto del outfit): costaban ~$275 cada una y no daban utilidad.
+// Octubre de 2026: el precio bajó (antes $14.900 y $119.000) al quitar
+// las imágenes con Gemini (~$275 cada una). Después de la comisión de
+// Bold (~3,5% + $900 por cobro) la membresía deja ~$11.550 (mensual) o
+// ~$7.960 al mes (anual): hay utilidad incluso en el peor caso, y una
+// usuaria normal usa bastante menos que el tope.
 //
-// El anual sale a ~$9.900 por mes (33% menos que mes a mes). Bold cobra
+// El anual sale a ~$8.325 por mes (35% menos que mes a mes). Bold cobra
 // un fijo de $900 por transacción, así que un solo cobro al año deja
 // más que doce cobros mensuales.
 export const PRECIOS = {
-  mensual: 14900,
-  anual: 119000,
+  mensual: 12900,
+  anual: 99900,
 } as const;
 
 // ---------------------------------------------------------------------

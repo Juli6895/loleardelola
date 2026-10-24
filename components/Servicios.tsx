@@ -111,53 +111,118 @@ export default function Servicios() {
 // Dibujos: hechos con bloques, sin fotos, para que carguen al instante
 // ---------------------------------------------------------------------
 
-/** La foto del outfit, escaneada, y tres prendas de tienda con precio. */
-function DibujoBuscar() {
+/** Las tres prendas que se dibujan: en la foto y en las tiendas. */
+function Blusa({ className = "" }: { className?: string }) {
   return (
-    <div className="flex items-center gap-4" aria-hidden>
-      <div className="relative h-32 w-24 rounded-2xl bg-white p-2 shadow-sm">
-        <div className="h-full w-full rounded-xl bg-gradient-to-b from-rosa-200 to-rosa-300" />
-        <div className="absolute left-5 top-6 h-8 w-14 rounded-md border-2 border-dashed border-white" />
-        <div className="absolute bottom-6 left-6 h-10 w-12 rounded-md border-2 border-dashed border-white" />
-      </div>
-      <span className="text-2xl text-rosa-400">→</span>
-      <div className="flex flex-col gap-2">
-        {["$89.900", "$129.000", "$64.950"].map((p) => (
-          <div key={p} className="flex items-center gap-2 rounded-xl bg-white px-2 py-1.5 shadow-sm">
-            <div className="h-8 w-7 rounded-md bg-rosa-200" />
-            <div>
-              <div className="h-1.5 w-12 rounded bg-noche/15" />
-              <div className="mt-1 text-[10px] font-semibold text-noche">{p}</div>
-            </div>
+    <svg viewBox="0 0 40 40" className={className} fill="currentColor">
+      <path d="M14 6c1.5 2 3.6 3 6 3s4.5-1 6-3l8 5-3.5 7-3.5-1.8V34H13V16.2L9.5 18 6 11l8-5Z" />
+    </svg>
+  );
+}
+function Pantalon({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} fill="currentColor">
+      <path d="M11 5h18l2 30h-7l-4-19-4 19H9l2-30Z" />
+    </svg>
+  );
+}
+function Zapato({ className = "" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 40 40" className={className} fill="currentColor">
+      <path d="M6 18c4 0 7-1 9-4 3 3 6 5 11 6 5 1 8 3 8 7v3H6V18Z" />
+    </svg>
+  );
+}
+
+/**
+ * "Tu foto": una persona con un outfit, cada prenda marcada como la
+ * detecta la app. "En tiendas": esas mismas prendas, con tienda y precio.
+ */
+function DibujoBuscar() {
+  const enTiendas = [
+    { Prenda: Blusa, color: "text-rosa-500", tienda: "Especia", precio: "$89.900" },
+    { Prenda: Pantalon, color: "text-noche/70", tienda: "Bybla", precio: "$129.000" },
+    { Prenda: Zapato, color: "text-rosa-300", tienda: "Navissi", precio: "$64.950" },
+  ];
+  return (
+    <div className="flex items-center gap-3" aria-hidden>
+      <div className="flex flex-col items-center">
+        <div className="relative h-36 w-24 rounded-2xl bg-white p-1.5 shadow-sm">
+          <div className="relative h-full w-full overflow-hidden rounded-xl bg-rosa-50">
+            {/* La persona */}
+            <span className="absolute left-1/2 top-2 h-5 w-5 -translate-x-1/2 rounded-full bg-[#d6a47a]" />
+            <Blusa className="absolute left-1/2 top-6 h-11 w-11 -translate-x-1/2 text-rosa-500" />
+            <Pantalon className="absolute left-1/2 top-[3.6rem] h-12 w-12 -translate-x-1/2 text-noche/70" />
+            <Zapato className="absolute bottom-0.5 left-[1.35rem] h-5 w-5 text-rosa-300" />
+            {/* Lo que detecta la app */}
+            <span className="absolute left-3 top-6 h-10 w-[4.5rem] rounded-md border-2 border-dashed border-rosa-600" />
+            <span className="absolute left-3 top-[3.9rem] h-11 w-[4.5rem] rounded-md border-2 border-dashed border-noche/60" />
           </div>
-        ))}
+        </div>
+        <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-noche/50">Tu foto</span>
+      </div>
+
+      <span className="text-xl text-rosa-400">→</span>
+
+      <div className="flex flex-col items-center">
+        <div className="flex flex-col gap-1.5">
+          {enTiendas.map(({ Prenda, color, tienda, precio }) => (
+            <div key={tienda} className="flex items-center gap-2 rounded-xl bg-white py-1 pl-1 pr-2.5 shadow-sm">
+              <span className="flex h-9 w-8 items-center justify-center rounded-lg bg-rosa-50">
+                <Prenda className={`h-6 w-6 ${color}`} />
+              </span>
+              <span className="leading-tight">
+                <span className="block text-[9px] text-noche/45">{tienda}</span>
+                <span className="block text-[11px] font-semibold text-noche">{precio}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+        <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-noche/50">En tiendas</span>
       </div>
     </div>
   );
 }
 
-/** Cuatro prendas del clóset, dos unidas como un outfit. */
+/**
+ * "Tu clóset": sus prendas en la grilla. "Tu outfit": una de ellas
+ * (la blusa) armada con otras dos, como lo hace "Buscar combinaciones".
+ */
 function DibujoCloset() {
-  const Gancho = () => (
-    <svg viewBox="0 0 40 40" className="h-8 w-8 text-rosa-500" fill="none">
-      <path d="M20 9a3 3 0 1 1 3 3c-1.5.6-3 1.5-3 3v2m0 0L6 27h28L20 17Z" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
+  const closet = [
+    { Prenda: Blusa, color: "text-rosa-500", elegida: true },
+    { Prenda: Pantalon, color: "text-[#3b6ea5]", elegida: false },
+    { Prenda: Zapato, color: "text-noche/60", elegida: false },
+    { Prenda: Blusa, color: "text-[#c19a6b]", elegida: false },
+  ];
   return (
-    <div className="grid grid-cols-2 gap-3" aria-hidden>
-      {[0, 1, 2, 3].map((i) => (
-        <div
-          key={i}
-          className={`flex h-16 w-20 items-center justify-center rounded-xl bg-white shadow-sm ${
-            i === 0 || i === 3 ? "ring-2 ring-rosa-400" : ""
-          }`}
-        >
-          <Gancho />
+    <div className="flex items-center gap-3" aria-hidden>
+      <div className="flex flex-col items-center">
+        <div className="grid grid-cols-2 gap-1.5">
+          {closet.map(({ Prenda, color, elegida }, i) => (
+            <span
+              key={i}
+              className={`flex h-12 w-12 items-center justify-center rounded-xl bg-white shadow-sm ${
+                elegida ? "ring-2 ring-rosa-500" : ""
+              }`}
+            >
+              <Prenda className={`h-8 w-8 ${color}`} />
+            </span>
+          ))}
         </div>
-      ))}
-      <span className="col-span-2 mx-auto -mt-1 rounded-full bg-white px-3 py-0.5 text-[11px] font-semibold text-rosa-600 shadow-sm">
-        ✦ combínalas así
-      </span>
+        <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-noche/50">Tu clóset</span>
+      </div>
+
+      <span className="text-xl text-rosa-400">→</span>
+
+      <div className="flex flex-col items-center">
+        <div className="flex h-[6.6rem] w-20 flex-col items-center justify-center rounded-2xl bg-white shadow-sm">
+          <Blusa className="h-9 w-9 text-rosa-500" />
+          <Pantalon className="-mt-2 h-9 w-9 text-noche/70" />
+          <Zapato className="-mt-1 h-5 w-5 text-[#c19a6b]" />
+        </div>
+        <span className="mt-1.5 text-[10px] font-semibold uppercase tracking-wide text-noche/50">Tu outfit</span>
+      </div>
     </div>
   );
 }

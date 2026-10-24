@@ -54,14 +54,15 @@ export const TOPES: Record<Plan, Topes> = {
 // ~$125 y un manual ~$280. Guardar outfits no cuesta nada (es una fila
 // en la base; la foto ya se subió al buscar).
 //
-// Octubre de 2026, precios de Juliana: mensual $12.900 y anual $69.900.
-// Después de la comisión de Bold (~3,5% + $900 por cobro) dejan
-// ~$11.550 y ~$5.550 al mes. Una usuaria muy activa (20 búsquedas, 15
-// prendas y 15 combinaciones al mes) cuesta ~$5.900: el anual queda
-// justo con ella y con utilidad en una usuaria normal.
+// Octubre de 2026, precios de Juliana: mensual $12.900 y anual $89.900
+// (estuvo unos días en $69.900, pero con una usuaria muy activa no
+// dejaba nada). Después de la comisión de Bold (~3,5% + $900 por cobro)
+// dejan ~$11.550 y ~$7.150 al mes. Una usuaria muy activa (20
+// búsquedas, 10 prendas, 10 combinaciones y 2 manuales al mes) cuesta
+// ~$5.600: el anual deja ~$1.500 con ella y ~$5.000 con una normal.
 export const PRECIOS = {
   mensual: 12900,
-  anual: 69900,
+  anual: 89900,
 } as const;
 
 // ---------------------------------------------------------------------

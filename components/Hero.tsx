@@ -1,11 +1,11 @@
 import Link from "next/link";
 
-// Sección hero de la landing — en español colombiano.
-// Sin login por ahora: el ingreso con Pinterest quedó para una fase
-// siguiente, así que se entra directo a usar la app.
+// Sección hero de la landing — en español colombiano. Corta a propósito:
+// lo que explica la app son los cuatro servicios que van debajo
+// (components/Servicios.tsx).
 export default function Hero() {
   return (
-    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rosa-100 via-white to-rosa-200 px-6 py-16 shadow-suave sm:px-12 sm:py-24">
+    <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-rosa-100 via-white to-rosa-200 px-6 py-14 shadow-suave sm:px-12 sm:py-20">
       {/* Decoración */}
       <div className="absolute -right-20 -top-20 h-60 w-60 rounded-full bg-rosa-300 opacity-30 blur-3xl" />
       <div className="absolute -bottom-16 -left-20 h-60 w-60 rounded-full bg-rosa-400 opacity-20 blur-3xl" />
@@ -16,14 +16,10 @@ export default function Hero() {
         </p>
         <h1 className="font-display text-4xl leading-tight text-noche sm:text-5xl md:text-6xl">
           Encuentra{" "}
-          <span className="italic text-rosa-500">
-            ese outfit que te robó el corazón
-          </span>
+          <span className="italic text-rosa-500">ese outfit que te robó el corazón</span>
         </h1>
         <p className="mx-auto mt-6 max-w-xl text-base text-noche/70 sm:text-lg">
-          Pega el link de un pin o sube una foto, y te mostramos tiendas online
-          donde puedes comprar prendas parecidas. Nada de adivinar: puro shopping
-          con estilo.
+          Te decimos dónde comprarlo, cómo combinar lo que ya tienes y qué te favorece a ti.
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -41,35 +37,7 @@ export default function Hero() {
           </Link>
         </div>
 
-        <p className="mt-4 text-xs text-noche/50">
-          Sin registro, sin complicaciones. Empieza de una.
-        </p>
-      </div>
-
-      {/* Mini-features */}
-      <div className="relative mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-6 text-left sm:grid-cols-3">
-        {[
-          {
-            title: "Comparte tu inspiración",
-            desc: "Pega un link, sube una foto o pégala con Ctrl+V — como te quede más fácil.",
-          },
-          {
-            title: "Detectamos prendas",
-            desc: "Con IA identificamos vestidos, jeans, botas y más.",
-          },
-          {
-            title: "Buscamos por ti",
-            desc: "Abre Google Imágenes con las prendas listas pa' comprar.",
-          },
-        ].map((f) => (
-          <div
-            key={f.title}
-            className="rounded-2xl border border-rosa-100 bg-white/80 p-5 backdrop-blur"
-          >
-            <h3 className="font-display text-lg text-rosa-600">{f.title}</h3>
-            <p className="mt-2 text-sm text-noche/70">{f.desc}</p>
-          </div>
-        ))}
+        <p className="mt-4 text-xs text-noche/50">Empieza gratis, sin registrarte.</p>
       </div>
     </section>
   );

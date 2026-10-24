@@ -1,6 +1,6 @@
 "use client";
 
-import { COMBINACIONES_GRATIS_TOTAL, PRECIOS, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { PRECIOS, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
 import SubNavCuenta from "@/components/SubNavCuenta";
@@ -24,7 +24,6 @@ export default function MembresiaPage() {
   const conMembresia = tieneMembresia(usuario);
 
   const mes = (n: number) => `${n} al mes`;
-  const enPrimeras = `${COMBINACIONES_GRATIS_TOTAL}, en tus ${TOPES.gratis.combinacionesClosetGratis} primeras prendas`;
   const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
     {
       que: "Búsquedas de outfits",
@@ -42,19 +41,25 @@ export default function MembresiaPage() {
       que: "Prendas en tu clóset",
       sin: TOPES.anonimo.prendasCloset ?? "—",
       gratis: TOPES.gratis.prendasCloset ?? "—",
-      membresia: `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
+      membresia: "Sin tope",
     },
     {
       que: "Buscar combinaciones",
-      sin: enPrimeras,
-      gratis: enPrimeras,
-      membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
+      sin: TOPES.anonimo.combinacionesClosetGratis ?? "—",
+      gratis: TOPES.gratis.combinacionesClosetGratis ?? "—",
+      membresia: "Sin tope",
     },
     {
       que: "Manual de estilo",
       sin: "—",
       gratis: "—",
       membresia: `Sí, ${TOPES_MES_MEMBRESIA.manuales} nuevos al mes`,
+    },
+    {
+      que: "Avisos cuando baja el precio",
+      sin: "—",
+      gratis: "—",
+      membresia: "Sí, al celular",
     },
   ];
 

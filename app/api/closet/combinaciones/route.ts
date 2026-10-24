@@ -11,10 +11,9 @@ import type { ClosetCategory } from "@/types";
 //
 // Arma UN outfit alrededor de una prenda puntual del clóset, pensado
 // para lo que la usuaria dijo en su perfil que quiere proyectar, y
-// busca lo que le falta en el catálogo real de las tiendas. Gratis en sus primeras
-// prendas subidas (ver combinacionesClosetGratis en lib/planes.ts);
-// después de eso, pide membresía — igual que el Manual de estilo, usa
-// la misma búsqueda en catálogos reales.
+// busca lo que le falta en el catálogo real de las tiendas. Sin
+// membresía tiene un total gratis (ver combinacionesClosetGratis en
+// lib/planes.ts); con membresía, sin tope a la vista.
 export async function POST(req: Request) {
   const usuario = await usuarioActual(req);
   if (!usuario) {

@@ -2,7 +2,6 @@ import { supabaseAdmin } from "./supabase";
 import { usuarioActual, type UsuarioActual } from "./sesion";
 import { esAdmin } from "./admin-correos";
 import {
-  COMBINACIONES_GRATIS_TOTAL,
   mensajeDeTope,
   mensajeTopeMensual,
   puedeUsar,
@@ -150,19 +149,14 @@ export async function revisarTope(
 }
 
 /**
- * ¿Puede buscar combinaciones para ESTA prenda del clóset?
- *
- * A diferencia de los demás topes, este no cuenta VECES usado (buscar
- * combinaciones para la misma prenda dos veces no debería contar
- * doble): cuenta CUÁLES prendas califican. Sin membresía, solo las
- * primeras `combinacionesClosetGratis` que subió, por fecha — así
- * queda claro cuáles son "las gratis" aunque después borre y suba
- * otras.
+ * ¿Puede buscar combinaciones? Con membresía, sin tope a la vista (solo
+ * el freno de seguridad del mes). Sin membresía, un total desde siempre:
+ * 1 sin cuenta y 2 con cuenta gratis (TOPES.combinacionesClosetGratis).
  */
 export async function puedeVerCombinaciones(
   usuario: UsuarioActual,
-  itemId: string
-): Promise<{ permitido: true } | { permitido: false; mensaje: string; destrabaCon: "membresia" | null }> {
+  _itemId: string
+): Promise<{ permitido: true } | { permitido: false; mensaje: string; destrabaCon: "gratis" | "membresia" | null }> {
   if (usuario.plan === "membresia") {
     const mensual = await revisarUsoMensual(usuario, "combinaciones");
     return mensual.permitido ? mensual : { ...mensual, destrabaCon: null };
@@ -170,29 +164,20 @@ export async function puedeVerCombinaciones(
   const tope = TOPES[usuario.plan].combinacionesClosetGratis;
   if (tope === null) return { permitido: true };
 
-  // Además de cuáles prendas califican, un tope total: si no, se podría
-  // buscar sin fin sobre esas mismas prendas, y cada búsqueda cuesta.
-  if ((await usadasDesde(usuario.id, "combinaciones", null)) >= COMBINACIONES_GRATIS_TOTAL) {
+  const usadas = await usadasDesde(usuario.id, "combinaciones", null);
+  if (usadas < tope) return { permitido: true };
+
+  const cuantas = tope === 1 ? "tu combinación gratis" : `tus ${tope} combinaciones gratis`;
+  if (usuario.plan === "anonimo") {
     return {
       permitido: false,
-      mensaje: `Ya usaste tus ${COMBINACIONES_GRATIS_TOTAL} combinaciones gratis. Con la membresía tienes ${TOPES_MES_MEMBRESIA.combinaciones} al mes.`,
-      destrabaCon: "membresia",
+      mensaje: `Ya usaste ${cuantas}. Crea tu cuenta gratis y tienes ${TOPES.gratis.combinacionesClosetGratis}, o con la membresía, sin tope.`,
+      destrabaCon: "gratis",
     };
   }
-
-  const { data: primeras } = await supabaseAdmin()
-    .from("closet_items")
-    .select("id")
-    .eq("user_id", usuario.id)
-    .order("created_at", { ascending: true })
-    .limit(tope);
-
-  const permitido = (primeras ?? []).some((p) => p.id === itemId);
-  if (permitido) return { permitido: true };
-
   return {
     permitido: false,
-    mensaje: `Buscar combinaciones es gratis en tus primeras ${tope} prendas. Con la membresía tienes ${TOPES_MES_MEMBRESIA.combinaciones} al mes, en todas.`,
+    mensaje: `Ya usaste ${cuantas}. Con la membresía buscas combinaciones sin tope.`,
     destrabaCon: "membresia",
   };
 }

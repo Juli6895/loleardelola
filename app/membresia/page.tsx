@@ -183,8 +183,11 @@ export default function MembresiaPage() {
             <p className="mt-2 font-display text-3xl text-noche">
               {pesos(PRECIOS.anual)}
             </p>
-            <p className="mt-1 mb-5 text-xs text-noche/50">
+            <p className="mt-1 text-xs text-noche/50">
               al año · equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes
+            </p>
+            <p className="mb-5 mt-2 self-center rounded-full bg-rosa-100 px-3 py-0.5 text-xs font-medium text-rosa-600">
+              Ahorras {Math.round((1 - PRECIOS.anual / (PRECIOS.mensual * 12)) * 100)}% frente a pagar mes a mes
             </p>
             <div className="mt-auto">
               <BotonPago

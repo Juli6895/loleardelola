@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
+import { anotar } from "@/lib/use-evento";
 import { activarNotificaciones, marcarSeguida, useSeguimientos } from "@/lib/use-avisos";
 
 type Prenda = { url: string; titulo: string; imagen: string | null; precioCop: number | null };
@@ -24,12 +25,22 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
     if (ocupado) return;
 
     if (!estado.puede) {
+      // Sin sesión en este navegador (o en la app instalada, que no
+      // siempre comparte la sesión con Chrome) no se sabe si tiene
+      // membresía: hay que pedirle que entre, no que pague.
+      const sinSesion = (estado.motivo ?? "").toLowerCase().includes("correo");
       toast(
         (t) => (
           <span className="text-sm">
-            Los avisos de rebaja son parte de la membresía.{" "}
-            <Link href="/membresia" onClick={() => toast.dismiss(t.id)} className="font-medium text-rosa-600 underline">
-              Ver la membresía
+            {sinSesion
+              ? "Para recibir avisos de rebaja, entra con tu correo."
+              : "Los avisos de rebaja son parte de la membresía."}{" "}
+            <Link
+              href={sinSesion ? "/entrar" : "/membresia"}
+              onClick={() => toast.dismiss(t.id)}
+              className="font-medium text-rosa-600 underline"
+            >
+              {sinSesion ? "Entrar" : "Ver la membresía"}
             </Link>
           </span>
         ),
@@ -49,6 +60,7 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
 
       const problema = await activarNotificaciones();
       if (problema) {
+        anotar("aviso_error", { paso: "notificaciones", motivo: problema.slice(0, 160) });
         toast.error(problema, { duration: 8000 });
         return;
       }
@@ -57,11 +69,15 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(prenda),
       });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "No pudimos guardar el aviso.");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        anotar("aviso_error", { paso: "guardar", estado: res.status, motivo: String(json.error ?? "").slice(0, 160) });
+        throw new Error(json.error ?? "No pudimos guardar el aviso.");
+      }
       marcarSeguida(prenda.url, true);
       toast.success("Listo: te avisamos si baja de precio");
     } catch (err: any) {
+      anotar("aviso_error", { paso: "otro", motivo: String(err?.name ?? "") + ": " + String(err?.message ?? "").slice(0, 160) });
       toast.error(err.message ?? "No pudimos guardar el aviso.");
     } finally {
       setOcupado(false);

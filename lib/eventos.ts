@@ -89,6 +89,7 @@ export const EVENTOS = [
   "push_suscrito",
   "seguimiento_creado",
   "aviso_rebaja_enviado",
+  "aviso_error",
 
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
   // usa; queda para leer los eventos viejos.

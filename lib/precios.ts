@@ -32,10 +32,13 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
       const limpia = url.split(/[?#]/)[0].replace(/\/$/, "");
       const res = await pedir(`${limpia}.js`);
       if (!res.ok) return null;
-      // El precio de la talla disponible más barata: "price" es el de la
+      // La talla del enlace (?variant=) si viene; si no, la primera
+      // disponible, que es la que muestra la tienda. "price" es el de la
       // talla más barata aunque esté agotada (ver precioDeVariantes).
       const p = (await res.json()) as { variants?: VarianteShopify[] };
-      const r = precioDeVariantes(p.variants ?? [], true);
+      const pedida = Number(new URL(url).searchParams.get("variant"));
+      const deLaTalla = (p.variants ?? []).filter((v) => v.id === pedida);
+      const r = precioDeVariantes(deLaTalla.length > 0 ? deLaTalla : (p.variants ?? []), true);
       return r ? { precioCop: r.precioCop, disponible: r.disponible } : null;
     }
 

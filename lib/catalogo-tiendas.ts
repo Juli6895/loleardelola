@@ -515,9 +515,11 @@ async function pedirShopify(url: string): Promise<Response> {
 // salían rebajas falsas: un pantalón de Onda de Mar con la S agotada a
 // $21.548, la M a $490.000 y la L a $800.000 aparecía a $21.548 con 97%
 // de descuento. Cuando las tallas no valen lo mismo, se pregunta el
-// producto completo (<url>.js) y se usa la talla disponible más barata,
-// con SU precio "antes".
+// producto completo (<url>.js) y se usa la PRIMERA talla disponible, con
+// SU precio "antes": es la que muestra la tienda al abrir la prenda. El
+// enlace además lleva "?variant=" para abrir justo esa talla.
 export type VarianteShopify = {
+  id?: number;
   price?: number | string;
   compare_at_price?: number | string | null;
   available?: boolean;
@@ -526,7 +528,7 @@ export type VarianteShopify = {
 export function precioDeVariantes(
   variantes: VarianteShopify[],
   enCentavos: boolean
-): { precioCop: number; precioAntesCop: number | null; disponible: boolean } | null {
+): { precioCop: number; precioAntesCop: number | null; disponible: boolean; varianteId: number | null } | null {
   const valor = (x: number | string | null | undefined) => {
     const n = Number(x);
     return Number.isFinite(n) && n > 0 ? (enCentavos ? n / 100 : n) : null;
@@ -534,13 +536,14 @@ export function precioDeVariantes(
   const disponibles = variantes.filter((v) => v.available !== false && valor(v.price));
   const base = disponibles.length > 0 ? disponibles : variantes.filter((v) => valor(v.price));
   if (base.length === 0) return null;
-  const v = base.reduce((a, b) => (valor(b.price)! < valor(a.price)! ? b : a));
+  const v = base[0];
   const precio = valor(v.price)!;
   const antes = valor(v.compare_at_price);
   return {
     precioCop: Math.round(precio),
     precioAntesCop: antes && antes > precio ? Math.round(antes) : null,
     disponible: disponibles.length > 0,
+    varianteId: typeof v.id === "number" ? v.id : null,
   };
 }
 
@@ -619,12 +622,14 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
         const clase = p.type ?? "";
         let precioCop: number | null = null;
         let precioAntesCop: number | null = null;
+        let url = `https://${host}/products/${p.handle}`;
         if (revisados.has(p.handle!)) {
           // Si no se pudo revisar, se muestra "desde" el precio más bajo
           // pero sin rebaja: mejor no prometer un descuento dudoso.
           const r = revisados.get(p.handle!);
           precioCop = r?.precioCop ?? (Number(p.price) > 0 ? Math.round(Number(p.price)) : null);
           precioAntesCop = r?.precioAntesCop ?? null;
+          if (r?.varianteId) url += `?variant=${r.varianteId}`;
         } else {
           const precio = Number(p.price);
           const antes = Number(p.compare_at_price_max);
@@ -636,7 +641,7 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
           precioCop,
           precioAntesCop,
           imagen: (p.featured_image?.url || p.image)!,
-          url: `https://${host}/products/${p.handle}`,
+          url,
           tienda: t.nombre,
           dominio: t.dominio,
           titulo_n: normalizar(p.title!),

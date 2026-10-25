@@ -133,6 +133,10 @@ export async function registrar(
   ctx: ContextoEvento = {},
   props: Record<string, unknown> = {}
 ): Promise<void> {
+  // Solo cuenta lo que pasa en la página publicada. Las pruebas en un
+  // computador (next dev / next start) usan la misma base de datos, y
+  // cada pestaña de prueba quedaba como una "persona" más en el tablero.
+  if (process.env.VERCEL_ENV !== "production") return;
   try {
     await supabaseAdmin().from("eventos").insert({
       nombre,

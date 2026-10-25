@@ -4,6 +4,10 @@ import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA, DISPOSITIVOS_PRUEBA } from "@/lib/admin-correos";
 import { COMISION_BOLD, COSTOS_FIJOS, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 import { cloudinary } from "@/lib/cloudinary";
+import { tiendasConCatalogo } from "@/lib/catalogo-tiendas";
+import { getTiendasInstagram } from "@/lib/tiendas-instagram";
+import { getAllowedMerchants } from "@/lib/merchant-allowlist";
+import { getExcludedMerchants } from "@/lib/merchant-exclusions";
 
 // GET /api/admin/tablero → todo lo que pinta la página /admin.
 //
@@ -199,6 +203,47 @@ export async function GET(req: Request) {
       .slice(0, 20);
   };
   const comercios = agrupar((e) => (e.props?.tienda ? String(e.props.tienda) : null));
+
+  // ---------------------------------------------- comercios vinculados
+  // Las tres listas con que trabaja la app (ver config/ y
+  // lib/catalogo-tiendas.ts), unidas por dominio: un mismo comercio
+  // puede estar en varias.
+  const limpio = (d: string) => d.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/^www\./, "").replace(/\/.*$/, "");
+  const vinculados = new Map<
+    string,
+    { dominio: string; nombre: string; instagram: string | null; catalogo: boolean; enInstagram: boolean; google: boolean }
+  >();
+  const fila = (dominio: string) => {
+    const d = limpio(dominio);
+    const f = vinculados.get(d) ?? { dominio: d, nombre: d, instagram: null, catalogo: false, enInstagram: false, google: false };
+    vinculados.set(d, f);
+    return f;
+  };
+  for (const t of tiendasConCatalogo()) Object.assign(fila(t.dominio), { nombre: t.nombre, catalogo: true });
+  for (const t of getTiendasInstagram()) {
+    const f = fila(t.dominio ?? t.handle);
+    f.enInstagram = true;
+    f.instagram = t.handle;
+    if (f.nombre === f.dominio) f.nombre = t.nombre;
+  }
+  for (const d of getAllowedMerchants()) fila(d).google = true;
+  // Las que solo están en la lista de Google no traen nombre.
+  const NOMBRES: Record<string, string> = {
+    "zara.com": "Zara",
+    "hm.com": "H&M",
+    "pepitaperez.co": "Pepita Pérez",
+    "tiendacomplicity.com": "Complicity",
+  };
+  for (const f of vinculados.values()) if (f.nombre === f.dominio && NOMBRES[f.dominio]) f.nombre = NOMBRES[f.dominio];
+  const clicsPorDominio = new Map<string, number>();
+  for (const e of clics) {
+    const d = e.props?.dominio ? limpio(String(e.props.dominio)) : null;
+    if (d) clicsPorDominio.set(d, (clicsPorDominio.get(d) ?? 0) + 1);
+  }
+  const comerciosVinculados = Array.from(vinculados.values())
+    .map((f) => ({ ...f, clics: clicsPorDominio.get(f.dominio) ?? clicsPorDominio.get(f.instagram ?? "") ?? 0 }))
+    .sort((a, b) => Number(b.catalogo) - Number(a.catalogo) || b.clics - a.clics || a.nombre.localeCompare(b.nombre));
+  const comerciosExcluidos = getExcludedMerchants();
   const prendas = agrupar((e) => (e.props?.prenda ? String(e.props.prenda) : null));
 
   // ------------------------------------------------- actividad diaria
@@ -326,6 +371,8 @@ export async function GET(req: Request) {
     errores,
     comercios,
     prendas,
+    comerciosVinculados,
+    comerciosExcluidos,
     actividad,
     dinero: {
       pagosDelMes: delMes.length,

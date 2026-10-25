@@ -720,3 +720,8 @@ export function tiendaDeUrl(url: string): { plataforma: "shopify" | "vtex"; domi
   const t = TIENDAS.find((x) => host === (x.host ?? x.dominio).replace(/^www\./, "") || host === x.dominio);
   return t ? { plataforma: t.plataforma, dominio: t.dominio, nombre: t.nombre } : null;
 }
+
+/** Las tiendas de las que se lee el catálogo (para el tablero). */
+export function tiendasConCatalogo(): Array<{ dominio: string; nombre: string; plataforma: "shopify" | "vtex" }> {
+  return TIENDAS.map((t) => ({ dominio: t.dominio, nombre: t.nombre, plataforma: t.plataforma }));
+}

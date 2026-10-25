@@ -35,6 +35,16 @@ type Datos = {
   errores: Array<{ lugar: string; error: string; veces: number; personas: number; ultimaVez: string }>;
   comercios: Fila[];
   prendas: Fila[];
+  comerciosVinculados: Array<{
+    dominio: string;
+    nombre: string;
+    instagram: string | null;
+    catalogo: boolean;
+    enInstagram: boolean;
+    google: boolean;
+    clics: number;
+  }>;
+  comerciosExcluidos: string[];
   actividad: Array<{ dia: string; personas: number; busquedas: number; registros: number; pagos: number }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
   costos: Costos;
@@ -158,6 +168,9 @@ export default function AdminPage() {
           )}
         </Seccion>
       </div>
+
+      {/* ---- Comercios vinculados ---- */}
+      <SeccionComercios comercios={datos.comerciosVinculados} excluidos={datos.comerciosExcluidos} />
 
       {/* ---- Costos ---- */}
       <SeccionCostos costos={datos.costos} cobrado={datos.dinero.brutoCop} />
@@ -378,6 +391,89 @@ function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number })
           ]}
         />
       </div>
+    </Seccion>
+  );
+}
+
+/**
+ * Los comercios con que trabaja LoleardLola y cómo está vinculado cada
+ * uno: catálogo (fotos y precios de verdad), directorio de Instagram, y
+ * lista de tiendas de la búsqueda en Google.
+ */
+function SeccionComercios({
+  comercios,
+  excluidos,
+}: {
+  comercios: Datos["comerciosVinculados"];
+  excluidos: string[];
+}) {
+  const conCatalogo = comercios.filter((c) => c.catalogo).length;
+  const enInstagram = comercios.filter((c) => c.enInstagram).length;
+  const enGoogle = comercios.filter((c) => c.google).length;
+  const Chip = ({ si, texto }: { si: boolean; texto: string }) =>
+    si ? (
+      <span className="mr-1 inline-block rounded-full bg-rosa-50 px-2 py-0.5 text-[11px] font-medium text-rosa-600">{texto}</span>
+    ) : null;
+  return (
+    <Seccion
+      titulo="Comercios vinculados"
+      nota="Catálogo: la app trae sus prendas con foto y precio. Instagram: sale en las tiendas para mirar. Google: la búsqueda de Google Imágenes se limita a estas tiendas."
+    >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Numero etiqueta="Comercios" valor={comercios.length} />
+        <Numero etiqueta="Con catálogo" valor={conCatalogo} destacado />
+        <Numero etiqueta="En Instagram" valor={enInstagram} />
+        <Numero etiqueta="En Google" valor={enGoogle} />
+      </div>
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[620px] text-sm">
+          <thead>
+            <tr className="border-b border-rosa-100 text-left">
+              {["Comercio", "Página", "Instagram", "Vinculado por", "Clics"].map((c) => (
+                <th key={c} className="pb-2 pr-4 font-medium text-noche/50">
+                  {c}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {comercios.map((c) => (
+              <tr key={c.dominio} className="border-b border-rosa-50 last:border-0">
+                <td className="py-2 pr-4 font-medium text-noche">{c.nombre}</td>
+                <td className="py-2 pr-4">
+                  {c.dominio.includes(".") ? (
+                    <a href={`https://${c.dominio}`} target="_blank" rel="noopener noreferrer" className="text-rosa-600 hover:underline">
+                      {c.dominio}
+                    </a>
+                  ) : (
+                    <span className="text-noche/40">—</span>
+                  )}
+                </td>
+                <td className="py-2 pr-4">
+                  {c.instagram ? (
+                    <a href={`https://www.instagram.com/${c.instagram}/`} target="_blank" rel="noopener noreferrer" className="text-rosa-600 hover:underline">
+                      @{c.instagram}
+                    </a>
+                  ) : (
+                    <span className="text-noche/40">—</span>
+                  )}
+                </td>
+                <td className="py-2 pr-4">
+                  <Chip si={c.catalogo} texto="Catálogo" />
+                  <Chip si={c.enInstagram} texto="Instagram" />
+                  <Chip si={c.google} texto="Google" />
+                </td>
+                <td className="py-2 pr-4 tabular-nums text-noche/70">{c.clics}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {excluidos.length > 0 && (
+        <p className="mt-3 text-xs text-noche/50">
+          Excluidos (nunca se muestran): {excluidos.join(", ")}.
+        </p>
+      )}
     </Seccion>
   );
 }

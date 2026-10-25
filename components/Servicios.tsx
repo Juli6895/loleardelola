@@ -3,8 +3,8 @@ import Link from "next/link";
 // =====================================================================
 // Los servicios de LoleardLola, en la página principal
 // =====================================================================
-// Sin dibujos, a pedido de Juliana: el nombre de cada página grande y en
-// negrita (es el enlace), y debajo qué se hace ahí.
+// Cinco servicios, sin dibujos, a pedido de Juliana: el nombre de cada
+// página grande y en negrita (es el enlace), y debajo qué se hace ahí.
 // =====================================================================
 
 type Servicio = {
@@ -41,6 +41,12 @@ const SERVICIOS: Servicio[] = [
     href: "/manual",
     membresia: true,
   },
+  {
+    numero: 5,
+    pagina: "Mi clóset",
+    texto: "Puedes subir tus prendas y te recomendamos con qué combinarlas.",
+    href: "/mi-closet",
+  },
 ];
 
 export default function Servicios() {
@@ -54,11 +60,15 @@ export default function Servicios() {
       </div>
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {SERVICIOS.map((s) => (
+        {SERVICIOS.map((s, i) => (
           <Link
             key={s.numero}
             href={s.href}
-            className="group flex gap-4 rounded-3xl border border-rosa-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-rosa-300 hover:shadow-suave sm:p-7"
+            // Con un número impar de servicios, el último ocupa todo el
+            // ancho en vez de quedar solo a la izquierda.
+            className={`group flex gap-4 rounded-3xl ${
+              SERVICIOS.length % 2 === 1 && i === SERVICIOS.length - 1 ? "sm:col-span-2" : ""
+            } border border-rosa-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-rosa-300 hover:shadow-suave sm:p-7`}
           >
             <span className="font-display text-4xl leading-none text-rosa-300">{s.numero}</span>
             <span className="min-w-0 flex-1">

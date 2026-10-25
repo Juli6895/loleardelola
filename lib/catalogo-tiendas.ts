@@ -515,9 +515,10 @@ async function pedirShopify(url: string): Promise<Response> {
 // salían rebajas falsas: un pantalón de Onda de Mar con la S agotada a
 // $21.548, la M a $490.000 y la L a $800.000 aparecía a $21.548 con 97%
 // de descuento. Cuando las tallas no valen lo mismo, se pregunta el
-// producto completo (<url>.js) y se usa la PRIMERA talla disponible, con
-// SU precio "antes": es la que muestra la tienda al abrir la prenda. El
-// enlace además lleva "?variant=" para abrir justo esa talla.
+// producto completo (<url>.js) y se usa la talla DISPONIBLE más
+// económica, con SU precio "antes". El enlace lleva "?variant=" para que
+// la tienda abra justo esa talla y muestre ese mismo precio (sin eso
+// abre en la primera talla, que puede valer otra cosa).
 export type VarianteShopify = {
   id?: number;
   price?: number | string;
@@ -536,7 +537,7 @@ export function precioDeVariantes(
   const disponibles = variantes.filter((v) => v.available !== false && valor(v.price));
   const base = disponibles.length > 0 ? disponibles : variantes.filter((v) => valor(v.price));
   if (base.length === 0) return null;
-  const v = base[0];
+  const v = base.reduce((a, b) => (valor(b.price)! < valor(a.price)! ? b : a));
   const precio = valor(v.price)!;
   const antes = valor(v.compare_at_price);
   return {

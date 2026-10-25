@@ -13,6 +13,7 @@ const LINKS = [
   { href: "/mis-outfits", label: "Mis outfits" },
   { href: "/manual", label: "Mi manual" },
   { href: "/membresia", label: "Membresía" },
+  { href: "/preguntas", label: "Preguntas" },
 ];
 
 // Navbar responsive. Todas las secciones siguen abiertas sin cuenta —
@@ -61,7 +62,8 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop */}
-        <div className="hidden items-center gap-6 sm:flex">
+        {/* Desde 1024 px: por debajo no caben los enlaces y se usa el menú ☰. */}
+        <div className="hidden items-center gap-5 lg:flex">
           {LINKS.map((l) => (
             <Link
               key={l.href}
@@ -92,7 +94,7 @@ export default function Navbar() {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rosa-300 text-xs font-semibold uppercase text-noche">
                   {nombre.slice(0, 1)}
                 </span>
-                {nombre}
+                <span className="hidden xl:inline">{nombre}</span>
               </Link>
               <button
                 onClick={salir}
@@ -111,7 +113,7 @@ export default function Navbar() {
           )}
           <Link
             href="/buscar"
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+            className={`hidden rounded-full px-4 py-2 text-sm font-medium transition xl:inline-block ${
               dentro
                 ? "bg-rosa-400 text-white hover:bg-rosa-300"
                 : "bg-noche text-white hover:bg-rosa-500"
@@ -123,7 +125,7 @@ export default function Navbar() {
 
         {/* Mobile */}
         <button
-          className="flex items-center p-2 sm:hidden"
+          className="flex items-center p-2 lg:hidden"
           aria-label="Menú"
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -137,7 +139,7 @@ export default function Navbar() {
 
       {menuOpen && (
         <div
-          className={`border-t px-4 pb-4 pt-2 sm:hidden ${
+          className={`border-t px-4 pb-4 pt-2 lg:hidden ${
             dentro ? "border-white/10 bg-noche" : "border-rosa-100 bg-white"
           }`}
         >

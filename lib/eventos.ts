@@ -95,6 +95,7 @@ export const EVENTOS = [
   // la vista) y los errores de la página en el navegador.
   "tiempo_pagina",
   "inicio_visto",
+  "preguntas_visto",
   "pagina_error",
 
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se

@@ -14,3 +14,6 @@ coverage
 
 # Copias locales antes de borrar datos de la base (no se suben)
 respaldos/
+
+# Carpetas de compilación viejas que OneDrive dejó trabadas
+.next-viejo*/

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
-import { PRECIOS, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
 // app instalada, que es la misma página). Los precios y los límites
@@ -116,17 +116,41 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         r: (
           <>
             <p>
-              Cuesta <strong>{pesos(PRECIOS.mensual)} al mes</strong> o{" "}
+              Con el precio de lanzamiento cuesta <strong>{pesos(PRECIOS.mensual)} al mes</strong> o{" "}
               <strong>{pesos(PRECIOS.anual)} al año</strong> (sale a {pesos(Math.round(PRECIOS.anual / 12))}{" "}
-              al mes). Incluye:
+              al mes). El precio normal será de {pesos(PRECIOS_NORMALES.mensual)} al mes y{" "}
+              {pesos(PRECIOS_NORMALES.anual)} al año. Cada mes incluye:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>{TOPES_MES_MEMBRESIA.busquedas} búsquedas de outfit al mes.</li>
-              <li>Outfits guardados, prendas en tu clóset y combinaciones sin tope.</li>
-              <li>Tu manual de estilo completo, para descargar.</li>
+              <li>{TOPES_MES_MEMBRESIA.busquedas} búsquedas de outfit.</li>
+              <li>
+                {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas en tu clóset y{" "}
+                {TOPES_MES_MEMBRESIA.combinaciones} combinaciones.
+              </li>
+              <li>Outfits guardados sin tope.</li>
+              <li>Tu manual de estilo completo, para descargar ({TOPES_MES_MEMBRESIA.manuales} nuevo al mes).</li>
               <li>Avisos al celular cuando baja de precio lo que te gustó.</li>
             </ul>
+            <p className="mt-2">Los límites se renuevan el 1 de cada mes.</p>
           </>
+        ),
+      },
+      {
+        p: "¿Qué pasa si se me acaban las búsquedas del mes?",
+        r: (
+          <p>
+            Puedes comprar un paquete de{" "}
+            <strong>
+              {PAQUETES_BUSQUEDAS.paquete30.busquedas} búsquedas adicionales por{" "}
+              {pesos(PAQUETES_BUSQUEDAS.paquete30.precio)}
+            </strong>{" "}
+            en{" "}
+            <Link href="/membresia#paquetes" className="font-medium text-rosa-600 underline">
+              Membresía
+            </Link>
+            . Se usan cuando ya gastaste las de tu mes y no se vencen: lo que no uses queda para los meses
+            siguientes. Los paquetes son para quienes tienen la membresía.
+          </p>
         ),
       },
       {

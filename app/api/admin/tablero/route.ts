@@ -129,7 +129,10 @@ export async function GET(req: Request) {
   const pagosReales = (pagos ?? []).filter((p) => !idsPrueba.has(p.user_id));
   // El plan de cada membresía activa: el de su último pago.
   const planDe = new Map<string, string>();
-  for (const p of pagosReales) if (!planDe.has(p.user_id)) planDe.set(p.user_id, p.plan);
+  // Solo cuentan los pagos de membresía, no los paquetes de búsquedas.
+  for (const p of pagosReales) {
+    if ((p.plan === "mensual" || p.plan === "anual") && !planDe.has(p.user_id)) planDe.set(p.user_id, p.plan);
+  }
   const mensuales = activas.filter((u) => planDe.get(u.id) === "mensual").length;
   const anuales = activas.filter((u) => planDe.get(u.id) === "anual").length;
 

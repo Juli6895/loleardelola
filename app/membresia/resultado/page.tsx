@@ -26,6 +26,8 @@ function Resultado() {
   const orden = params.get("bold-order-id");
   const [estado, setEstado] = useState<Estado>("verificando");
   const [detalle, setDetalle] = useState<string>("");
+  // Si lo que pagó fue un paquete de búsquedas: cuántas se sumaron.
+  const [busquedas, setBusquedas] = useState<number | null>(null);
 
   useEffect(() => {
     if (!orden) {
@@ -44,6 +46,7 @@ function Resultado() {
         const json = await res.json();
         if (!vigente) return;
         if (json.ok) {
+          if (typeof json.busquedas === "number") setBusquedas(json.busquedas);
           setEstado("listo");
         } else if (json.estado === "PENDING" || json.estado === "PROCESSING") {
           // PSE sobre todo: el banco puede tardar en confirmar.
@@ -78,7 +81,22 @@ function Resultado() {
           </>
         )}
 
-        {estado === "listo" && (
+        {estado === "listo" && busquedas !== null && (
+          <>
+            <p className="font-display text-3xl text-noche">¡Listo!</p>
+            <p className="mt-2 text-sm text-noche/70">
+              Sumamos {busquedas} búsquedas a tu cuenta. Se usan cuando se acaben las de tu mes, y no se vencen.
+            </p>
+            <Link
+              href="/buscar"
+              className="mt-6 inline-block rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
+            >
+              Buscar un outfit
+            </Link>
+          </>
+        )}
+
+        {estado === "listo" && busquedas === null && (
           <>
             <p className="font-display text-3xl text-noche">¡Bienvenida!</p>
             <p className="mt-2 text-sm text-noche/70">

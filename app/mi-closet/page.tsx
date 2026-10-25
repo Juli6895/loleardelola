@@ -6,7 +6,7 @@ import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import { TOPES } from "@/lib/planes";
+import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 import { useUsuario } from "@/lib/use-usuario";
 
@@ -76,7 +76,7 @@ export default function MiClosetPage() {
           </div>
         ) : conMembresia ? (
           <p className="mt-2 text-center text-xs text-noche/40">
-            Con tu membresía subes todas las prendas que quieras.
+            Con tu membresía subes {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas cada mes.
           </p>
         ) : (
           <p className="mt-2 text-center text-xs text-noche/40">

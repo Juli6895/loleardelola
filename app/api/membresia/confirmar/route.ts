@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { consultarPago } from "@/lib/bold";
-import { DIAS_DE_PLAN, type TipoPlan } from "@/lib/planes";
+import { DIAS_DE_PLAN, PAQUETES_BUSQUEDAS, esPaquete, type TipoPlan } from "@/lib/planes";
 import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/membresia/confirmar  { orden }
@@ -72,6 +72,29 @@ export async function POST(req: Request) {
       { ok: false, estado: "monto-no-cuadra" },
       { status: 409 }
     );
+  }
+
+  // Un paquete de búsquedas no toca la membresía: suma búsquedas a su
+  // saldo, que no se vence.
+  if (esPaquete(pago.plan)) {
+    const sumar = PAQUETES_BUSQUEDAS[pago.plan].busquedas;
+    const { data: fila } = await sb.from("users").select("busquedas_extra").eq("id", pago.user_id).maybeSingle();
+    const saldo = (Number((fila as any)?.busquedas_extra) || 0) + sumar;
+    const { error: errorSaldo } = await sb.from("users").update({ busquedas_extra: saldo }).eq("id", pago.user_id);
+    if (errorSaldo) {
+      console.error("[confirmar] no se pudo sumar el paquete:", errorSaldo.message);
+      return NextResponse.json({ error: "No pudimos sumar tus búsquedas. Escríbenos a contacto@lakaja.co." }, { status: 500 });
+    }
+    await sb
+      .from("pagos")
+      .update({ estado: "acreditado", acreditado_at: new Date().toISOString() })
+      .eq("order_id", orden);
+    registrar("pago_aprobado", contextoDe(req, pago.user_id), {
+      plan: pago.plan,
+      monto: pago.monto_cop,
+      metodo: voucher.metodo ?? "",
+    });
+    return NextResponse.json({ ok: true, estado: "acreditado", busquedas: sumar, saldo });
   }
 
   // Si todavía le queda membresía, los días se SUMAN a lo que le falta.

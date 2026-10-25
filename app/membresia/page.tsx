@@ -1,6 +1,8 @@
 "use client";
 
-import { PRECIOS, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { useEffect, useState } from "react";
+import { PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { fetchConDispositivo } from "@/lib/device-id";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
 import SubNavCuenta from "@/components/SubNavCuenta";
@@ -22,6 +24,17 @@ const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 export default function MembresiaPage() {
   const { usuario } = useUsuario();
   const conMembresia = tieneMembresia(usuario);
+  const paquete = PAQUETES_BUSQUEDAS.paquete30;
+
+  // Cuántas búsquedas le quedan (las del mes y las de paquetes).
+  const [saldo, setSaldo] = useState<{ usadasDelMes: number; topeDelMes: number; extra: number } | null>(null);
+  useEffect(() => {
+    if (!conMembresia) return;
+    fetchConDispositivo("/api/membresia/saldo")
+      .then((r) => r.json())
+      .then((j) => setSaldo(j.saldo ?? null))
+      .catch(() => setSaldo(null));
+  }, [conMembresia]);
 
   const mes = (n: number) => `${n} al mes`;
   const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
@@ -41,13 +54,13 @@ export default function MembresiaPage() {
       que: "Prendas en tu clóset",
       sin: TOPES.anonimo.prendasCloset ?? "—",
       gratis: TOPES.gratis.prendasCloset ?? "—",
-      membresia: "Sin tope",
+      membresia: `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
     },
     {
       que: "Buscar combinaciones",
       sin: TOPES.anonimo.combinacionesClosetGratis ?? "—",
       gratis: TOPES.gratis.combinacionesClosetGratis ?? "—",
-      membresia: "Sin tope",
+      membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
     },
     {
       que: "Manual de estilo",
@@ -61,6 +74,12 @@ export default function MembresiaPage() {
       gratis: "—",
       membresia: "Sí, al celular",
     },
+    {
+      que: "Búsquedas adicionales",
+      sin: "—",
+      gratis: "—",
+      membresia: `${paquete.busquedas} por ${pesos(paquete.precio)}`,
+    },
   ];
 
   return (
@@ -69,6 +88,9 @@ export default function MembresiaPage() {
       {/* Paso 1 del embudo de pago. */}
       <AnotarVista nombre="membresia_vista" />
       <header className="text-center">
+        <p className="mb-3 inline-block rounded-full bg-noche px-4 py-1 text-xs font-semibold text-white">
+          Precio de lanzamiento
+        </p>
         <h1 className="font-display text-4xl text-noche sm:text-5xl">
           La membresía
         </h1>
@@ -173,7 +195,9 @@ export default function MembresiaPage() {
             <p className="mt-2 font-display text-3xl text-noche">
               {pesos(PRECIOS.mensual)}
             </p>
-            <p className="mt-1 mb-5 text-xs text-noche/50">al mes</p>
+            <p className="mt-1 mb-5 text-xs text-noche/50">
+              al mes · <span className="line-through">{pesos(PRECIOS_NORMALES.mensual)}</span> precio normal
+            </p>
             <div className="mt-auto">
               <BotonPago
                 plan="mensual"
@@ -189,7 +213,8 @@ export default function MembresiaPage() {
               {pesos(PRECIOS.anual)}
             </p>
             <p className="mt-1 text-xs text-noche/50">
-              al año · equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes
+              al año · equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes ·{" "}
+              <span className="line-through">{pesos(PRECIOS_NORMALES.anual)}</span> precio normal
             </p>
             <p className="mb-5 mt-2 self-center rounded-full bg-rosa-100 px-3 py-0.5 text-xs font-medium text-rosa-600">
               Ahorras {Math.round((1 - PRECIOS.anual / (PRECIOS.mensual * 12)) * 100)}% frente a pagar mes a mes
@@ -204,9 +229,40 @@ export default function MembresiaPage() {
         </div>
       </div>
 
+      {/* ---- Paquete de búsquedas ---- */}
+      <div id="paquetes" className="scroll-mt-6 rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-rosa-500">¿Se te acabaron las búsquedas?</p>
+            <h2 className="mt-1 font-display text-2xl text-noche">
+              {paquete.busquedas} búsquedas adicionales por {pesos(paquete.precio)}
+            </h2>
+            <p className="mt-1 max-w-md text-sm text-noche/60">
+              Se usan cuando ya gastaste las {TOPES_MES_MEMBRESIA.busquedas} búsquedas de tu mes, y no se vencen: lo
+              que no uses queda para los meses siguientes.
+            </p>
+            {saldo && (
+              <p className="mt-2 text-sm font-medium text-noche">
+                Este mes llevas {Math.min(saldo.usadasDelMes, saldo.topeDelMes)} de {saldo.topeDelMes} búsquedas
+                {saldo.extra > 0 ? ` · te quedan ${saldo.extra} adicionales` : ""}.
+              </p>
+            )}
+          </div>
+          <div className="w-full shrink-0 sm:w-56">
+            {conMembresia ? (
+              <BotonPago plan="paquete30" etiqueta={`Comprar ${paquete.busquedas} búsquedas`} />
+            ) : (
+              <p className="rounded-xl bg-rosa-50/70 px-4 py-3 text-center text-xs text-noche/60">
+                Los paquetes son para quienes tienen la membresía.
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
       <p className="text-center text-xs text-noche/40">
-        El pago lo procesa Bold. La membresía no se renueva sola: cuando se
-        acerque el vencimiento te avisamos por correo.
+        El pago lo procesa Bold. La membresía no se renueva sola: la fecha de
+        vencimiento está arriba, y cuando quieras la renuevas desde aquí.
       </p>
     </div>
   );

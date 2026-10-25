@@ -49,21 +49,46 @@ export const TOPES: Record<Plan, Topes> = {
   },
 };
 
-// Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000): una
-// búsqueda por foto ~$160, una prenda al clóset ~$60, una combinación
-// ~$125 y un manual ~$280. Guardar outfits no cuesta nada (es una fila
-// en la base; la foto ya se subió al buscar).
+// Cada uso de la IA cuesta (en pesos, con el dólar a ~$4.000, medido en
+// octubre de 2026 con lib/costos.ts): una búsqueda por foto ~$137, una
+// prenda al clóset ~$61, una combinación ~$89 y un manual ~$223. Guardar
+// outfits no cuesta nada (es una fila en la base; la foto ya se subió).
 //
-// Octubre de 2026, precios de Juliana: mensual $12.900 y anual $89.900
-// (estuvo unos días en $69.900, pero con una usuaria muy activa no
-// dejaba nada). Después de la comisión de Bold (~3,5% + $900 por cobro)
-// dejan ~$11.550 y ~$7.150 al mes. Una usuaria muy activa (20
-// búsquedas, 10 prendas, 10 combinaciones y 2 manuales al mes) cuesta
-// ~$5.600: el anual deja ~$1.500 con ella y ~$5.000 con una normal.
+// Precio de LANZAMIENTO (octubre de 2026, "camino 1" de la estrategia
+// de costos): $5.000 al mes y $49.900 al año. Después de la comisión de
+// Bold (calculada por lo alto, con IVA) dejan ~$3.733 y ~$3.906 al mes.
+// Una usuaria que use TODO lo de TOPES_MES_MEMBRESIA cuesta ~$3.569: no
+// hay pérdida ni con ella, y una usuaria normal (~40% del tope) deja
+// ~$2.300 al mes. Mientras los costos fijos sigan en $0 hay utilidad
+// desde la primera membresía; con Vercel Pro + Supabase Pro ($180.000
+// al mes) hacen falta ~80 membresías.
+//
+// Después del lanzamiento la idea es pasar a PRECIOS_NORMALES ("camino
+// 2"): $9.900 y $79.900, con 12 búsquedas y 2 manuales al mes.
 export const PRECIOS = {
-  mensual: 12900,
-  anual: 89900,
+  mensual: 5000,
+  anual: 49900,
 } as const;
+
+// Se muestran tachados junto al de lanzamiento.
+export const PRECIOS_NORMALES = {
+  mensual: 9900,
+  anual: 79900,
+} as const;
+
+// ---------------------------------------------------------------------
+// Paquetes de búsquedas adicionales
+// ---------------------------------------------------------------------
+// Para quien tiene membresía y se le acaban las búsquedas del mes. Se
+// suman a users.busquedas_extra, se gastan solo cuando ya usó las del
+// mes, y no se vencen. El paquete de 25 por $5.000 casi no dejaba nada
+// (~$300) por el fijo de Bold. Juliana eligió un solo paquete: 30
+// búsquedas por $7.900 (cuestan ~$4.110 y dejan ~$2.400).
+export const PAQUETES_BUSQUEDAS = {
+  paquete30: { busquedas: 30, precio: 7900 },
+} as const;
+
+export type TipoPaquete = keyof typeof PAQUETES_BUSQUEDAS;
 
 // ---------------------------------------------------------------------
 // Límites mensuales de la membresía
@@ -77,19 +102,16 @@ export type UsoMensual =
   | "manuales";
 
 export const TOPES_MES_MEMBRESIA: Record<UsoMensual, number> = {
-  busquedas: 20,
-  // En pantalla dicen "sin tope": estos números son solo un freno de
-  // seguridad (ver USO_JUSTO) para que nadie suba cientos al mes.
-  prendasCloset: 100,
-  combinaciones: 60,
-  manuales: 2,
+  busquedas: 8,
+  prendasCloset: 15,
+  combinaciones: 15,
+  manuales: 1,
 };
 
-// Usos que la membresía ofrece "sin tope". Igual tienen un máximo muy
-// alto en TOPES_MES_MEMBRESIA, que una persona usando la app para ella
-// no alcanza: cada prenda y cada combinación se pagan, y sin ningún
-// freno una sola cuenta podría costar más de lo que paga.
-export const USO_JUSTO: UsoMensual[] = ["prendasCloset", "combinaciones"];
+// Usos que se ofrecen "sin tope" pero tienen un máximo alto de
+// seguridad. Con el precio de lanzamiento no hay ninguno: todos los
+// límites se dicen tal cual en pantalla.
+export const USO_JUSTO: UsoMensual[] = [];
 
 const NOMBRE_USO: Record<UsoMensual, string> = {
   busquedas: "búsquedas",
@@ -104,10 +126,24 @@ export function mensajeTopeMensual(uso: UsoMensual, renueva: Date): string {
   if (USO_JUSTO.includes(uso)) {
     return `Llegaste al máximo de uso de este mes (${TOPES_MES_MEMBRESIA[uso]} ${NOMBRE_USO[uso]}). Es un límite de seguridad: se renueva el ${fecha}.`;
   }
+  if (uso === "busquedas") {
+    return `Llegaste a tus ${TOPES_MES_MEMBRESIA.busquedas} búsquedas de este mes (se renuevan el ${fecha}). Si quieres seguir, compra un paquete de búsquedas en Membresía.`;
+  }
   return `Llegaste a tus ${TOPES_MES_MEMBRESIA[uso]} ${NOMBRE_USO[uso]} de este mes. Se renuevan el ${fecha}.`;
 }
 
 export type TipoPlan = keyof typeof PRECIOS;
+
+/** Lo que se le puede cobrar a alguien: la membresía o un paquete. */
+export type Producto = TipoPlan | TipoPaquete;
+
+export function esPaquete(p: string): p is TipoPaquete {
+  return p in PAQUETES_BUSQUEDAS;
+}
+
+export function precioDe(p: Producto): number {
+  return esPaquete(p) ? PAQUETES_BUSQUEDAS[p].precio : PRECIOS[p];
+}
 
 /** Cuántos días de membresía da cada plan. */
 export const DIAS_DE_PLAN: Record<TipoPlan, number> = {

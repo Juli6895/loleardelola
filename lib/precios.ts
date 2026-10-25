@@ -1,4 +1,4 @@
-import { tiendaDeUrl } from "./catalogo-tiendas";
+import { precioDeVariantes, tiendaDeUrl, type VarianteShopify } from "./catalogo-tiendas";
 
 // =====================================================================
 // El precio de HOY de una prenda puntual (para los avisos de rebaja)
@@ -32,9 +32,11 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
       const limpia = url.split(/[?#]/)[0].replace(/\/$/, "");
       const res = await pedir(`${limpia}.js`);
       if (!res.ok) return null;
-      const p = (await res.json()) as { price?: number; available?: boolean };
-      if (typeof p.price !== "number" || p.price <= 0) return null;
-      return { precioCop: Math.round(p.price / 100), disponible: p.available !== false };
+      // El precio de la talla disponible más barata: "price" es el de la
+      // talla más barata aunque esté agotada (ver precioDeVariantes).
+      const p = (await res.json()) as { variants?: VarianteShopify[] };
+      const r = precioDeVariantes(p.variants ?? [], true);
+      return r ? { precioCop: r.precioCop, disponible: r.disponible } : null;
     }
 
     const { origin, pathname } = new URL(url);
@@ -45,7 +47,9 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
     const lista = (await res.json()) as Array<{
       items?: Array<{ sellers?: Array<{ commertialOffer?: { Price?: number; AvailableQuantity?: number } }> }>;
     }>;
-    const oferta = lista?.[0]?.items?.[0]?.sellers?.[0]?.commertialOffer;
+    // La primera talla disponible; si ninguna lo está, la primera.
+    const ofertas = (lista?.[0]?.items ?? []).map((i) => i.sellers?.[0]?.commertialOffer).filter(Boolean);
+    const oferta = ofertas.find((o) => (o!.AvailableQuantity ?? 1) > 0) ?? ofertas[0];
     if (!oferta || typeof oferta.Price !== "number" || oferta.Price <= 0) return null;
     return { precioCop: Math.round(oferta.Price), disponible: (oferta.AvailableQuantity ?? 1) > 0 };
   } catch {

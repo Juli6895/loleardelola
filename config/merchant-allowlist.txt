@@ -42,8 +42,7 @@ julianasanchez.co
 ticketstores.co
 bybla.com.co
 gracies.com.co
-# malvaonline.com — quitada a pedido de Juliana: precios muy por
-# encima de lo que quiere sugerir.
+co.malvaonline.com
 inmaculadavj.com
 pepitaperez.co
 colorblue.com
@@ -54,7 +53,6 @@ colorblue.com
 leonisa.co
 gef.co
 hushpuppies.com.co
-pepapombo.com
 aguabendita.com.co
 ondademar.co
 maaji.com.co
@@ -62,12 +60,9 @@ stopjeans.com.co
 clemont.co
 camiloalvarez.co
 rayuelaclothing.com
-aladogroup.com
 sixxta.com
 casaprecis.com
 mussi.com.co
-amodomio.com.co
-polite.com.co
 naos.com.co
 benditaseas.co
 studiof.com.co

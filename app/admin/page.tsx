@@ -22,6 +22,7 @@ type Costos = {
   desdeSiempre: { variables: CostoVariable[]; totalVariable: number };
   fijos: Array<{ rubro: string; plan: string; cop: number; siCrece: string }>;
   totalFijo: number;
+  planesGratis: Array<{ servicio: string; usado: string; limite: string; porcentaje: number | null; detalle: string }>;
   porPersonaCop: number;
   porMembresiaCop: number;
   resultadoDelMesCop: number;
@@ -333,6 +334,38 @@ function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number })
             ["Total variables", "", pesos(costos.delMes.totalVariable), "", pesos(costos.desdeSiempre.totalVariable)],
           ]}
         />
+      </div>
+
+      <h3 className="mt-6 text-sm font-semibold text-noche">Consumo de los planes gratis</h3>
+      <p className="text-xs text-noche/45">
+        Fotos y correos no cuestan mientras estén dentro del plan gratis. Al acercarse al 80%, toca pasar al
+        plan pago.
+      </p>
+      <div className="mt-2 space-y-3">
+        {costos.planesGratis.map((p) => (
+          <div key={p.servicio}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 text-sm">
+              <span className="text-noche">{p.servicio}</span>
+              <span className="tabular-nums text-noche/70">
+                {p.usado} de {p.limite}
+                {p.porcentaje != null && (
+                  <span className={`ml-2 text-xs ${p.porcentaje >= 80 ? "font-semibold text-rosa-600" : "text-noche/40"}`}>
+                    {p.porcentaje.toLocaleString("es-CO")}%
+                  </span>
+                )}
+              </span>
+            </div>
+            {p.porcentaje != null && (
+              <div className="mt-1 h-2 overflow-hidden rounded-full bg-rosa-50">
+                <div
+                  className={`h-full rounded-full ${p.porcentaje >= 80 ? "bg-rosa-500" : "bg-rosa-300"}`}
+                  style={{ width: `${Math.min(Math.max(p.porcentaje, 1), 100)}%` }}
+                />
+              </div>
+            )}
+            <p className="mt-0.5 text-[11px] text-noche/40">{p.detalle}</p>
+          </div>
+        ))}
       </div>
 
       <h3 className="mt-6 text-sm font-semibold text-noche">Fijos</h3>

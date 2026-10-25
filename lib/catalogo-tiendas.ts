@@ -478,7 +478,7 @@ async function conCache(
 // conexiones (ECONNRESET), también a las tiendas de siempre. Por eso se
 // les pregunta de a SHOPIFY_A_LA_VEZ, y una conexión cortada se reintenta
 // una vez. VTEX no lo necesita: cada tienda tiene su propio servidor.
-const SHOPIFY_A_LA_VEZ = 8;
+const SHOPIFY_A_LA_VEZ = 16;
 let shopifyEnCurso = 0;
 const shopifyEnEspera: Array<() => void> = [];
 
@@ -666,10 +666,16 @@ function consultasPara(
  * "vestido rojo") y, si se pidió, el color (un cárdigan rosa no sirve
  * para "cárdigan mostaza"). Lo que pasa esos dos filtros se ordena por
  * los demás rasgos.
+ *
+ * Con `descuentoMinimo` (las promos) solo deja las rebajadas en al
+ * menos esa fracción, de la más rebajada a la menos. Se filtra ANTES del
+ * tope de 3 por tienda: si no, las 3 de cada tienda eran sus prendas más
+ * parecidas, casi nunca las rebajadas, y la mayoría de tiendas no salía.
  */
 export async function buscarEnCatalogos(
   c: ConsultaPrenda,
-  maximo = 8
+  maximo = 8,
+  descuentoMinimo = 0
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();
   if (!tipo) return [];
@@ -755,7 +761,13 @@ export async function buscarEnCatalogos(
     }
   }
 
-  puntuados.sort((a, b) => b.punto - a.punto);
+  if (descuentoMinimo > 0) {
+    const rebajados = puntuados.filter(({ p }) => descuentoDe(p) >= descuentoMinimo);
+    rebajados.sort((a, b) => descuentoDe(b.p) - descuentoDe(a.p) || b.punto - a.punto);
+    puntuados.splice(0, puntuados.length, ...rebajados);
+  } else {
+    puntuados.sort((a, b) => b.punto - a.punto);
+  }
 
   // Máximo 3 por tienda, para que una no se lleve toda la fila.
   const porTienda = new Map<string, number>();
@@ -781,24 +793,29 @@ export async function buscarEnCatalogos(
 // Para el panel "Promo": prendas de las tiendas de la lista con precio
 // rebajado. Usa la misma búsqueda (mismos filtros de mujer, tipo de
 // prenda y disponibles), y se queda con las que tienen descuento real
-// de al menos PROMO_MINIMA, de mayor a menor, como mucho 2 por tienda
+// de al menos PROMO_MINIMA, de mayor a menor, con un tope por tienda
 // para que no salga una sola marca.
+//
+// Dos listas: las de lo que buscó (los tipos detectados en la foto) y
+// "otros descuentos", de todo tipo de prenda.
 // =====================================================================
 
-const PROMO_MINIMA = 0.2;
+const PROMO_MINIMA = 0.1;
 
-// Lo que se muestra cuando todavía no buscó nada.
-const TIPOS_PROMO_GENERAL = ["vestido", "blusa", "pantalón", "falda", "chaqueta", "jean"];
+// Para "otros descuentos": lo que más se compra.
+const TIPOS_PROMO_GENERAL = ["vestido", "blusa", "camiseta", "pantalón", "jean", "falda", "chaqueta", "sandalia"];
 
 export function descuentoDe(p: ProductoTienda): number {
   if (!p.precioCop || !p.precioAntesCop) return 0;
   return 1 - p.precioCop / p.precioAntesCop;
 }
 
-export async function buscarPromos(tipos: string[], maximo = 12): Promise<ProductoTienda[]> {
-  const lista = (tipos.length > 0 ? tipos : TIPOS_PROMO_GENERAL).slice(0, 6);
+export async function buscarPromos(tipos: string[], maximo = 12, porTiendaMax = 2): Promise<ProductoTienda[]> {
+  const lista = tipos.length > 0 ? tipos.slice(0, 6) : TIPOS_PROMO_GENERAL;
   const lotes = await Promise.all(
-    lista.map((tipo) => buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 40).catch(() => []))
+    lista.map((tipo) =>
+      buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 300, PROMO_MINIMA).catch(() => [])
+    )
   );
 
   const vistas = new Set<string>();
@@ -811,7 +828,7 @@ export async function buscarPromos(tipos: string[], maximo = 12): Promise<Produc
   const salida: ProductoTienda[] = [];
   for (const p of enPromo) {
     const n = porTienda.get(p.dominio) ?? 0;
-    if (n >= 2) continue;
+    if (n >= porTiendaMax) continue;
     porTienda.set(p.dominio, n + 1);
     salida.push(p);
     if (salida.length >= maximo) break;

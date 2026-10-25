@@ -507,6 +507,54 @@ async function pedirShopify(url: string): Promise<Response> {
   });
 }
 
+// ---------------------------------------------------------------------
+// El precio de verdad de una prenda con tallas de distinto precio
+// ---------------------------------------------------------------------
+// El buscador de Shopify da el precio MÁS BAJO de todas las tallas
+// (aunque esa talla esté agotada) y el precio "antes" MÁS ALTO. Mezclados
+// salían rebajas falsas: un pantalón de Onda de Mar con la S agotada a
+// $21.548, la M a $490.000 y la L a $800.000 aparecía a $21.548 con 97%
+// de descuento. Cuando las tallas no valen lo mismo, se pregunta el
+// producto completo (<url>.js) y se usa la talla disponible más barata,
+// con SU precio "antes".
+export type VarianteShopify = {
+  price?: number | string;
+  compare_at_price?: number | string | null;
+  available?: boolean;
+};
+
+export function precioDeVariantes(
+  variantes: VarianteShopify[],
+  enCentavos: boolean
+): { precioCop: number; precioAntesCop: number | null; disponible: boolean } | null {
+  const valor = (x: number | string | null | undefined) => {
+    const n = Number(x);
+    return Number.isFinite(n) && n > 0 ? (enCentavos ? n / 100 : n) : null;
+  };
+  const disponibles = variantes.filter((v) => v.available !== false && valor(v.price));
+  const base = disponibles.length > 0 ? disponibles : variantes.filter((v) => valor(v.price));
+  if (base.length === 0) return null;
+  const v = base.reduce((a, b) => (valor(b.price)! < valor(a.price)! ? b : a));
+  const precio = valor(v.price)!;
+  const antes = valor(v.compare_at_price);
+  return {
+    precioCop: Math.round(precio),
+    precioAntesCop: antes && antes > precio ? Math.round(antes) : null,
+    disponible: disponibles.length > 0,
+  };
+}
+
+async function variantesDe(host: string, handle: string): Promise<VarianteShopify[] | null> {
+  try {
+    const res = await pedirShopify(`https://${host}/products/${handle}.js`);
+    if (!res.ok) return null;
+    const p = (await res.json()) as { variants?: VarianteShopify[] };
+    return Array.isArray(p.variants) ? p.variants : null;
+  } catch {
+    return null;
+  }
+}
+
 async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
   const host = t.host ?? t.dominio;
   return conCache(`${t.dominio}|${q}`, async () => {
@@ -526,6 +574,9 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
             tags?: string[];
             body?: string;
             price?: string;
+            price_min?: string;
+            price_max?: string;
+            compare_at_price_min?: string;
             compare_at_price_max?: string;
             available?: boolean;
             image?: string;
@@ -535,7 +586,7 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
       };
     };
 
-    return (data.resources?.results?.products ?? [])
+    const productos = (data.resources?.results?.products ?? [])
       .filter((p) => p.title && p.handle && (p.featured_image?.url || p.image))
       .filter((p) => p.available !== false)
       // Esprit mezcla hombre y mujer en el mismo catálogo, y NO escribe
@@ -547,15 +598,43 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
         if (t.dominio !== "esprit.com.co") return true;
         const codigo = (p.tags ?? []).find((tag) => /^\d{3}[A-Z]\d{3}$/.test(tag));
         return codigo ? codigo[3] !== "H" : true;
+      });
+
+    // Tallas de distinto precio (o distinto precio "antes"): se revisa el
+    // producto completo. Son pocas por consulta y quedan en la caché.
+    const variable = (p: (typeof productos)[number]) =>
+      (p.price_min ?? p.price) !== (p.price_max ?? p.price) ||
+      (p.compare_at_price_min ?? p.compare_at_price_max) !== p.compare_at_price_max;
+    const revisados = new Map<string, ReturnType<typeof precioDeVariantes>>();
+    await Promise.all(
+      productos.filter(variable).map(async (p) => {
+        const variantes = await variantesDe(host, p.handle!);
+        revisados.set(p.handle!, variantes ? precioDeVariantes(variantes, true) : null);
       })
+    );
+
+    return productos
+      .filter((p) => !revisados.has(p.handle!) || revisados.get(p.handle!)?.disponible !== false)
       .map((p) => {
-        const precio = Number(p.price);
-        const antes = Number(p.compare_at_price_max);
         const clase = p.type ?? "";
+        let precioCop: number | null = null;
+        let precioAntesCop: number | null = null;
+        if (revisados.has(p.handle!)) {
+          // Si no se pudo revisar, se muestra "desde" el precio más bajo
+          // pero sin rebaja: mejor no prometer un descuento dudoso.
+          const r = revisados.get(p.handle!);
+          precioCop = r?.precioCop ?? (Number(p.price) > 0 ? Math.round(Number(p.price)) : null);
+          precioAntesCop = r?.precioAntesCop ?? null;
+        } else {
+          const precio = Number(p.price);
+          const antes = Number(p.compare_at_price_max);
+          precioCop = Number.isFinite(precio) && precio > 0 ? Math.round(precio) : null;
+          precioAntesCop = precioCop && Number.isFinite(antes) && antes > precio ? Math.round(antes) : null;
+        }
         return {
           titulo: p.title!.trim(),
-          precioCop: Number.isFinite(precio) && precio > 0 ? Math.round(precio) : null,
-          precioAntesCop: Number.isFinite(antes) && antes > precio ? Math.round(antes) : null,
+          precioCop,
+          precioAntesCop,
           imagen: (p.featured_image?.url || p.image)!,
           url: `https://${host}/products/${p.handle}`,
           tienda: t.nombre,
@@ -590,12 +669,18 @@ async function buscarVtex(t: TiendaVtex, q: string): Promise<Indexado[]> {
       }>;
     }>;
 
+    // El precio de la primera talla disponible: la primera de la lista
+    // puede estar agotada y tener otro precio.
+    const ofertaDe = (p: (typeof data)[number]) => {
+      const ofertas = (p.items ?? []).map((i) => i.sellers?.[0]?.commertialOffer).filter(Boolean);
+      return ofertas.find((o) => (o!.AvailableQuantity ?? 1) > 0) ?? null;
+    };
     return (data ?? [])
       .filter((p) => p.productName && p.linkText && p.items?.[0]?.images?.[0]?.imageUrl)
-      .filter((p) => (p.items?.[0]?.sellers?.[0]?.commertialOffer?.AvailableQuantity ?? 1) > 0)
+      .filter((p) => ofertaDe(p) !== null)
       .map((p) => {
-        const precio = p.items?.[0]?.sellers?.[0]?.commertialOffer?.Price;
-        const antes = p.items?.[0]?.sellers?.[0]?.commertialOffer?.ListPrice;
+        const precio = ofertaDe(p)?.Price;
+        const antes = ofertaDe(p)?.ListPrice;
         const clase = (p.categories ?? []).join(" ");
         return {
           titulo: p.productName!.trim(),

@@ -13,6 +13,10 @@ const CORREOS_ADMIN = ["contacto@lakaja.co"];
 // pase en los navegadores donde entraron con ellas).
 export const CORREOS_PRUEBA = ["contacto@lakaja.co", "julyalvarez9@hotmail.com"];
 
+// Navegadores de prueba que no entran con ninguna cuenta: el que usa
+// Claude para revisar la página publicada después de cada cambio.
+export const DISPOSITIVOS_PRUEBA = ["27d6f810-db38-4968-bf88-38c9e4aa9b8e"];
+
 export function esAdmin(correo: string | null | undefined): boolean {
   if (!correo) return false;
   return CORREOS_ADMIN.includes(correo.trim().toLowerCase());

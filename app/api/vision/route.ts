@@ -8,6 +8,7 @@ import { getTiendasInstagram } from "@/lib/tiendas-instagram";
 import { revisarTope, registrarBusqueda } from "@/lib/limites";
 import { contextoDe, registrar } from "@/lib/eventos";
 import type { VisionResult } from "@/types";
+import { anotarConsumoGoogleVision } from "@/lib/costos";
 
 // Endpoint: POST /api/vision
 // Body:
@@ -120,7 +121,6 @@ async function analyzeWithFallback(
 ): Promise<{ data: VisionResult; source: "claude" | "vision" }> {
   console.log("[/api/vision] env check", {
     anthropicKeyPresent: !!process.env.ANTHROPIC_API_KEY,
-    anthropicKeyPrefix: process.env.ANTHROPIC_API_KEY?.slice(0, 12) ?? null,
     budgetCop,
   });
   // Si no hay ANTHROPIC_API_KEY, no perdemos tiempo intentando Claude.
@@ -148,6 +148,7 @@ async function analyzeWithFallback(
   }
 
   const data = await analyzeImage({ url: imageUrl });
+  anotarConsumoGoogleVision();
   console.log("[/api/vision] análisis con Vision OK", {
     terms: data.searchTerms.length,
   });

@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { fetchImageAsBase64 } from "./garment-ai";
 import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalidad";
+import { anotarConsumo } from "./costos";
 
 // =====================================================================
 // Identifica la personalidad de estilo (Pilar 5 del manual) de dos
@@ -151,6 +152,7 @@ export async function inferirPersonalidadPorReferencia(
       },
     ],
   });
+  anotarConsumo("personalidad_referencia", MODEL, response.usage);
 
   return parseToolResult(response);
 }
@@ -198,6 +200,7 @@ export async function inferirPersonalidadPorImagen(
       },
     ],
   });
+  anotarConsumo("personalidad_foto", MODEL, response.usage);
 
   return parseToolResult(response);
 }

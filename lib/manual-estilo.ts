@@ -11,6 +11,7 @@ import {
   type ProductoTienda,
 } from "./catalogo-tiendas";
 import type { RangoEdad } from "@/types";
+import { anotarConsumo } from "./costos";
 
 // =====================================================================
 // Manual de estilo personal (lo que da la membresía)
@@ -478,6 +479,7 @@ export async function generarManual(
       },
     ],
   });
+  anotarConsumo("manual", MODELO, response.usage);
 
   const toolUse = response.content.find(
     (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"

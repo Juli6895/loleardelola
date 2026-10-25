@@ -15,6 +15,17 @@ const fecha = (iso: string) =>
   new Date(iso).toLocaleString("es-CO", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
 type Fila = { nombre: string; tienda: string; clics: number; personas: number };
+type CostoVariable = { rubro: string; veces: number | null; totalCop: number; unitarioCop: number };
+type Costos = {
+  trm: number;
+  delMes: { variables: CostoVariable[]; totalVariable: number };
+  desdeSiempre: { variables: CostoVariable[]; totalVariable: number };
+  fijos: Array<{ rubro: string; plan: string; cop: number; siCrece: string }>;
+  totalFijo: number;
+  porPersonaCop: number;
+  porMembresiaCop: number;
+  resultadoDelMesCop: number;
+};
 type Datos = {
   desde: string | null;
   resumen: { personas: number; cuentasCreadas: number; membresiasActivas: number; mensuales: number; anuales: number };
@@ -25,6 +36,7 @@ type Datos = {
   prendas: Fila[];
   actividad: Array<{ dia: string; personas: number; busquedas: number; registros: number; pagos: number }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
+  costos: Costos;
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
 };
 
@@ -145,6 +157,9 @@ export default function AdminPage() {
           )}
         </Seccion>
       </div>
+
+      {/* ---- Costos ---- */}
+      <SeccionCostos costos={datos.costos} cobrado={datos.dinero.brutoCop} />
 
       {/* ---- Día a día ---- */}
       <Seccion titulo="Día a día" nota="Los últimos 30 días.">
@@ -267,4 +282,69 @@ function Tabla({ columnas, filas }: { columnas: string[]; filas: string[][] }) {
 
 function Vacio({ children }: { children: React.ReactNode }) {
   return <p className="text-sm text-noche/40">{children}</p>;
+}
+
+/**
+ * Lo que cuesta operar la app: variables (se pagan por uso, medidos de
+ * verdad en cada llamada) y fijos (al mes, aunque nadie la use).
+ */
+function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number }) {
+  const siempre = new Map(costos.desdeSiempre.variables.map((v) => [v.rubro, v]));
+  const rubros = Array.from(
+    new Set([...costos.delMes.variables.map((v) => v.rubro), ...costos.desdeSiempre.variables.map((v) => v.rubro)])
+  );
+  const delMes = new Map(costos.delMes.variables.map((v) => [v.rubro, v]));
+  return (
+    <Seccion
+      titulo="Costos"
+      nota={`Variables: se pagan por uso y se miden en cada llamada (incluye las de prueba, porque también se pagan). Fijos: al mes. Dólar a $${costos.trm.toLocaleString("es-CO")}.`}
+    >
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <Numero etiqueta="Variables este mes" valor={pesos(costos.delMes.totalVariable)} />
+        <Numero etiqueta="Fijos al mes" valor={pesos(costos.totalFijo)} />
+        <Numero etiqueta="Costo por persona (mes)" valor={pesos(costos.porPersonaCop)} />
+        <Numero etiqueta="Costo por membresía (mes)" valor={pesos(costos.porMembresiaCop)} />
+        <Numero
+          etiqueta="Resultado del mes"
+          valor={pesos(costos.resultadoDelMesCop)}
+          destacado={costos.resultadoDelMesCop < 0}
+        />
+      </div>
+      <p className="mt-2 text-xs text-noche/45">
+        Resultado = cobrado este mes ({pesos(cobrado)}) − variables − fijos.
+      </p>
+
+      <h3 className="mt-6 text-sm font-semibold text-noche">Variables</h3>
+      <div className="mt-2">
+        <Tabla
+          columnas={["Rubro", "Veces (mes)", "Costo del mes", "Costo unitario", "Total desde el inicio"]}
+          filas={[
+            ...rubros.map((r) => {
+              const m = delMes.get(r);
+              const t = siempre.get(r);
+              return [
+                r,
+                m?.veces == null ? "—" : String(m.veces),
+                pesos(m?.totalCop ?? 0),
+                pesos(m?.unitarioCop || t?.unitarioCop || 0),
+                pesos(t?.totalCop ?? 0),
+              ];
+            }),
+            ["Total variables", "", pesos(costos.delMes.totalVariable), "", pesos(costos.desdeSiempre.totalVariable)],
+          ]}
+        />
+      </div>
+
+      <h3 className="mt-6 text-sm font-semibold text-noche">Fijos</h3>
+      <div className="mt-2">
+        <Tabla
+          columnas={["Rubro", "Plan de hoy", "Al mes", "Si crece"]}
+          filas={[
+            ...costos.fijos.map((c) => [c.rubro, c.plan, pesos(c.cop), c.siCrece]),
+            ["Total fijos", "", pesos(costos.totalFijo), ""],
+          ]}
+        />
+      </div>
+    </Seccion>
+  );
 }

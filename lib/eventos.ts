@@ -98,6 +98,9 @@ export const EVENTOS = [
   "preguntas_visto",
   "pagina_error",
 
+  // Lo que costó cada llamada a la IA (ver lib/costos.ts).
+  "consumo_ia",
+
   // Ilustración de la usuaria hecha con Gemini (Mi perfil). Ya no se
   // usa; queda para leer los eventos viejos.
   "figura_generada",

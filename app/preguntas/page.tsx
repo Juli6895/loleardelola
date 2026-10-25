@@ -79,12 +79,12 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> {TOPES.anonimo.busquedas} búsquedas de outfit,{" "}
+                <strong>Sin cuenta:</strong> {TOPES.anonimo.busquedas} {TOPES.anonimo.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
                 {TOPES.anonimo.prendasCloset} prenda en tu clóset y {TOPES.anonimo.combinacionesClosetGratis}{" "}
                 combinación.
               </li>
               <li>
-                <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} búsquedas,{" "}
+                <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"},{" "}
                 {TOPES.gratis.outfits} outfits guardados, {TOPES.gratis.prendasCloset} prendas y{" "}
                 {TOPES.gratis.combinacionesClosetGratis} combinaciones.
               </li>

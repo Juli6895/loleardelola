@@ -26,7 +26,7 @@ export const TOPES: Record<Plan, Topes> = {
   // Sin cuenta: alcanza para probar la app de verdad antes de pedirle
   // el correo a nadie.
   anonimo: {
-    busquedas: 2,
+    busquedas: 1,
     outfits: 1,
     prendasCloset: 1,
     manualDeEstilo: false,
@@ -34,7 +34,7 @@ export const TOPES: Record<Plan, Topes> = {
   },
   // Con cuenta gratis: un poco más, a cambio del correo.
   gratis: {
-    busquedas: 5,
+    busquedas: 2,
     outfits: 3,
     prendasCloset: 2,
     manualDeEstilo: false,

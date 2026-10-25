@@ -114,9 +114,26 @@ export async function GET(req: Request) {
     (e) => !(e.user_id && idsPrueba.has(e.user_id)) && !(e.device_id && dispositivosPrueba.has(e.device_id))
   );
 
-  const persona = (e: Evento) => e.user_id ?? e.device_id ?? "?";
+  // ---------------------------------------------- quién es cada persona
+  // Una persona es su cuenta. El navegador donde entró con su correo
+  // cuenta como esa misma cuenta: antes, la visita sin sesión y la
+  // visita ya con sesión sumaban dos personas.
+  const { data: conCorreo } = await sb
+    .from("users")
+    .select("id, email, created_at, premium_until")
+    .not("email", "is", null);
+  const idsConCorreo = new Set((conCorreo ?? []).map((u) => u.id));
+  const cuentaDelNavegador = new Map<string, string>();
+  for (const e of eventos) {
+    if (e.device_id && e.user_id && idsConCorreo.has(e.user_id)) cuentaDelNavegador.set(e.device_id, e.user_id);
+  }
+  const persona = (e: Evento) =>
+    (e.device_id && cuentaDelNavegador.get(e.device_id)) || e.user_id || e.device_id || "?";
+  // Lo que anota el servidor sin saber de quién es (el costo de cada
+  // llamada a la IA) no es una visita: no cuenta como persona.
+  const visitas = eventos.filter((e) => e.nombre !== "consumo_ia" && (e.user_id || e.device_id));
   const personasCon = (nombre: string | null) =>
-    new Set(eventos.filter((e) => nombre === null || e.nombre === nombre).map(persona)).size;
+    new Set(visitas.filter((e) => nombre === null || e.nombre === nombre).map(persona)).size;
 
   // -------------------------------------------------------- resumen
   const ahora = new Date();
@@ -154,7 +171,7 @@ export async function GET(req: Request) {
 
   // ------------------------------------------------------ secciones
   const secciones = SECCIONES.map((s) => {
-    const visitas = eventos.filter((e) => e.nombre === s.evento);
+    const deLaSeccion = eventos.filter((e) => e.nombre === s.evento);
     const tiempos = eventos
       .filter((e) => e.nombre === "tiempo_pagina" && e.props?.seccion === s.clave)
       .map((e) => Number(e.props?.segundos) || 0)
@@ -162,8 +179,8 @@ export async function GET(req: Request) {
     const promedio = tiempos.length ? tiempos.reduce((a, b) => a + b, 0) / tiempos.length : 0;
     return {
       seccion: s.nombre,
-      visitas: visitas.length,
-      personas: new Set(visitas.map(persona)).size,
+      visitas: deLaSeccion.length,
+      personas: new Set(deLaSeccion.map(persona)).size,
       minutosPromedio: Math.round((promedio / 60) * 10) / 10,
     };
   });
@@ -249,7 +266,7 @@ export async function GET(req: Request) {
   // ------------------------------------------------- actividad diaria
   const hace30 = new Date(ahora.getTime() - 30 * 86400000).toISOString();
   const porDia = new Map<string, { personas: Set<string>; busquedas: number; registros: number; pagos: number }>();
-  for (const e of eventos.filter((x) => x.created_at >= hace30)) {
+  for (const e of visitas.filter((x) => x.created_at >= hace30)) {
     // El día en Colombia (UTC-5), no en UTC.
     const dia = new Date(new Date(e.created_at).getTime() - 5 * 3600000).toISOString().slice(0, 10);
     const f = porDia.get(dia) ?? { personas: new Set<string>(), busquedas: 0, registros: 0, pagos: 0 };
@@ -354,8 +371,33 @@ export async function GET(req: Request) {
   });
 
   const personasDelMes = new Set(
-    eventos.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
+    visitas.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
   ).size;
+
+  // ------------------------------------------------- cuentas creadas
+  // El listado de correos, sin las cuentas de prueba. "Desde" es cuando
+  // creó la cuenta (registro_ok); si no quedó anotado, la fecha de la
+  // fila en users.
+  const registro = new Map<string, string>();
+  const ultimaVez = new Map<string, string>();
+  for (const e of visitas) {
+    const p = persona(e);
+    if (e.nombre === "registro_ok" && e.user_id && !registro.has(e.user_id)) registro.set(e.user_id, e.created_at);
+    if (!ultimaVez.has(p) || e.created_at > ultimaVez.get(p)!) ultimaVez.set(p, e.created_at);
+  }
+  const cuentas = (conCorreo ?? [])
+    .filter((u) => !idsPrueba.has(u.id))
+    .map((u) => {
+      const conMembresiaActiva = u.premium_until && new Date(u.premium_until).getTime() > ahora.getTime();
+      return {
+        email: u.email as string,
+        desde: registro.get(u.id) ?? u.created_at,
+        ultimaVez: ultimaVez.get(u.id) ?? null,
+        plan: conMembresiaActiva ? (planDe.get(u.id) ?? "membresía") : "gratis",
+        venceMembresia: conMembresiaActiva ? u.premium_until : null,
+      };
+    })
+    .sort((a, b) => b.desde.localeCompare(a.desde));
 
   return NextResponse.json({
     desde: todos[0]?.created_at ?? null,
@@ -391,6 +433,7 @@ export async function GET(req: Request) {
       // Lo cobrado en el mes menos lo que costó operar en el mes.
       resultadoDelMesCop: Math.round(bruto - delPeriodo.totalVariable - totalFijo),
     },
+    cuentas,
     porVencer: activas
       .filter((u) => (new Date(u.premium_until).getTime() - ahora.getTime()) / 86400000 <= 15)
       .map((u) => ({ email: u.email, name: u.name, premium_until: u.premium_until })),

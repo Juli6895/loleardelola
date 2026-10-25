@@ -75,11 +75,20 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "jeansandblouses.com", nombre: "Jeans and Blouses" },
   { plataforma: "shopify", dominio: "esprit.com.co", nombre: "Esprit" },
   { plataforma: "shopify", dominio: "ticketstores.co", nombre: "Ticket Stores" },
+  // Octubre de 2026: probadas una por una las demás de la lista de Google.
+  // Complicity sí publica su catálogo; Koaj, Zara, H&M y Mango bloquean el
+  // acceso automático, y Bimba y Lola, Rapsodia y Pepita Pérez no tienen
+  // un buscador abierto.
+  { plataforma: "shopify", dominio: "tiendacomplicity.com", nombre: "Complicity" },
   // Malva (co.malvaonline.com) se quitó a pedido de Juliana: sus precios
   // quedan muy por encima de lo que quiere sugerir en el manual.
   // VTEX no entrega el catálogo entero: se le pregunta por término. Por
   // eso va por otro camino, sin caché de catálogo.
   { plataforma: "vtex", dominio: "colorblue.com", nombre: "Color Blue" },
+  // Responden solo con "www" adelante. Mezclan hombre y mujer: el filtro
+  // de ES_DE_HOMBRE_O_NINO deja solo lo de mujer.
+  { plataforma: "vtex", dominio: "arturocalle.com", host: "www.arturocalle.com", nombre: "Arturo Calle" },
+  { plataforma: "vtex", dominio: "ae.com.co", host: "www.ae.com.co", nombre: "American Eagle" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.

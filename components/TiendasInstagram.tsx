@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ClosetCategory, TiendaInstagram } from "@/types";
 import type { ProductoTienda } from "@/lib/use-catalogo";
 import { prendaDeTienda, type GrupoProductos } from "@/lib/use-catalogo";
@@ -34,7 +35,13 @@ type Tarjeta = {
 // - las de Instagram, con su Instagram y, si tienen, su página;
 // - las de catálogo que trajeron una prenda parecida, con su página.
 // No afirma que tengan esa prenda exacta en stock: el copy lo dice.
+// Con más de 40 tiendas en la lista, una búsqueda de "blusa" las sacaba
+// casi todas. Se muestran primero las que trajeron una prenda parecida,
+// y de entrada solo estas; el resto, con "Ver todas".
+const A_LA_VISTA = 10;
+
 export default function TiendasInstagram({ tiendas, categorias, grupos, flexibles }: Props) {
+  const [todas, setTodas] = useState(false);
   if (categorias.length === 0) return null;
 
   const deInstagram: Tarjeta[] = tiendas
@@ -66,8 +73,10 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
     }
   }
 
-  const tarjetas = [...deInstagram, ...Array.from(soloWeb.values())];
+  const conPrenda = (t: Tarjeta) => (t.prenda?.imagen ? 0 : 1);
+  const tarjetas = [...deInstagram, ...Array.from(soloWeb.values())].sort((a, b) => conPrenda(a) - conPrenda(b));
   if (tarjetas.length === 0) return null;
+  const visibles = todas ? tarjetas : tarjetas.slice(0, A_LA_VISTA);
 
   return (
     <div className="mt-8 border-t border-rosa-100 pt-6">
@@ -78,7 +87,7 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
       </p>
 
       <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        {tarjetas.map((t) => {
+        {visibles.map((t) => {
           const pagina = t.prenda?.url ?? (t.dominio ? `https://${t.dominio}` : null);
           return (
             <div
@@ -145,6 +154,15 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
           );
         })}
       </div>
+      {tarjetas.length > A_LA_VISTA && (
+        <button
+          type="button"
+          onClick={() => setTodas((v) => !v)}
+          className="mt-3 text-sm font-medium text-rosa-600 underline-offset-2 hover:underline"
+        >
+          {todas ? "Ver menos" : `Ver todas las tiendas (${tarjetas.length})`}
+        </button>
+      )}
       <p className="mt-5 flex items-start gap-2 rounded-xl bg-rosa-50/70 px-4 py-3 text-xs leading-relaxed text-noche/60">
         <svg viewBox="0 0 24 24" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rosa-500" aria-hidden>
           <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

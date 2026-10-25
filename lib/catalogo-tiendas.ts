@@ -89,6 +89,47 @@ const TIENDAS: Tienda[] = [
   // de ES_DE_HOMBRE_O_NINO deja solo lo de mujer.
   { plataforma: "vtex", dominio: "arturocalle.com", host: "www.arturocalle.com", nombre: "Arturo Calle" },
   { plataforma: "vtex", dominio: "ae.com.co", host: "www.ae.com.co", nombre: "American Eagle" },
+
+  // Octubre de 2026: marcas hechas en Colombia, la mayoría de Medellín.
+  // Probadas una por una: catálogo abierto y precios en pesos. Quedaron
+  // por fuera las que solo venden en dólares (Johanna Ortiz, Silvia
+  // Tcherassi, Andrea Landa...) y Quest, que es casi toda de hombre y no
+  // lo escribe en sus títulos.
+  // Las de vestidos de baño (Agua Bendita, Onda de Mar, Maaji) entran
+  // porque también venden ropa; sus vestidos de baño los saca
+  // ES_DE_BANO_O_INTERIOR.
+  { plataforma: "shopify", dominio: "leonisa.co", nombre: "Leonisa" },
+  { plataforma: "shopify", dominio: "gef.co", nombre: "GEF" },
+  { plataforma: "shopify", dominio: "hushpuppies.com.co", nombre: "Hush Puppies" },
+  { plataforma: "shopify", dominio: "pepapombo.com", host: "www.pepapombo.com", nombre: "Pepa Pombo" },
+  { plataforma: "shopify", dominio: "aguabendita.com.co", nombre: "Agua Bendita" },
+  { plataforma: "shopify", dominio: "ondademar.co", nombre: "Onda de Mar" },
+  { plataforma: "shopify", dominio: "maaji.com.co", nombre: "Maaji" },
+  { plataforma: "shopify", dominio: "stopjeans.com.co", nombre: "Stop Jeans" },
+  { plataforma: "shopify", dominio: "clemont.co", nombre: "Clemont" },
+  { plataforma: "shopify", dominio: "camiloalvarez.co", nombre: "Camilo Álvarez" },
+  { plataforma: "shopify", dominio: "rayuelaclothing.com", nombre: "Rayuela" },
+  { plataforma: "shopify", dominio: "aladogroup.com", nombre: "Alado" },
+  { plataforma: "shopify", dominio: "sixxta.com", nombre: "Sixxta" },
+  { plataforma: "shopify", dominio: "casaprecis.com", nombre: "Casa Precis" },
+  { plataforma: "shopify", dominio: "mussi.com.co", host: "www.mussi.com.co", nombre: "Mussi" },
+  { plataforma: "shopify", dominio: "amodomio.com.co", nombre: "A Modo Mío" },
+  { plataforma: "shopify", dominio: "polite.com.co", nombre: "Polite" },
+  { plataforma: "shopify", dominio: "naos.com.co", nombre: "NAOS" },
+  { plataforma: "shopify", dominio: "benditaseas.co", nombre: "Bendita Seas" },
+  { plataforma: "vtex", dominio: "studiof.com.co", host: "www.studiof.com.co", nombre: "Studio F" },
+  { plataforma: "vtex", dominio: "ela.com.co", host: "www.ela.com.co", nombre: "ELA" },
+  { plataforma: "vtex", dominio: "nafnaf.com.co", host: "www.nafnaf.com.co", nombre: "Naf Naf" },
+  { plataforma: "vtex", dominio: "velez.com.co", host: "www.velez.com.co", nombre: "Vélez" },
+  { plataforma: "vtex", dominio: "mattelsa.net", host: "www.mattelsa.net", nombre: "Mattelsa" },
+  { plataforma: "vtex", dominio: "tennis.com.co", nombre: "Tennis" },
+  { plataforma: "vtex", dominio: "americanino.com", host: "www.americanino.com", nombre: "Americanino" },
+  { plataforma: "vtex", dominio: "chevignon.com.co", host: "www.chevignon.com.co", nombre: "Chevignon" },
+  { plataforma: "vtex", dominio: "girbaud.com.co", host: "www.girbaud.com.co", nombre: "Girbaud" },
+  { plataforma: "vtex", dominio: "pilatos.com", host: "www.pilatos.com", nombre: "Pilatos" },
+  { plataforma: "vtex", dominio: "mercedescampuzano.com", host: "www.mercedescampuzano.com", nombre: "Mercedes Campuzano" },
+  { plataforma: "vtex", dominio: "ragged.com.co", host: "www.ragged.com.co", nombre: "Ragged" },
+  { plataforma: "vtex", dominio: "frutafresca.com.co", host: "www.frutafresca.com.co", nombre: "Fruta Fresca" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.
@@ -100,8 +141,18 @@ const IGNORADAS = new Set([
 // Sin tildes porque se aplica sobre texto ya normalizado. \b exige que
 // sea la palabra completa: así "hombre" no descarta nada que solo
 // contenga esas letras por casualidad.
+// Con plural: Tennis y Mattelsa clasifican en "/Niñas/" y "/Hombres/",
+// y ELA llama "girl" a su línea de niñas.
 const ES_DE_HOMBRE_O_NINO =
-  /\b(hombre|masculino|caballero|men|nino|nina|infantil|kids|bebe)\b/;
+  /\b(hombres?|masculino|caballeros?|men|ninos?|ninas?|infantil|kids|bebes?|girls?|boys?)\b/;
+
+// Ninguna búsqueda pide vestidos de baño ni ropa interior, pero Agua
+// Bendita, Maaji, Clemont y Leonisa los venden, y "Vestido de baño"
+// empieza por "vestido": sin esto saldrían buscando un vestido. Solo se
+// mira el título y la clasificación; en los tags aparece "swimwear"
+// hasta en las prendas de ropa normal de esas tiendas.
+const ES_DE_BANO_O_INTERIOR =
+  /\b(vestidos? de bano|trajes? de bano|bikinis?|trikinis?|swimsuits?|brasier(es)?|bralettes?|pantys?|tangas?|cacheteros?|fajas?|reductor(a|es|as)?|lenceria|ropa interior)\b/;
 
 /** Minúsculas y sin tildes, para que "satén" empareje con "saten". */
 function normalizar(texto: string): string {
@@ -345,8 +396,22 @@ function basesDe(tipo: string): string[] {
   return Array.from(b).map(escapar);
 }
 
+// Maaji, Onda de Mar y Pepa Pombo titulan y clasifican en inglés
+// ("Eloise Dress", tipo "DRESSES"). Solo sirve para reconocer la prenda:
+// no se le pregunta "dress" a cada tienda, porque su buscador ya las
+// trae cuando se le pide "vestido" (lo busca también en los tags).
+const EN_INGLES: Record<string, string[]> = {
+  vestido: ["dress"],
+  blusa: ["blouse"],
+  pantalon: ["pants", "pant"],
+  falda: ["skirt"],
+  chaqueta: ["jacket"],
+  abrigo: ["coat"],
+  enterizo: ["jumpsuit"],
+};
+
 function patronesDeTipo(tipo: string): { inicio: RegExp; palabra: RegExp } {
-  const alt = tiposDe(tipo).flatMap(basesDe).join("|");
+  const alt = [...tiposDe(tipo), ...(EN_INGLES[tipo] ?? [])].flatMap(basesDe).join("|");
   return {
     inicio: new RegExp(`^(?:${alt})(?:s|es)?\\b`),
     palabra: new RegExp(`\\b(?:${alt})(?:s|es)?\\b`),
@@ -407,10 +472,44 @@ async function conCache(
 // combinaciones salían vacías. El buscador de la tienda (el mismo que
 // usa la caja de búsqueda de su página) mira el catálogo COMPLETO y
 // devuelve las 10 más relevantes, ya sin las agotadas.
+// Todas las tiendas Shopify están detrás de los mismos servidores de
+// Shopify. Con 30 tiendas preguntadas a la vez, Shopify empezó a cortar
+// conexiones (ECONNRESET), también a las tiendas de siempre. Por eso se
+// les pregunta de a SHOPIFY_A_LA_VEZ, y una conexión cortada se reintenta
+// una vez. VTEX no lo necesita: cada tienda tiene su propio servidor.
+const SHOPIFY_A_LA_VEZ = 8;
+let shopifyEnCurso = 0;
+const shopifyEnEspera: Array<() => void> = [];
+
+async function turnoShopify<T>(fn: () => Promise<T>): Promise<T> {
+  if (shopifyEnCurso < SHOPIFY_A_LA_VEZ) shopifyEnCurso++;
+  // Sin cupo: espera a que otra le pase el suyo (el conteo no cambia).
+  else await new Promise<void>((listo) => shopifyEnEspera.push(listo));
+  try {
+    return await fn();
+  } finally {
+    const siguiente = shopifyEnEspera.shift();
+    if (siguiente) siguiente();
+    else shopifyEnCurso--;
+  }
+}
+
+async function pedirShopify(url: string): Promise<Response> {
+  return turnoShopify(async () => {
+    try {
+      return await pedir(url);
+    } catch (e) {
+      // Se agotó el tiempo: reintentar solo alarga la espera.
+      if ((e as Error).name === "AbortError") throw e;
+      return pedir(url);
+    }
+  });
+}
+
 async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
   const host = t.host ?? t.dominio;
   return conCache(`${t.dominio}|${q}`, async () => {
-    const res = await pedir(
+    const res = await pedirShopify(
       `https://${host}/search/suggest.json?q=${encodeURIComponent(q)}` +
         `&resources[type]=product&resources[limit]=10` +
         `&resources[options][unavailable_products]=hide`
@@ -625,6 +724,7 @@ export async function buscarEnCatalogos(
       if (ES_DE_HOMBRE_O_NINO.test(p.titulo_n + " " + p.meta_n + " " + p.descripcion_n)) {
         continue;
       }
+      if (ES_DE_BANO_O_INTERIOR.test(p.titulo_n + " " + p.clase_n)) continue;
 
       // La descripción no cuenta: ahí aparecen detalles de OTRAS prendas.
       if (

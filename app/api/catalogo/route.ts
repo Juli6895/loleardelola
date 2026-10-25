@@ -10,6 +10,10 @@ import { buscarEnCatalogos, type ConsultaPrenda } from "@/lib/catalogo-tiendas";
 //
 // Los rasgos van separados por "|" y no por coma, porque varios traen
 // coma adentro ("manga 3/4, abullonada" sale de un solo campo).
+// Con 45 tiendas, la primera búsqueda (sin caché) puede pasar de los 10
+// segundos que Vercel da por defecto.
+export const maxDuration = 30;
+
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
   const tipo = params.get("tipo")?.trim();
@@ -29,7 +33,9 @@ export async function GET(req: Request) {
     try {
       const [conColor, soloTipo] = await Promise.all([
         color ? buscarEnCatalogos({ tipo, color, rasgos: [] }, 24) : Promise.resolve([]),
-        buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 24),
+        // 60 y no 24: salen hasta 3 por tienda, y con 24 solo unas 8 de
+        // las 45 tiendas alcanzaban a tener foto en su tarjeta.
+        buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 60),
       ]);
       const vistos = new Set<string>();
       const productos = [...conColor, ...soloTipo].filter((p) => !vistos.has(p.url) && !!vistos.add(p.url));

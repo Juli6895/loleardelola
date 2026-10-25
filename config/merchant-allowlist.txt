@@ -47,7 +47,39 @@ gracies.com.co
 inmaculadavj.com
 pepitaperez.co
 colorblue.com
-# studiof.com.co
-# velez.com.co
+# (studiof.com.co y velez.com.co: activas abajo)
 # dafiti.com.co
 # falabella.com.co — excluida a propósito, ver merchant-exclusions.txt
+# --- Hechas en Colombia (octubre de 2026), también en el catálogo ---
+leonisa.co
+gef.co
+hushpuppies.com.co
+pepapombo.com
+aguabendita.com.co
+ondademar.co
+maaji.com.co
+stopjeans.com.co
+clemont.co
+camiloalvarez.co
+rayuelaclothing.com
+aladogroup.com
+sixxta.com
+casaprecis.com
+mussi.com.co
+amodomio.com.co
+polite.com.co
+naos.com.co
+benditaseas.co
+studiof.com.co
+ela.com.co
+nafnaf.com.co
+velez.com.co
+mattelsa.net
+tennis.com.co
+americanino.com
+chevignon.com.co
+girbaud.com.co
+pilatos.com
+mercedescampuzano.com
+ragged.com.co
+frutafresca.com.co

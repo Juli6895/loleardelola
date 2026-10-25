@@ -49,6 +49,7 @@ type Datos = {
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
   costos: Costos;
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
+  cuentas: Array<{ email: string; desde: string; ultimaVez: string | null; plan: string; venceMembresia: string | null }>;
 };
 
 export default function AdminPage() {
@@ -108,6 +109,9 @@ export default function AdminPage() {
         <Numero etiqueta="Cobrado este mes" valor={pesos(datos.dinero.brutoCop)} />
         <Numero etiqueta="Te queda (estimado)" valor={pesos(datos.dinero.netoEstimadoCop)} />
       </div>
+
+      {/* ---- Cuentas creadas ---- */}
+      <SeccionCuentas cuentas={datos.cuentas} />
 
       {/* ---- Embudo ---- */}
       <Seccion
@@ -473,6 +477,43 @@ function SeccionComercios({
         <p className="mt-3 text-xs text-noche/50">
           Excluidos (nunca se muestran): {excluidos.join(", ")}.
         </p>
+      )}
+    </Seccion>
+  );
+}
+
+/** Los correos de las cuentas creadas (sin las de prueba). */
+function SeccionCuentas({ cuentas }: { cuentas: Datos["cuentas"] }) {
+  const [copiado, setCopiado] = useState(false);
+  const fecha = (iso: string | null) =>
+    iso ? new Date(iso).toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) : "—";
+  const copiar = async () => {
+    try {
+      await navigator.clipboard.writeText(cuentas.map((c) => c.email).join("\n"));
+      setCopiado(true);
+      setTimeout(() => setCopiado(false), 2000);
+    } catch {
+      // Sin permiso para el portapapeles: los correos igual están en la tabla.
+    }
+  };
+  return (
+    <Seccion titulo="Cuentas creadas" nota="Sin las cuentas de prueba. Última vez: la última vez que entró, en cualquier navegador.">
+      {cuentas.length === 0 ? (
+        <p className="text-sm text-noche/50">Todavía nadie ha creado su cuenta.</p>
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={copiar}
+            className="mb-3 rounded-full border border-rosa-200 px-3 py-1 text-xs font-medium text-rosa-600 hover:bg-rosa-50"
+          >
+            {copiado ? "Copiados" : `Copiar los ${cuentas.length} correos`}
+          </button>
+          <Tabla
+            columnas={["Correo", "Desde", "Plan", "Vence", "Última vez"]}
+            filas={cuentas.map((c) => [c.email, fecha(c.desde), c.plan, fecha(c.venceMembresia), fecha(c.ultimaVez)])}
+          />
+        </>
       )}
     </Seccion>
   );

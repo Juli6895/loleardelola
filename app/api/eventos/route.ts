@@ -11,9 +11,21 @@ import { usuarioActual } from "@/lib/sesion";
 //
 // Solo acepta nombres de la lista cerrada. Si cualquiera pudiera
 // inventar nombres, en tres meses el tablero sería ilegible.
+// Navegadores automáticos: con cada publicación, Vercel abre la página
+// dos veces para sacarle una foto, y cada visita quedaba como una
+// "persona" nueva en el tablero (y como una cuenta anónima en users).
+// Igual los buscadores y las vistas previas de enlaces.
+const ES_ROBOT =
+  /bot|crawl|spider|slurp|headless|vercel|lighthouse|pagespeed|facebookexternalhit|whatsapp|telegram|curl|wget|python|node-fetch|axios|playwright|puppeteer|selenium/i;
+
 export async function POST(req: Request) {
+  if (ES_ROBOT.test(req.headers.get("user-agent") ?? "")) {
+    return NextResponse.json({ ok: true });
+  }
   try {
     const body = await req.json();
+    // El navegador avisa que lo maneja un programa (ver lib/use-evento).
+    if (body.robot === true) return NextResponse.json({ ok: true });
     if (!EVENTOS.includes(body.nombre)) {
       return NextResponse.json({ error: "Evento desconocido" }, { status: 400 });
     }

@@ -27,6 +27,10 @@ function sesionId(): string {
 
 export function anotar(nombre: string, props: Record<string, unknown> = {}): void {
   try {
+    // Los navegadores manejados por un programa (como el que usa Vercel
+    // para sacarle foto a cada publicación) lo dicen en
+    // navigator.webdriver. No son personas: no se anota nada.
+    if (navigator.webdriver) return;
     const cuerpo = JSON.stringify({ nombre, props });
     fetch("/api/eventos", {
       method: "POST",

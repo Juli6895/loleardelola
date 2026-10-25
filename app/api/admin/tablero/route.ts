@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA } from "@/lib/admin-correos";
 import { COMISION_BOLD, COSTOS_FIJOS, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
+import { cloudinary } from "@/lib/cloudinary";
 
 // GET /api/admin/tablero → todo lo que pinta la página /admin.
 //
@@ -273,6 +274,34 @@ export async function GET(req: Request) {
   const totalFijo = COSTOS_FIJOS.reduce((a, c) => a + c.cop, 0);
   // Por persona: lo variable del mes entre las personas que usaron la app
   // este mes (sin las de prueba), y por cada membresía activa.
+  // Los servicios en plan gratis: cuánto de su límite se ha usado, para
+  // saber con tiempo cuándo habría que pasar al plan pago.
+  const planesGratis: Array<{ servicio: string; usado: string; limite: string; porcentaje: number | null; detalle: string }> = [];
+  try {
+    const u: any = await cloudinary.api.usage();
+    const mb = (bytes: number) => `${Math.round((bytes ?? 0) / 1e6)} MB`;
+    planesGratis.push({
+      servicio: "Fotos (Cloudinary)",
+      usado: `${(u.credits?.usage ?? 0).toLocaleString("es-CO")} créditos`,
+      limite: `${u.credits?.limit ?? 25} créditos al mes`,
+      porcentaje: u.credits?.used_percent ?? null,
+      detalle: `${u.resources ?? 0} fotos · espacio ${mb(u.storage?.usage)} · tráfico ${mb(u.bandwidth?.usage)} · ${u.transformations?.usage ?? 0} transformaciones`,
+    });
+  } catch (e) {
+    console.warn("[admin/tablero] cloudinary:", e);
+  }
+  const { count: correosDelMes } = await sb
+    .from("login_codes")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", inicioDeMes.toISOString());
+  planesGratis.push({
+    servicio: "Correos del código de ingreso (Resend)",
+    usado: `${correosDelMes ?? 0} correos`,
+    limite: "3.000 al mes (100 al día)",
+    porcentaje: Math.round(((correosDelMes ?? 0) / 3000) * 1000) / 10,
+    detalle: "Uno por cada vez que alguien pide su código para entrar.",
+  });
+
   const personasDelMes = new Set(
     eventos.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
   ).size;
@@ -303,6 +332,7 @@ export async function GET(req: Request) {
       desdeSiempre,
       fijos: COSTOS_FIJOS,
       totalFijo,
+      planesGratis,
       porPersonaCop: personasDelMes ? Math.round(delPeriodo.totalVariable / personasDelMes) : 0,
       porMembresiaCop: activas.length ? Math.round((delPeriodo.totalVariable + totalFijo) / activas.length) : 0,
       // Lo cobrado en el mes menos lo que costó operar en el mes.

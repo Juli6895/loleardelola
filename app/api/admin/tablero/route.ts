@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA } from "@/lib/admin-correos";
+import { COMISION_BOLD, COSTOS_FIJOS, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 
 // GET /api/admin/tablero → todo lo que pinta la página /admin.
 //
@@ -217,7 +218,64 @@ export async function GET(req: Request) {
   const inicioDeMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
   const delMes = pagosReales.filter((p) => p.acreditado_at && new Date(p.acreditado_at) >= inicioDeMes);
   const bruto = delMes.reduce((a, p) => a + (p.monto_cop ?? 0), 0);
-  const comision = delMes.reduce((a, p) => a + (p.monto_cop ?? 0) * 0.0329 + 900, 0);
+  const comisionDe = (monto: number) => monto * COMISION_BOLD.porcentaje + COMISION_BOLD.fijoCop;
+  const comision = delMes.reduce((a, p) => a + comisionDe(p.monto_cop ?? 0), 0);
+
+  // ---------------------------------------------------------- costos
+  // Lo que de verdad se gastó: cada llamada a la IA anota su costo
+  // (ver lib/costos.ts). Acá van TODAS, también las de las cuentas de
+  // prueba, porque esa plata también se paga.
+  const resumirCostos = (desde: Date | null) => {
+    const consumo = todos.filter(
+      (e) => e.nombre === "consumo_ia" && (!desde || new Date(e.created_at) >= desde)
+    );
+    const porServicio = new Map<string, { veces: number; usd: number; personas: Set<string> }>();
+    for (const e of consumo) {
+      const servicio = String(e.props?.servicio ?? "otro");
+      const fila = porServicio.get(servicio) ?? { veces: 0, usd: 0, personas: new Set<string>() };
+      fila.veces++;
+      fila.usd += Number(e.props?.usd) || 0;
+      if (e.user_id || e.device_id) fila.personas.add(persona(e));
+      porServicio.set(servicio, fila);
+    }
+    const ia = Array.from(porServicio.entries())
+      .map(([servicio, f]) => {
+        const totalCop = f.usd * TRM;
+        return {
+          rubro: NOMBRE_SERVICIO[servicio as ServicioIA] ?? servicio,
+          veces: f.veces,
+          totalCop: Math.round(totalCop),
+          unitarioCop: Math.round(totalCop / Math.max(f.veces, 1)),
+        };
+      })
+      .sort((a, b) => b.totalCop - a.totalCop);
+
+    const pagosPeriodo = pagosReales.filter((p) => p.acreditado_at && (!desde || new Date(p.acreditado_at) >= desde));
+    const bold = pagosPeriodo.reduce((a, p) => a + comisionDe(p.monto_cop ?? 0), 0);
+    const variables = [
+      ...ia,
+      {
+        rubro: "Comisión de Bold por cada pago",
+        veces: pagosPeriodo.length,
+        totalCop: Math.round(bold),
+        unitarioCop: pagosPeriodo.length ? Math.round(bold / pagosPeriodo.length) : 0,
+      },
+      // Gratis dentro de su plan: se listan para ver el consumo.
+      { rubro: "Catálogos de tiendas y promociones", veces: null, totalCop: 0, unitarioCop: 0 },
+      { rubro: "Notificaciones al celular", veces: null, totalCop: 0, unitarioCop: 0 },
+    ];
+    const totalVariable = variables.reduce((a, v) => a + v.totalCop, 0);
+    return { variables, totalVariable };
+  };
+
+  const delPeriodo = resumirCostos(inicioDeMes);
+  const desdeSiempre = resumirCostos(null);
+  const totalFijo = COSTOS_FIJOS.reduce((a, c) => a + c.cop, 0);
+  // Por persona: lo variable del mes entre las personas que usaron la app
+  // este mes (sin las de prueba), y por cada membresía activa.
+  const personasDelMes = new Set(
+    eventos.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
+  ).size;
 
   return NextResponse.json({
     desde: todos[0]?.created_at ?? null,
@@ -238,6 +296,17 @@ export async function GET(req: Request) {
       pagosDelMes: delMes.length,
       brutoCop: Math.round(bruto),
       netoEstimadoCop: Math.round(bruto - comision),
+    },
+    costos: {
+      trm: TRM,
+      delMes: delPeriodo,
+      desdeSiempre,
+      fijos: COSTOS_FIJOS,
+      totalFijo,
+      porPersonaCop: personasDelMes ? Math.round(delPeriodo.totalVariable / personasDelMes) : 0,
+      porMembresiaCop: activas.length ? Math.round((delPeriodo.totalVariable + totalFijo) / activas.length) : 0,
+      // Lo cobrado en el mes menos lo que costó operar en el mes.
+      resultadoDelMesCop: Math.round(bruto - delPeriodo.totalVariable - totalFijo),
     },
     porVencer: activas
       .filter((u) => (new Date(u.premium_until).getTime() - ahora.getTime()) / 86400000 <= 15)

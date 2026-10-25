@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { ClosetCategory, PrendaDetalle, VisionResult } from "@/types";
+import { anotarConsumo } from "./costos";
 
 // =====================================================================
 // Analizador de outfits con Claude (multimodal)
@@ -364,6 +365,7 @@ export async function analyzeImageWithClaude(
       },
     ],
   });
+  anotarConsumo("busqueda", MODEL_OUTFIT, response.usage);
 
   // Buscar el bloque de tool_use en la respuesta.
   const toolUse = response.content.find(
@@ -622,6 +624,7 @@ export async function analyzeClosetItem(
       },
     ],
   });
+  anotarConsumo("prenda_closet", MODEL_OUTFIT, response.usage);
 
   const toolUse = response.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"

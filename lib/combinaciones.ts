@@ -10,6 +10,7 @@ import { fetchImageAsBase64 } from "./garment-ai";
 import { PROYECCIONES } from "./image-consulting/proyeccion";
 import { PERSONALIDADES } from "./image-consulting/personalidad";
 import type { ClosetCategory } from "@/types";
+import { anotarConsumo } from "./costos";
 
 // =====================================================================
 // "Buscar combinaciones" desde el clóset
@@ -201,6 +202,7 @@ async function armarOutfit(
       },
     ],
   });
+  anotarConsumo("combinacion", MODELO, response.usage);
 
   const toolUse = response.content.find(
     (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"

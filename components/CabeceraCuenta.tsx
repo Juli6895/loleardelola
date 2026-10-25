@@ -27,7 +27,7 @@ const LO_DE_LA_MEMBRESIA = [
   },
   {
     titulo: "Clóset más grande",
-    detalle: `Hoy puedes subir ${TOPES.gratis.prendasCloset} prendas. Con membresía, todas las que quieras, y combinaciones sin tope.`,
+    detalle: `Hoy puedes subir ${TOPES.gratis.prendasCloset} prendas. Con membresía, ${TOPES_MES_MEMBRESIA.prendasCloset} nuevas y ${TOPES_MES_MEMBRESIA.combinaciones} combinaciones cada mes.`,
   },
   {
     titulo: "Más búsquedas y combinaciones",

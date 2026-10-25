@@ -6,7 +6,7 @@ import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { useUsuario } from "@/lib/use-usuario";
 import { anotar } from "@/lib/use-evento";
-import type { TipoPlan } from "@/lib/planes";
+import type { Producto } from "@/lib/planes";
 
 // Botón de pago de Bold.
 //
@@ -52,7 +52,7 @@ export default function BotonPago({
   plan,
   etiqueta,
 }: {
-  plan: TipoPlan;
+  plan: Producto;
   etiqueta: string;
 }) {
   const { usuario, cargando } = useUsuario();

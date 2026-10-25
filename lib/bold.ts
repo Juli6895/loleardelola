@@ -1,5 +1,5 @@
 import crypto from "crypto";
-import { PRECIOS, type TipoPlan } from "./planes";
+import { PAQUETES_BUSQUEDAS, esPaquete, precioDe, type Producto } from "./planes";
 
 // =====================================================================
 // Cobro con Bold
@@ -71,21 +71,22 @@ export type DatosBoton = {
 
 export function armarBoton(
   userId: string,
-  plan: TipoPlan,
+  plan: Producto,
   urlBase: string
 ): DatosBoton | null {
   const k = llaves();
   if (!k) return null;
   const orden = nuevaOrden(userId);
-  const montoCop = PRECIOS[plan];
+  const montoCop = precioDe(plan);
   return {
     apiKey: k.identidad,
     orden,
     montoCop,
     divisa: "COP",
     firma: firmar(orden, montoCop, k.secreta),
-    descripcion:
-      plan === "anual"
+    descripcion: esPaquete(plan)
+      ? `LoleardLola - ${PAQUETES_BUSQUEDAS[plan].busquedas} búsquedas adicionales`
+      : plan === "anual"
         ? "Membresía LoleardLola - 1 año"
         : "Membresía LoleardLola - 1 mes",
     urlRetorno: `${urlBase}/membresia/resultado`,

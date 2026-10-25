@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { armarBoton } from "@/lib/bold";
-import { PRECIOS, type TipoPlan } from "@/lib/planes";
+import { esPaquete, precioDe, type Producto } from "@/lib/planes";
+import { esAdmin } from "@/lib/admin-correos";
 import { contextoDe, registrar } from "@/lib/eventos";
 
-// POST /api/membresia/checkout  { plan: "mensual" | "anual" }
+// POST /api/membresia/checkout  { plan: "mensual" | "anual" | "paquete30" }
 //
 // Prepara el cobro: guarda la orden como pendiente y devuelve los datos
 // firmados para el botón de Bold. La firma se calcula acá y nunca en el
@@ -22,7 +23,16 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  const plan: TipoPlan = body.plan === "anual" ? "anual" : "mensual";
+  const plan: Producto = esPaquete(body.plan) ? body.plan : body.plan === "anual" ? "anual" : "mensual";
+
+  // Los paquetes de búsquedas son para quien ya tiene la membresía: son
+  // para cuando se le acaban las del mes.
+  if (esPaquete(plan) && usuario.plan !== "membresia" && !esAdmin(usuario.email)) {
+    return NextResponse.json(
+      { error: "Los paquetes de búsquedas son para quienes tienen la membresía." },
+      { status: 402 }
+    );
+  }
 
   const origen = new URL(req.url).origin;
   const boton = armarBoton(usuario.id, plan, origen);
@@ -39,7 +49,7 @@ export async function POST(req: Request) {
     order_id: boton.orden,
     user_id: usuario.id,
     plan,
-    monto_cop: PRECIOS[plan],
+    monto_cop: precioDe(plan),
     estado: "pendiente",
   });
   if (error) {
@@ -49,6 +59,6 @@ export async function POST(req: Request) {
   // Paso 3 del embudo: el checkout quedó listo. Si hay muchos de
   // estos y pocos pago_aprobado, la gente se está cayendo EN Bold, no
   // en nuestra página — que es una conclusión muy distinta.
-  registrar("pago_abierto", contextoDe(req, usuario.id), { plan, monto: PRECIOS[plan] });
+  registrar("pago_abierto", contextoDe(req, usuario.id), { plan, monto: precioDe(plan) });
   return NextResponse.json({ boton });
 }

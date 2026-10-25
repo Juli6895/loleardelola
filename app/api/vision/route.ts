@@ -5,7 +5,7 @@ import { uploadImage } from "@/lib/cloudinary";
 import { getExcludedMerchants } from "@/lib/merchant-exclusions";
 import { getAllowedMerchants } from "@/lib/merchant-allowlist";
 import { getTiendasInstagram } from "@/lib/tiendas-instagram";
-import { revisarTope, registrarBusqueda } from "@/lib/limites";
+import { revisarTope, registrarBusqueda, gastarBusquedaExtra } from "@/lib/limites";
 import { contextoDe, registrar } from "@/lib/eventos";
 import type { VisionResult } from "@/types";
 import { anotarConsumoGoogleVision } from "@/lib/costos";
@@ -89,6 +89,8 @@ export async function POST(req: Request) {
     // Se cuenta solo si el análisis salió bien: una foto que falló no
     // le debe gastar una búsqueda a nadie.
     await registrarBusqueda(tope.usuario.id, result.data.searchTerms);
+    // Si ya había usado las del mes, esta salió de su paquete.
+    if (tope.usaExtra) await gastarBusquedaExtra(tope.usuario.id);
     registrar("busqueda_ok", contextoDe(req, tope.usuario.id), {
       motor: result.source,
       prendas: result.data.prendas.length,

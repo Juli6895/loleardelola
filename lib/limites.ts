@@ -32,7 +32,15 @@ const TABLA: Record<Recurso, string> = {
 };
 
 export type Veredicto =
-  | { permitido: true; usuario: UsuarioActual; usadas: number; tope: number | null }
+  | {
+      permitido: true;
+      usuario: UsuarioActual;
+      usadas: number;
+      tope: number | null;
+      // Ya usó las búsquedas del mes y esta sale de un paquete: hay que
+      // descontarla (gastarBusquedaExtra) cuando la búsqueda salga bien.
+      usaExtra?: boolean;
+    }
   | {
       permitido: false;
       usuario: UsuarioActual | null;
@@ -124,6 +132,10 @@ export async function revisarTope(
   if (usuario.plan === "membresia" && (recurso === "busquedas" || recurso === "prendasCloset")) {
     const mensual = await revisarUsoMensual(usuario, recurso);
     if (mensual.permitido) return { permitido: true, usuario, usadas: 0, tope: null };
+    // Se le acabaron las del mes: si compró un paquete, sale de ahí.
+    if (recurso === "busquedas" && (await busquedasExtra(usuario.id)) > 0) {
+      return { permitido: true, usuario, usadas: 0, tope: null, usaExtra: true };
+    }
     registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan });
     return { permitido: false, usuario, mensaje: mensual.mensaje, destrabaCon: null, usadas: 0, tope: TOPES_MES_MEMBRESIA[recurso] };
   }
@@ -184,6 +196,50 @@ export async function puedeVerCombinaciones(
     mensaje: `Ya usaste ${cuantas}. Con la membresía buscas combinaciones sin tope.`,
     destrabaCon: "membresia",
   };
+}
+
+/**
+ * Las búsquedas de paquete que le quedan. 0 si no ha comprado o si la
+ * columna todavía no existe (falta correr la migración de paquetes).
+ */
+export async function busquedasExtra(userId: string): Promise<number> {
+  const { data, error } = await supabaseAdmin()
+    .from("users")
+    .select("busquedas_extra")
+    .eq("id", userId)
+    .maybeSingle();
+  if (error) return 0;
+  return Number((data as any)?.busquedas_extra) || 0;
+}
+
+/**
+ * Descuenta una búsqueda de paquete. Solo resta si el saldo sigue siendo
+ * el que se leyó: si dos búsquedas llegan a la vez, la segunda vuelve a
+ * leer y resta sobre el valor nuevo, en vez de pisarlo.
+ */
+export async function gastarBusquedaExtra(userId: string): Promise<void> {
+  const sb = supabaseAdmin();
+  for (let intento = 0; intento < 3; intento++) {
+    const actual = await busquedasExtra(userId);
+    if (actual <= 0) return;
+    const { data } = await sb
+      .from("users")
+      .update({ busquedas_extra: actual - 1 })
+      .eq("id", userId)
+      .eq("busquedas_extra", actual)
+      .select("id");
+    if (data && data.length > 0) return;
+  }
+}
+
+/** Cuántas búsquedas del mes lleva y cuántas de paquete le quedan. */
+export async function saldoDeBusquedas(usuario: UsuarioActual) {
+  const { inicio } = mesEnCurso();
+  const [usadas, extra] = await Promise.all([
+    usadasDesde(usuario.id, "busquedas", inicio),
+    busquedasExtra(usuario.id),
+  ]);
+  return { usadasDelMes: usadas, topeDelMes: TOPES_MES_MEMBRESIA.busquedas, extra };
 }
 
 /**

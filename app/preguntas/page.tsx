@@ -161,7 +161,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <Link href="/membresia" className="font-medium text-rosa-600 underline">
               Membresía
             </Link>
-            , con tarjeta o PSE. El pago lo procesa Bold, una plataforma de pagos colombiana: nosotros nunca
+            , con tarjeta o PSE. Primero entra con tu correo: así la membresía queda en tu cuenta y se activa
+            sola apenas pagas. El pago lo procesa Bold, una plataforma de pagos colombiana: nosotros nunca
             vemos los datos de tu tarjeta.
           </p>
         ),

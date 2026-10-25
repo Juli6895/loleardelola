@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { exigirAdmin } from "@/lib/admin";
-import { CORREOS_PRUEBA } from "@/lib/admin-correos";
+import { CORREOS_PRUEBA, DISPOSITIVOS_PRUEBA } from "@/lib/admin-correos";
 import { COMISION_BOLD, COSTOS_FIJOS, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 import { cloudinary } from "@/lib/cloudinary";
 
@@ -84,7 +84,10 @@ export async function GET(req: Request) {
     .select("id, device_id")
     .in("email", CORREOS_PRUEBA);
   const idsPrueba = new Set((deprueba ?? []).map((u) => u.id));
-  const dispositivosPrueba = new Set((deprueba ?? []).map((u) => u.device_id).filter(Boolean));
+  const dispositivosPrueba = new Set([
+    ...DISPOSITIVOS_PRUEBA,
+    ...(deprueba ?? []).map((u) => u.device_id).filter(Boolean),
+  ]);
 
   // ----------------------------------------------------- los eventos
   const todos: Evento[] = [];

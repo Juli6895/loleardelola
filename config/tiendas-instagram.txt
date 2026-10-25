@@ -113,10 +113,7 @@ studiofcolombia | Studio F | top,bottom,vestido,abrigo,calzado,accesorio | Cali 
 moda_ela | ELA | top,bottom,vestido,abrigo,calzado,accesorio | Cali | ela.com.co
 sixxta | Sixxta | top,bottom,vestido,abrigo,accesorio | Bucaramanga | sixxta.com
 mussizapatos | Mussi | calzado,accesorio | Cúcuta | mussi.com.co
-pepapombocom | Pepa Pombo | top,bottom,vestido,abrigo | Bogotá | pepapombo.com
 casaprecis | Casa Precis | top,bottom,vestido,abrigo,calzado,accesorio | Bogotá | casaprecis.com
-amodomiostore | A Modo Mío | top,bottom,vestido,abrigo | Bogotá | amodomio.com.co
-firmapolite | Polite | top,bottom,accesorio | Ibagué | polite.com.co
 naosofficial_ | NAOS | top,bottom,vestido,abrigo | | naos.com.co
 benditaseasmarca | Bendita Seas | top,bottom,vestido,abrigo,calzado | | benditaseas.co
 nafnafcol | Naf Naf | top,bottom,vestido,abrigo,calzado,accesorio | | nafnaf.com.co
@@ -124,10 +121,11 @@ americanino | Americanino | top,bottom,vestido,abrigo,calzado | | americanino.co
 chevignon_ch | Chevignon | top,bottom,vestido,abrigo,calzado,accesorio | | chevignon.com.co
 girbaudcolombia | Girbaud | top,bottom,vestido,abrigo,calzado | | girbaud.com.co
 hushpuppiesco | Hush Puppies | calzado,accesorio | | hushpuppies.com.co
+# Malva: tienda de varias marcas colombianas. El @ es el que enlaza su
+# página (co.malvaonline.com).
+malva | Malva | top,bottom,vestido,abrigo,calzado,accesorio | Cartagena | co.malvaonline.com
 
 # --- PENDIENTES DE CONFIRMAR (sí están en el catálogo) ---
 # Su página no publica el enlace a Instagram.
-# Alado: la revista Exclama dice @aladodiseno.
-# aladodiseno | Alado | top,bottom,vestido | Medellín | aladogroup.com
 # Pilatos: un directorio de 2014 dice @pilatosstore.
 # pilatosstore | Pilatos | top,bottom,vestido,abrigo,calzado,accesorio | | pilatos.com

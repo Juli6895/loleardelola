@@ -7,7 +7,7 @@ import { buscarPromos } from "@/lib/catalogo-tiendas";
 // Sin tipos, una mezcla general; con tipos (lo que se detectó en la
 // foto), solo de esas prendas. No usa IA: sale del catálogo de cada
 // tienda, que ya se guarda 30 minutos en memoria.
-// Con 45 tiendas, la primera búsqueda (sin caché) puede pasar de los 10
+// Con más de 40 tiendas, la primera búsqueda (sin caché) puede pasar de los 10
 // segundos que Vercel da por defecto.
 export const maxDuration = 30;
 

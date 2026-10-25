@@ -80,8 +80,11 @@ const TIENDAS: Tienda[] = [
   // acceso automático, y Bimba y Lola, Rapsodia y Pepita Pérez no tienen
   // un buscador abierto.
   { plataforma: "shopify", dominio: "tiendacomplicity.com", nombre: "Complicity" },
-  // Malva (co.malvaonline.com) se quitó a pedido de Juliana: sus precios
-  // quedan muy por encima de lo que quiere sugerir en el manual.
+  // co.malvaonline.com y no malvaonline.com: la tienda tiene selector de
+  // país (Colombia/México/Perú) y cada uno sirve un catálogo DISTINTO.
+  // Sin el "co." se sugerían prendas de otro país. Se quitó en septiembre
+  // por precios altos y Juliana la volvió a pedir en octubre de 2026.
+  { plataforma: "shopify", dominio: "co.malvaonline.com", nombre: "Malva" },
   // VTEX no entrega el catálogo entero: se le pregunta por término. Por
   // eso va por otro camino, sin caché de catálogo.
   { plataforma: "vtex", dominio: "colorblue.com", nombre: "Color Blue" },
@@ -94,14 +97,15 @@ const TIENDAS: Tienda[] = [
   // Probadas una por una: catálogo abierto y precios en pesos. Quedaron
   // por fuera las que solo venden en dólares (Johanna Ortiz, Silvia
   // Tcherassi, Andrea Landa...) y Quest, que es casi toda de hombre y no
-  // lo escribe en sus títulos.
+  // lo escribe en sus títulos. Polite, Pepa Pombo, A Modo Mío y Alado
+  // también se quitaron, a pedido de Juliana: son de lujo (hasta 4
+  // millones por prenda).
   // Las de vestidos de baño (Agua Bendita, Onda de Mar, Maaji) entran
   // porque también venden ropa; sus vestidos de baño los saca
   // ES_DE_BANO_O_INTERIOR.
   { plataforma: "shopify", dominio: "leonisa.co", nombre: "Leonisa" },
   { plataforma: "shopify", dominio: "gef.co", nombre: "GEF" },
   { plataforma: "shopify", dominio: "hushpuppies.com.co", nombre: "Hush Puppies" },
-  { plataforma: "shopify", dominio: "pepapombo.com", host: "www.pepapombo.com", nombre: "Pepa Pombo" },
   { plataforma: "shopify", dominio: "aguabendita.com.co", nombre: "Agua Bendita" },
   { plataforma: "shopify", dominio: "ondademar.co", nombre: "Onda de Mar" },
   { plataforma: "shopify", dominio: "maaji.com.co", nombre: "Maaji" },
@@ -109,12 +113,9 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "clemont.co", nombre: "Clemont" },
   { plataforma: "shopify", dominio: "camiloalvarez.co", nombre: "Camilo Álvarez" },
   { plataforma: "shopify", dominio: "rayuelaclothing.com", nombre: "Rayuela" },
-  { plataforma: "shopify", dominio: "aladogroup.com", nombre: "Alado" },
   { plataforma: "shopify", dominio: "sixxta.com", nombre: "Sixxta" },
   { plataforma: "shopify", dominio: "casaprecis.com", nombre: "Casa Precis" },
   { plataforma: "shopify", dominio: "mussi.com.co", host: "www.mussi.com.co", nombre: "Mussi" },
-  { plataforma: "shopify", dominio: "amodomio.com.co", nombre: "A Modo Mío" },
-  { plataforma: "shopify", dominio: "polite.com.co", nombre: "Polite" },
   { plataforma: "shopify", dominio: "naos.com.co", nombre: "NAOS" },
   { plataforma: "shopify", dominio: "benditaseas.co", nombre: "Bendita Seas" },
   { plataforma: "vtex", dominio: "studiof.com.co", host: "www.studiof.com.co", nombre: "Studio F" },

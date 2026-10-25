@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import InstalarApp from "@/components/InstalarApp";
@@ -60,6 +61,17 @@ export default function RootLayout({
             <p className="font-display italic">LoleardLola</p>
             <p className="mt-1">
               Hecho con amor en Colombia · {new Date().getFullYear()}
+            </p>
+            <p className="mt-3 flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs">
+              <Link href="/preguntas" className="hover:text-rosa-600 hover:underline">
+                Preguntas frecuentes
+              </Link>
+              <Link href="/privacy" className="hover:text-rosa-600 hover:underline">
+                Privacidad
+              </Link>
+              <a href="mailto:contacto@lakaja.co" className="hover:text-rosa-600 hover:underline">
+                contacto@lakaja.co
+              </a>
             </p>
           </footer>
           <InstalarApp />

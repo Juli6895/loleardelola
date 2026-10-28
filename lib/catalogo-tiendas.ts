@@ -767,8 +767,8 @@ export async function buscarEnCatalogos(
   c: ConsultaPrenda,
   maximo = 8,
   descuentoMinimo = 0,
-  // "Mis marcas" (ver lib/marcas-favoritas.ts): solo se les pregunta a
-  // esas tiendas. Vacío = todas.
+  // Para buscar solo en algunas tiendas (?marcas= en /api/catalogo).
+  // Vacío = todas.
   marcas: string[] = []
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();

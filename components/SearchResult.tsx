@@ -14,7 +14,6 @@ import ProductosSugeridos from "./ProductosSugeridos";
 import { useCatalogo } from "@/lib/use-catalogo";
 import type { ClosetCategory } from "@/types";
 import { fetchConDispositivo } from "@/lib/device-id";
-import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import type { SearchResult as Result } from "./SearchBox";
 
 // Renderiza los resultados del análisis: imagen, chips de búsqueda,
@@ -31,9 +30,7 @@ export default function SearchResult({ data }: { data: Result }) {
   const excluded = data.excludedMerchants ?? [];
   // Lista cerrada de comercios permitidos (ajuste de administración). Si
   // tiene datos, restringe la búsqueda y le gana a `excluded`.
-  // Con "Mis marcas" escogidas, Google busca solo en esas.
-  const misMarcas = useMarcasFavoritas();
-  const allowed = misMarcas.length > 0 ? misMarcas : (data.allowedMerchants ?? []);
+  const allowed = data.allowedMerchants ?? [];
 
   // Índices visibles: todas las prendas detectadas menos las que se quitaron.
   const visibleIndices = terms

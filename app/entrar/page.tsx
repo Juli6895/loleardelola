@@ -191,7 +191,15 @@ function Formulario() {
                 className="mt-0.5 h-4 w-4 shrink-0 rounded border-rosa-300 text-rosa-500 focus:ring-rosa-400"
               />
               <span>
-                Acepto la{" "}
+                Acepto los{" "}
+                <Link
+                  href="/terminos"
+                  target="_blank"
+                  className="font-medium text-rosa-600 underline underline-offset-2"
+                >
+                  términos y condiciones
+                </Link>{" "}
+                y la{" "}
                 <Link
                   href="/privacy"
                   target="_blank"
@@ -199,7 +207,7 @@ function Formulario() {
                 >
                   política de privacidad
                 </Link>
-                . Uso mi correo y mis datos de perfil según se explica ahí.
+                . Uso mi correo, mi celular y mis datos de perfil según se explica ahí.
               </span>
             </label>
             <button

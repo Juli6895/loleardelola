@@ -157,12 +157,13 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
-        p: "¿Puedo ver solo las marcas que me gustan?",
+        p: "¿Puedo ver promociones solo de las marcas que me gustan?",
         r: (
           <p>
             Sí. En el menú (☰ en el celular) toca <strong>Mis marcas</strong> y marca las que te gustan. Desde ahí
-            solo te mostramos esas: en las prendas que encontramos al buscar, en las tiendas, en la búsqueda de
-            Google y en las promociones. Si no marcas ninguna, ves todas. Se guarda en ese celular o computador.
+            solo te mostramos promociones de esas marcas. Cuando buscas un outfit siguen apareciendo todas las
+            tiendas, para que no te pierdas dónde venden lo que buscas. Si no marcas ninguna, ves las promociones
+            de todas. Se guarda en ese celular o computador.
           </p>
         ),
       },
@@ -332,6 +333,33 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               política de privacidad
             </Link>
             .
+          </p>
+        ),
+      },
+      {
+        p: "¿Puedo tener varias cuentas?",
+        r: (
+          <p>
+            Puedes, pero la prueba gratis (la búsqueda, el outfit guardado y los días de promociones) es una por
+            celular o computador: una cuenta nueva en el mismo aparato no la vuelve a tener. Tampoco aceptamos
+            correos temporales. Está explicado en los{" "}
+            <Link href="/terminos" className="font-medium text-rosa-600 underline">
+              términos y condiciones
+            </Link>
+            .
+          </p>
+        ),
+      },
+      {
+        p: "¿Dónde están los términos y condiciones?",
+        r: (
+          <p>
+            En{" "}
+            <Link href="/terminos" className="font-medium text-rosa-600 underline">
+              Términos y condiciones
+            </Link>{" "}
+            (también al pie de cada página). Ahí están las reglas de la cuenta, los planes y sus límites, la
+            membresía y los pagos, las promociones, el corazón y Mis marcas.
           </p>
         ),
       },

@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { marcasParaUrl, useMarcasFavoritas } from "./marcas-favoritas";
 
 // Busca en los catálogos de las tiendas las prendas parecidas a las que
 // se detectaron en la foto.
@@ -41,8 +40,6 @@ export type GrupoProductos = {
 };
 
 export function useCatalogo(consultas: ConsultaPrenda[]) {
-  // "Mis marcas": si escogió algunas, solo se busca en esas.
-  const marcas = marcasParaUrl(useMarcasFavoritas());
   const [grupos, setGrupos] = useState<GrupoProductos[]>([]);
   // Búsqueda flexible (mismo tipo y color, sin exigir estampado): solo
   // para ponerle foto a las tarjetas de Instagram cuando la estricta no
@@ -52,10 +49,10 @@ export function useCatalogo(consultas: ConsultaPrenda[]) {
 
   // La clave evita relanzar la búsqueda cuando React vuelve a renderizar
   // con el mismo contenido pero otra identidad de array.
-  const clave = JSON.stringify({ consultas, marcas });
+  const clave = JSON.stringify(consultas);
 
   useEffect(() => {
-    const { consultas: lista, marcas: soloEstas } = JSON.parse(clave) as { consultas: ConsultaPrenda[]; marcas: string };
+    const lista: ConsultaPrenda[] = JSON.parse(clave);
     if (lista.length === 0) {
       setGrupos([]);
       setFlexibles([]);
@@ -67,7 +64,6 @@ export function useCatalogo(consultas: ConsultaPrenda[]) {
         try {
           const params = new URLSearchParams({ tipo: c.tipo, flexible: "1" });
           if (c.color) params.set("color", c.color);
-          if (soloEstas) params.set("marcas", soloEstas);
           const json = await (await fetch(`/api/catalogo?${params}`)).json();
           return { etiqueta: c.etiqueta, productos: (json.productos ?? []) as ProductoTienda[] };
         } catch {
@@ -84,7 +80,6 @@ export function useCatalogo(consultas: ConsultaPrenda[]) {
           const params = new URLSearchParams({ tipo: c.tipo });
           if (c.color) params.set("color", c.color);
           if (c.rasgos.length) params.set("rasgos", c.rasgos.join("|"));
-          if (soloEstas) params.set("marcas", soloEstas);
           const res = await fetch(`/api/catalogo?${params}`);
           const json = await res.json();
           return {

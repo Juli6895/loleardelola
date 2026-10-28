@@ -93,7 +93,7 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
 
       {misMarcas.length > 0 && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-          {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo de tus marcas (${misMarcas.length}). `}
+          {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo promociones de tus marcas (${misMarcas.length}). `}
           <button
             type="button"
             onClick={() => guardarMarcas([])}

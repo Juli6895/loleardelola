@@ -5,9 +5,9 @@ import { useEffect, useState } from "react";
 // =====================================================================
 // Mis marcas: las que cada quien escoge en el menú
 // =====================================================================
-// Si escogió alguna, en la app solo le salen esas: prendas de la
-// búsqueda, tiendas para chismosear, la búsqueda en Google y las
-// promociones. Sin ninguna escogida, salen todas.
+// Si escogió alguna, en las PROMOCIONES solo le salen esas. En lo demás
+// (prendas de la búsqueda, tiendas, Google) siguen saliendo todas, a
+// pedido de Juliana. Sin ninguna escogida, salen todas.
 //
 // Se guarda en este navegador (localStorage). Es una preferencia de
 // quien está mirando, no un dato de la cuenta.

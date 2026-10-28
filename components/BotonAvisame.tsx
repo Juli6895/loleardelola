@@ -10,7 +10,9 @@ import { activarNotificaciones, marcarSeguida, useSeguimientos } from "@/lib/use
 type Prenda = { url: string; titulo: string; imagen: string | null; precioCop: number | null };
 
 /**
- * La campanita "Avísame si baja" sobre la foto de una prenda de tienda.
+ * El corazón "Avísame si baja" sobre la foto de una prenda de tienda.
+ * Antes era una campanita; Juliana lo cambió por un corazón porque la
+ * gente ya lo entiende como "me gusta".
  * Va dentro de tarjetas que son enlaces: por eso frena el clic, para no
  * abrir la tienda al tocarla.
  */
@@ -89,15 +91,15 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
       type="button"
       onClick={alTocar}
       aria-pressed={seguida}
-      aria-label={seguida ? "Dejar de avisarme si baja de precio" : "Avísame si baja de precio"}
-      title={seguida ? "Te avisamos si baja. Toca para dejar de seguirla." : "Avísame si baja"}
+      aria-label={seguida ? "Quitar el me gusta y dejar de avisarme si baja" : "Me gusta: avísame si baja de precio"}
+      title={seguida ? "Te gusta: te avisamos si baja. Toca para quitarlo." : "Me gusta: avísame si baja"}
       className={`absolute right-1.5 top-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition ${
         seguida ? "bg-rosa-500 text-white" : "bg-white/90 text-noche/60 hover:bg-white hover:text-rosa-600"
       } ${ocupado ? "opacity-60" : ""} ${estado.puede ? "" : "opacity-80"}`}
     >
       <svg viewBox="0 0 24 24" fill={seguida ? "currentColor" : "none"} className="h-4 w-4" aria-hidden>
         <path
-          d="M6 9a6 6 0 1 1 12 0c0 4.5 1.5 6.5 2 7H4c.5-.5 2-2.5 2-7Zm4 10a2 2 0 0 0 4 0"
+          d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.4 3.9 4.5 7 4.5c2 0 3.4 1.2 5 3 1.6-1.8 3-3 5-3 3.1 0 5.3 2.9 4.2 6.2C19.5 15.4 12 20 12 20Z"
           stroke="currentColor"
           strokeWidth="1.8"
           strokeLinecap="round"

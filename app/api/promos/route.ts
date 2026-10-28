@@ -9,6 +9,7 @@ import { deLosTipos, porMarca, todasLasPromos } from "@/lib/promos-guardadas";
 //                           de esta marca").
 //   ?muestra=1            → { promos }: unas pocas, para la vista borrosa
 //                           cuando se acabó la prueba.
+//   &marcas=a.com,b.co    → solo esas marcas ("Mis marcas" del menú).
 //
 // Salen de la revisión diaria (lib/promos-diarias.ts): más de 10% de
 // descuento y con una talla disponible. Quién puede verlas lo decide
@@ -28,12 +29,19 @@ export async function GET(req: Request) {
     .filter(Boolean)
     .slice(0, 8);
   const marca = params.get("marca");
+  const marcas = new Set(
+    (params.get("marcas") ?? "")
+      .split(",")
+      .map((d) => d.trim().toLowerCase())
+      .filter(Boolean)
+  );
 
   try {
-    const todas = await todasLasPromos();
+    const guardadas = await todasLasPromos();
+    const todas = marcas.size > 0 ? guardadas.filter((p) => marcas.has(p.dominio)) : guardadas;
     const json = (cuerpo: unknown) => NextResponse.json(cuerpo, { headers: { "Cache-Control": CACHE } });
 
-    if (params.get("muestra") === "1") return json({ promos: todas.slice(0, 8) });
+    if (params.get("muestra") === "1") return json({ promos: guardadas.slice(0, 8) });
 
     if (marca) {
       const deLaMarca = deLosTipos(todas, tipos).filter((p) => p.dominio === marca);

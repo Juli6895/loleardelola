@@ -50,8 +50,8 @@ export default function MisAvisos() {
       </p>
       {lista.length === 0 ? (
         <p className="mt-4 rounded-xl bg-rosa-50/60 p-4 text-sm text-noche/60">
-          Toca la campanita en cualquier prenda de tienda (al buscar, en tu clóset o en Promo) y
-          aparece acá.
+          Toca el corazón en cualquier prenda de tienda (al buscar, en tu clóset o en las promociones)
+          y aparece acá.
         </p>
       ) : (
         <ul className="mt-4 divide-y divide-rosa-100 rounded-2xl border border-rosa-100 bg-white">

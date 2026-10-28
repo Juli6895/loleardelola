@@ -7,6 +7,7 @@ import { anotar, anotarClicComercio } from "@/lib/use-evento";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
+import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 
 // =====================================================================
 // Promociones de todas las tiendas
@@ -39,6 +40,9 @@ const MARCAS_OTRAS = 8;
 
 export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   const clave = tipos.join("|");
+  // "Mis marcas" del menú: si escogió algunas, solo esas.
+  const misMarcas = useMarcasFavoritas();
+  const marcas = marcasParaUrl(misMarcas);
   const [acceso, setAcceso] = useState<Acceso | null>(null);
   const [datos, setDatos] = useState<{ relacionadas: Grupo[]; marcas: Grupo[] } | null>(null);
 
@@ -53,20 +57,24 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
     if (!acceso?.permitido) return;
     let vigente = true;
     setDatos(null);
-    fetch(`/api/promos?tipos=${encodeURIComponent(clave)}`)
+    fetch(`/api/promos?tipos=${encodeURIComponent(clave)}&marcas=${encodeURIComponent(marcas)}`)
       .then((r) => r.json())
       .then((j) => vigente && setDatos({ relacionadas: j.relacionadas ?? [], marcas: j.marcas ?? [] }))
       .catch(() => vigente && setDatos({ relacionadas: [], marcas: [] }));
     return () => {
       vigente = false;
     };
-  }, [clave, acceso?.permitido]);
+  }, [clave, marcas, acceso?.permitido]);
 
   if (acceso && !acceso.permitido) return <Bloqueo plan={acceso.plan} />;
-  if (datos && datos.relacionadas.length === 0 && datos.marcas.length === 0) return null;
+  const vacio = datos && datos.relacionadas.length === 0 && datos.marcas.length === 0;
+  // Sin promos de ninguna tienda no se muestra nada; si es por el filtro
+  // de "Mis marcas", se le dice, para que no crea que la app falla.
+  if (vacio && misMarcas.length === 0) return null;
 
   // Las de arriba no se repiten en la vista previa de abajo.
   const yaArriba = new Set(datos?.relacionadas.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
+  const sinPromos = !!vacio;
   const otras = datos?.marcas.map((g) => ({ ...g, promos: g.promos.filter((p) => !yaArriba.has(p.url)) })) ?? null;
 
   return (
@@ -83,15 +91,30 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         {acceso && acceso.plan !== "membresia" && acceso.hasta && <QuedaPrueba hasta={acceso.hasta} />}
       </div>
 
-      {clave && (datos === null || datos.relacionadas.length > 0) && (
+      {misMarcas.length > 0 && (
+        <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
+          {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo de tus marcas (${misMarcas.length}). `}
+          <button
+            type="button"
+            onClick={() => guardarMarcas([])}
+            className="font-medium text-rosa-600 underline-offset-2 hover:underline"
+          >
+            Ver las de todas las marcas
+          </button>
+        </p>
+      )}
+
+      {!sinPromos && clave && (datos === null || datos.relacionadas.length > 0) && (
         <Parte titulo="De lo que buscaste" grupos={datos?.relacionadas ?? null} tipos={clave} marcasALaVista={MARCAS_RELACIONADAS} />
       )}
+      {!sinPromos && (
       <Parte
         titulo={clave ? "Otros descuentos" : "Descuentos de hoy"}
         grupos={otras}
         tipos=""
         marcasALaVista={MARCAS_OTRAS}
       />
+      )}
     </section>
   );
 }

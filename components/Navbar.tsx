@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 import { esAdmin } from "@/lib/admin-correos";
+import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import SelectorMarcas from "@/components/SelectorMarcas";
 
 const LINKS = [
   { href: "/buscar", label: "Buscar" },
@@ -27,6 +29,11 @@ const LINKS = [
 // de la paleta.
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  // "Mis marcas": plegado dentro del menú del celular y como panel en
+  // computador (ver components/SelectorMarcas.tsx).
+  const [marcasAbiertas, setMarcasAbiertas] = useState(false);
+  const misMarcas = useMarcasFavoritas();
+  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas (${misMarcas.length})` : "Mis marcas";
   const { usuario, recargar } = useUsuario();
   const router = useRouter();
   const dentro = !!usuario?.conSesion;
@@ -77,6 +84,29 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setMarcasAbiertas((v) => !v)}
+              aria-expanded={marcasAbiertas}
+              className={`text-sm font-medium transition ${
+                dentro ? "text-white/70 hover:text-rosa-300" : "text-noche/70 hover:text-rosa-500"
+              } ${misMarcas.length > 0 ? (dentro ? "text-rosa-300" : "text-rosa-600") : ""}`}
+            >
+              {etiquetaMarcas}
+            </button>
+            {marcasAbiertas && (
+              <div className="absolute right-0 top-full z-30 mt-3 w-72 rounded-2xl border border-rosa-100 bg-white p-4 shadow-suave">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-sm font-semibold text-noche">Mis marcas</p>
+                  <button type="button" onClick={() => setMarcasAbiertas(false)} className="text-xs text-noche/50 underline">
+                    Listo
+                  </button>
+                </div>
+                <SelectorMarcas />
+              </div>
+            )}
+          </div>
           {dentro ? (
             <div className="flex items-center gap-3">
               {administradora && (
@@ -155,6 +185,22 @@ export default function Navbar() {
               {l.label}
             </Link>
           ))}
+          <button
+            type="button"
+            onClick={() => setMarcasAbiertas((v) => !v)}
+            aria-expanded={marcasAbiertas}
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+              dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
+            }`}
+          >
+            {etiquetaMarcas}
+            <span aria-hidden className="text-xs">{marcasAbiertas ? "▲" : "▼"}</span>
+          </button>
+          {marcasAbiertas && (
+            <div className="px-3 pb-2">
+              <SelectorMarcas oscuro={dentro} />
+            </div>
+          )}
           {dentro ? (
             <>
               {administradora && (

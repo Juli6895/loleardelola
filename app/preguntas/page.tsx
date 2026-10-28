@@ -157,6 +157,16 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
+        p: "¿Puedo ver solo las marcas que me gustan?",
+        r: (
+          <p>
+            Sí. En el menú (☰ en el celular) toca <strong>Mis marcas</strong> y marca las que te gustan. Desde ahí
+            solo te mostramos esas: en las prendas que encontramos al buscar, en las tiendas, en la búsqueda de
+            Google y en las promociones. Si no marcas ninguna, ves todas. Se guarda en ese celular o computador.
+          </p>
+        ),
+      },
+      {
         p: "¿Qué pasa si se me acaban las búsquedas del mes?",
         r: (
           <p>
@@ -241,10 +251,10 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
-        p: "¿Para qué es la campanita?",
+        p: "¿Para qué es el corazón de las prendas?",
         r: (
           <p>
-            Tócala en una prenda de tienda que te guste y, si baja de precio 10% o más, te llega una
+            Tócalo en una prenda de tienda que te guste y, si baja de precio 10% o más, te llega una
             notificación en tu app (no es un mensaje de texto ni de WhatsApp). Es parte de la membresía. La primera vez el celular te pregunta si
             LoleardLola puede enviarte notificaciones: dale Permitir. Las prendas que sigues están en Mis
             outfits.

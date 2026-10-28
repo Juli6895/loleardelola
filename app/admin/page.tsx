@@ -45,6 +45,11 @@ type Datos = {
     clics: number;
   }>;
   comerciosExcluidos: string[];
+  gustos: {
+    meGusta: Array<{ comercio: string; meGusta: number; personas: number }>;
+    favoritas: Array<{ comercio: string; personas: number }>;
+    porEdad: Array<{ edad: string; personas: number; masMeGusta: string; masFavoritas: string }>;
+  };
   actividad: Array<{ dia: string; personas: number; busquedas: number; registros: number; pagos: number }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
   costos: Costos;
@@ -175,6 +180,9 @@ export default function AdminPage() {
 
       {/* ---- Comercios vinculados ---- */}
       <SeccionComercios comercios={datos.comerciosVinculados} excluidos={datos.comerciosExcluidos} />
+
+      {/* ---- Me gusta y marcas favoritas, también por edad ---- */}
+      <SeccionGustos gustos={datos.gustos} />
 
       {/* ---- Costos ---- */}
       <SeccionCostos costos={datos.costos} cobrado={datos.dinero.brutoCop} />
@@ -514,6 +522,55 @@ function SeccionCuentas({ cuentas }: { cuentas: Datos["cuentas"] }) {
             filas={cuentas.map((c) => [c.email, c.celular ?? "—", fecha(c.desde), c.plan, fecha(c.venceMembresia), fecha(c.ultimaVez)])}
           />
         </>
+      )}
+    </Seccion>
+  );
+}
+
+/**
+ * Qué comercios gustan más: los corazones ("me gusta") de las prendas y
+ * las "Mis marcas favoritas" del menú, en total y por el rango de edad
+ * que cada quien puso en Mi perfil.
+ */
+function SeccionGustos({ gustos }: { gustos: Datos["gustos"] }) {
+  const vacio = <p className="text-sm text-noche/50">Todavía no hay datos.</p>;
+  return (
+    <Seccion
+      titulo="Me gusta y marcas favoritas"
+      nota="Me gusta: los corazones de las prendas (solo con membresía). Marcas favoritas: las que eligen en el menú. La edad es la que pusieron en Mi perfil."
+    >
+      <div className="grid gap-6 lg:grid-cols-2">
+        <div>
+          <p className="mb-2 text-sm font-semibold text-noche">Comercios con más me gusta</p>
+          {gustos.meGusta.length === 0 ? (
+            vacio
+          ) : (
+            <Tabla
+              columnas={["Comercio", "Me gusta", "Personas"]}
+              filas={gustos.meGusta.map((g) => [g.comercio, String(g.meGusta), String(g.personas)])}
+            />
+          )}
+        </div>
+        <div>
+          <p className="mb-2 text-sm font-semibold text-noche">Marcas favoritas más elegidas</p>
+          {gustos.favoritas.length === 0 ? (
+            vacio
+          ) : (
+            <Tabla
+              columnas={["Marca", "Personas que la eligieron"]}
+              filas={gustos.favoritas.map((g) => [g.comercio, String(g.personas)])}
+            />
+          )}
+        </div>
+      </div>
+      <p className="mb-2 mt-6 text-sm font-semibold text-noche">Por edad: qué comercios eligen</p>
+      {gustos.porEdad.length === 0 ? (
+        vacio
+      ) : (
+        <Tabla
+          columnas={["Edad", "Personas", "Más me gusta", "Más elegidas como favoritas"]}
+          filas={gustos.porEdad.map((g) => [g.edad, String(g.personas), g.masMeGusta || "—", g.masFavoritas || "—"])}
+        />
       )}
     </Seccion>
   );

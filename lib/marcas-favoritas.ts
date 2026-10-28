@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { fetchConDispositivo } from "./device-id";
 
 // =====================================================================
 // Mis marcas: las que cada quien escoge en el menú
@@ -9,8 +10,10 @@ import { useEffect, useState } from "react";
 // (prendas de la búsqueda, tiendas, Google) siguen saliendo todas, a
 // pedido de Juliana. Sin ninguna escogida, salen todas.
 //
-// Se guarda en este navegador (localStorage). Es una preferencia de
-// quien está mirando, no un dato de la cuenta.
+// Se guarda en este navegador (localStorage) y también en la base
+// (/api/marcas): de ahí sale lo que cuenta el tablero, y así quien entra
+// con su correo en otro aparato las encuentra. Si la base falla, sigue
+// funcionando solo con el navegador.
 // =====================================================================
 
 const CLAVE = "loleardelola:marcas";
@@ -25,7 +28,7 @@ function leer(): string[] {
   }
 }
 
-export function guardarMarcas(dominios: string[]): void {
+function guardarLocal(dominios: string[]): void {
   try {
     localStorage.setItem(CLAVE, JSON.stringify(Array.from(new Set(dominios))));
   } catch {
@@ -34,12 +37,44 @@ export function guardarMarcas(dominios: string[]): void {
   window.dispatchEvent(new Event(EVENTO));
 }
 
+export function guardarMarcas(dominios: string[]): void {
+  const unicas = Array.from(new Set(dominios));
+  guardarLocal(unicas);
+  fetchConDispositivo("/api/marcas", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ marcas: unicas }),
+  }).catch(() => {});
+}
+
+// Si este navegador nunca escogió marcas, se traen las de la cuenta (o
+// las que ya había guardado desde este navegador). Una vez por visita.
+let sincronizada = false;
+function traerDeLaCuenta(): void {
+  if (sincronizada) return;
+  sincronizada = true;
+  let nunca = false;
+  try {
+    nunca = localStorage.getItem(CLAVE) === null;
+  } catch {
+    return;
+  }
+  if (!nunca) return;
+  fetchConDispositivo("/api/marcas")
+    .then((r) => r.json())
+    .then((j) => {
+      if (Array.isArray(j.marcas) && j.marcas.length > 0) guardarLocal(j.marcas);
+    })
+    .catch(() => {});
+}
+
 /** Los dominios escogidos (vacío = todas), al día en todos los componentes. */
 export function useMarcasFavoritas(): string[] {
   const [marcas, setMarcas] = useState<string[]>([]);
   useEffect(() => {
     const actualizar = () => setMarcas(leer());
     actualizar();
+    traerDeLaCuenta();
     window.addEventListener(EVENTO, actualizar);
     // Si las cambia en otra pestaña.
     window.addEventListener("storage", actualizar);

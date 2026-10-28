@@ -758,8 +758,8 @@ function consultasPara(
  * para "cárdigan mostaza"). Lo que pasa esos dos filtros se ordena por
  * los demás rasgos.
  *
- * Con `descuentoMinimo` (las promos) solo deja las rebajadas en al
- * menos esa fracción, de la más rebajada a la menos. Se filtra ANTES del
+ * Con `descuentoMinimo` (las promos) solo deja las rebajadas en MÁS de
+ * esa fracción (ver esPromo), de la más rebajada a la menos. Se filtra ANTES del
  * tope de 3 por tienda: si no, las 3 de cada tienda eran sus prendas más
  * parecidas, casi nunca las rebajadas, y la mayoría de tiendas no salía.
  */
@@ -853,7 +853,7 @@ export async function buscarEnCatalogos(
   }
 
   if (descuentoMinimo > 0) {
-    const rebajados = puntuados.filter(({ p }) => descuentoDe(p) >= descuentoMinimo);
+    const rebajados = puntuados.filter(({ p }) => esPromo(p, descuentoMinimo));
     rebajados.sort((a, b) => descuentoDe(b.p) - descuentoDe(a.p) || b.punto - a.punto);
     puntuados.splice(0, puntuados.length, ...rebajados);
   } else {
@@ -884,7 +884,7 @@ export async function buscarEnCatalogos(
 // Para el panel "Promo": prendas de las tiendas de la lista con precio
 // rebajado. Usa la misma búsqueda (mismos filtros de mujer, tipo de
 // prenda y disponibles), y se queda con las que tienen descuento real
-// de al menos PROMO_MINIMA, de mayor a menor, con un tope por tienda
+// de MÁS de PROMO_MINIMA (10% exacto no cuenta), de mayor a menor, con un tope por tienda
 // para que no salga una sola marca.
 //
 // Dos listas: las de lo que buscó (los tipos detectados en la foto) y
@@ -895,6 +895,14 @@ const PROMO_MINIMA = 0.1;
 
 // Para "otros descuentos": lo que más se compra.
 const TIPOS_PROMO_GENERAL = ["vestido", "blusa", "camiseta", "pantalón", "jean", "falda", "chaqueta", "sandalia"];
+
+/**
+ * Más de `minimo`, contando como se ve en la tarjeta (redondeado): una
+ * rebaja de 10,3% sale como "-10%", y Juliana pidió más de 10%, no igual.
+ */
+export function esPromo(p: ProductoTienda, minimo = PROMO_MINIMA): boolean {
+  return Math.round(descuentoDe(p) * 100) > Math.round(minimo * 100);
+}
 
 export function descuentoDe(p: ProductoTienda): number {
   if (!p.precioCop || !p.precioAntesCop) return 0;
@@ -912,7 +920,7 @@ export async function buscarPromos(tipos: string[], maximo = 12, porTiendaMax = 
   const vistas = new Set<string>();
   const enPromo = lotes
     .flat()
-    .filter((p) => p.imagen && descuentoDe(p) >= PROMO_MINIMA && !vistas.has(p.url) && !!vistas.add(p.url))
+    .filter((p) => p.imagen && esPromo(p) && !vistas.has(p.url) && !!vistas.add(p.url))
     .sort((a, b) => descuentoDe(b) - descuentoDe(a));
 
   const porTienda = new Map<string, number>();
@@ -942,4 +950,50 @@ export function tiendaDeUrl(url: string): { plataforma: "shopify" | "vtex"; domi
 /** Las tiendas de las que se lee el catálogo (para el tablero). */
 export function tiendasConCatalogo(): Array<{ dominio: string; nombre: string; plataforma: "shopify" | "vtex" }> {
   return TIENDAS.map((t) => ({ dominio: t.dominio, nombre: t.nombre, plataforma: t.plataforma }));
+}
+
+// =====================================================================
+// Para la revisión diaria de promociones (lib/promos-diarias.ts)
+// =====================================================================
+
+/** Las tiendas de la lista, con el host al que hay que preguntarle. */
+export function tiendasParaPromos(): Array<{ plataforma: "shopify" | "vtex"; dominio: string; nombre: string; host: string }> {
+  return TIENDAS.map((t) => ({ plataforma: t.plataforma, dominio: t.dominio, nombre: t.nombre, host: t.host ?? t.dominio }));
+}
+
+/** Tipo de prenda sin tildes, como se guarda en la tabla de promos. */
+export function tipoNormalizado(tipo: string): string {
+  return normalizar(tipo).trim();
+}
+
+/**
+ * Qué prenda es (uno de TIPOS_BUSCABLES, sin tildes), con los mismos
+ * filtros de la búsqueda: nada de hombre ni de niños, ni vestidos de
+ * baño ni ropa interior. null si no es una prenda que la app muestre.
+ */
+export function clasificarPrenda(d: {
+  dominio: string;
+  titulo: string;
+  clase: string;
+  tags: string[];
+  descripcion: string;
+}): string | null {
+  const titulo_n = normalizar(d.titulo).trim();
+  const clase_n = normalizar(d.clase);
+  const meta_n = normalizar(`${d.clase} ${d.tags.join(" ")}`);
+  const descripcion_n = normalizar(limpiarHtml(d.descripcion));
+  if (!/\s/.test(titulo_n)) return null;
+  if (ES_DE_HOMBRE_O_NINO.test(titulo_n + " " + meta_n + " " + descripcion_n)) return null;
+  if (ES_DE_BANO_O_INTERIOR.test(titulo_n + " " + clase_n)) return null;
+  // Esprit: el código interno con H es de hombre (ver buscarShopify).
+  if (d.dominio === "esprit.com.co") {
+    const codigo = d.tags.find((tag) => /^\d{3}[A-Z]\d{3}$/.test(tag));
+    if (codigo && codigo[3] === "H") return null;
+  }
+  const tipos = TIPOS_BUSCABLES.map(tipoNormalizado);
+  // Primero por cómo empieza el título ("Vestido corto..."), que es lo
+  // más confiable; si no, por la clasificación de la tienda.
+  for (const tipo of tipos) if (patronesDeTipo(tipo).inicio.test(titulo_n)) return tipo;
+  for (const tipo of tipos) if (patronesDeTipo(tipo).palabra.test(clase_n)) return tipo;
+  return null;
 }

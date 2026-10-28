@@ -145,6 +145,16 @@ export function precioDe(p: Producto): number {
   return esPaquete(p) ? PAQUETES_BUSQUEDAS[p].precio : PRECIOS[p];
 }
 
+/**
+ * Las promociones de todas las tiendas son el gancho de la membresía:
+ * sin cuenta se ven 1 día desde la primera visita, con cuenta gratis 3
+ * días desde que la crea, y con membresía siempre.
+ */
+export const DIAS_PRUEBA_PROMOS: Record<Exclude<Plan, "membresia">, number> = {
+  anonimo: 1,
+  gratis: 3,
+};
+
 /** Cuántos días de membresía da cada plan. */
 export const DIAS_DE_PLAN: Record<TipoPlan, number> = {
   mensual: 30,

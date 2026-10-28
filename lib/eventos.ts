@@ -98,6 +98,14 @@ export const EVENTOS = [
   "preguntas_visto",
   "pagina_error",
 
+  // Promociones: se le acabó la prueba gratis y vio el aviso de la
+  // membresía (el gancho), y cuántas abren todas las de una marca.
+  "promo_bloqueada",
+  "promo_marca_abierta",
+
+  // Puso su celular al crear la cuenta.
+  "celular_puesto",
+
   // Lo que costó cada llamada a la IA (ver lib/costos.ts).
   "consumo_ia",
 

@@ -28,7 +28,7 @@ export default function PrivacyPage() {
           Política de Privacidad
         </h1>
         <p className="mt-2 text-sm text-noche/50">
-          Última actualización: 24 de septiembre de 2026
+          Última actualización: 28 de octubre de 2026
         </p>
 
         <p className="mt-6 text-noche/80">
@@ -61,6 +61,17 @@ export default function PrivacyPage() {
                   Identificar tu cuenta y mandarte el código para entrar. No
                   usamos contraseña: el código se guarda cifrado, nunca en
                   texto plano.
+                </td>
+              </tr>
+              <tr>
+                <td className="py-2.5 pr-4 font-medium text-noche">Celular</td>
+                <td className="py-2.5 pr-4 text-noche/70">
+                  Al crear tu cuenta
+                </td>
+                <td className="py-2.5 text-noche/70">
+                  Contactarte sobre tu cuenta y tu membresía. No te mandamos
+                  códigos por mensaje, no lo compartimos y no lo usamos para
+                  publicidad de terceros.
                 </td>
               </tr>
               <tr>

@@ -49,7 +49,7 @@ type Datos = {
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
   costos: Costos;
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
-  cuentas: Array<{ email: string; desde: string; ultimaVez: string | null; plan: string; venceMembresia: string | null }>;
+  cuentas: Array<{ email: string; celular: string | null; desde: string; ultimaVez: string | null; plan: string; venceMembresia: string | null }>;
 };
 
 export default function AdminPage() {
@@ -510,8 +510,8 @@ function SeccionCuentas({ cuentas }: { cuentas: Datos["cuentas"] }) {
             {copiado ? "Copiados" : `Copiar los ${cuentas.length} correos`}
           </button>
           <Tabla
-            columnas={["Correo", "Desde", "Plan", "Vence", "Última vez"]}
-            filas={cuentas.map((c) => [c.email, fecha(c.desde), c.plan, fecha(c.venceMembresia), fecha(c.ultimaVez)])}
+            columnas={["Correo", "Celular", "Desde", "Plan", "Vence", "Última vez"]}
+            filas={cuentas.map((c) => [c.email, c.celular ?? "—", fecha(c.desde), c.plan, fecha(c.venceMembresia), fecha(c.ultimaVez)])}
           />
         </>
       )}

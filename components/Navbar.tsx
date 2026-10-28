@@ -8,15 +8,19 @@ import { esAdmin } from "@/lib/admin-correos";
 import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
 
+// En este orden, a pedido de Juliana (arriba y en el menú ☰): Buscar,
+// Mis outfits, Mi perfil, Mi manual, Mi clóset, Membresía, Mis marcas
+// favoritas, Preguntas y Salir. "Mis marcas favoritas" no es una página
+// sino un panel, por eso va entre las dos listas.
 const LINKS = [
   { href: "/buscar", label: "Buscar" },
-  { href: "/mi-closet", label: "Mi clóset" },
-  { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/mis-outfits", label: "Mis outfits" },
+  { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/manual", label: "Mi manual" },
+  { href: "/mi-closet", label: "Mi clóset" },
   { href: "/membresia", label: "Membresía" },
-  { href: "/preguntas", label: "Preguntas" },
 ];
+const LINKS_DESPUES_DE_MARCAS = [{ href: "/preguntas", label: "Preguntas" }];
 
 // Navbar responsive. Todas las secciones siguen abiertas sin cuenta —
 // se puede usar la app sin registrarse, con topes (ver lib/planes.ts).
@@ -33,7 +37,7 @@ export default function Navbar() {
   // computador (ver components/SelectorMarcas.tsx).
   const [marcasAbiertas, setMarcasAbiertas] = useState(false);
   const misMarcas = useMarcasFavoritas();
-  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas (${misMarcas.length})` : "Mis marcas";
+  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas favoritas (${misMarcas.length})` : "Mis marcas favoritas";
   const { usuario, recargar } = useUsuario();
   const router = useRouter();
   const dentro = !!usuario?.conSesion;
@@ -70,7 +74,7 @@ export default function Navbar() {
 
         {/* Desktop */}
         {/* Desde 1024 px: por debajo no caben los enlaces y se usa el menú ☰. */}
-        <div className="hidden items-center gap-5 lg:flex">
+        <div className="hidden items-center gap-3 lg:flex xl:gap-5">
           {LINKS.map((l) => (
             <Link
               key={l.href}
@@ -98,7 +102,7 @@ export default function Navbar() {
             {marcasAbiertas && (
               <div className="absolute right-0 top-full z-30 mt-3 w-72 rounded-2xl border border-rosa-100 bg-white p-4 shadow-suave">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-noche">Mis marcas</p>
+                  <p className="text-sm font-semibold text-noche">Mis marcas favoritas</p>
                   <button type="button" onClick={() => setMarcasAbiertas(false)} className="text-xs text-noche/50 underline">
                     Listo
                   </button>
@@ -107,6 +111,17 @@ export default function Navbar() {
               </div>
             )}
           </div>
+          {LINKS_DESPUES_DE_MARCAS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className={`text-sm font-medium transition ${
+                dentro ? "text-white/70 hover:text-rosa-300" : "text-noche/70 hover:text-rosa-500"
+              }`}
+            >
+              {l.label}
+            </Link>
+          ))}
           {dentro ? (
             <div className="flex items-center gap-3">
               {administradora && (
@@ -201,6 +216,18 @@ export default function Navbar() {
               <SelectorMarcas oscuro={dentro} />
             </div>
           )}
+          {LINKS_DESPUES_DE_MARCAS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              onClick={() => setMenuOpen(false)}
+              className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
+                dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
+              }`}
+            >
+              {l.label}
+            </Link>
+          ))}
           {dentro ? (
             <>
               {administradora && (

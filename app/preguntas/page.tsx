@@ -160,7 +160,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         p: "¿Puedo ver promociones solo de las marcas que me gustan?",
         r: (
           <p>
-            Sí. En el menú (☰ en el celular) toca <strong>Mis marcas</strong> y marca las que te gustan. Desde ahí
+            Sí. En el menú (☰ en el celular) toca <strong>Mis marcas favoritas</strong> y marca las que te gustan. Desde ahí
             solo te mostramos promociones de esas marcas. Cuando buscas un outfit siguen apareciendo todas las
             tiendas, para que no te pierdas dónde venden lo que buscas. Si no marcas ninguna, ves las promociones
             de todas. Se guarda en ese celular o computador.
@@ -359,7 +359,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               Términos y condiciones
             </Link>{" "}
             (también al pie de cada página). Ahí están las reglas de la cuenta, los planes y sus límites, la
-            membresía y los pagos, las promociones, el corazón y Mis marcas.
+            membresía y los pagos, las promociones, el corazón y Mis marcas favoritas.
           </p>
         ),
       },

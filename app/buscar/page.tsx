@@ -3,7 +3,7 @@
 import { useState } from "react";
 import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
-import Promociones from "@/components/Promociones";
+import Link from "next/link";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se hace el análisis de outfit
@@ -16,8 +16,8 @@ export default function BuscarPage() {
   );
 
   return (
-    // La búsqueda arriba y las promociones debajo, a todo el ancho (antes
-    // eran una columna angosta a la derecha).
+    // Las promociones tienen su propia pestaña (/promociones). Aquí solo
+    // queda el enlace a las de lo que se buscó.
     <div className="mx-auto max-w-6xl space-y-12">
     <div className="mx-auto min-w-0 max-w-4xl space-y-6">
       <header className="text-center">
@@ -32,8 +32,22 @@ export default function BuscarPage() {
       <SearchBox onResult={setResult} />
 
       {result && <SearchResult data={result} />}
+
+      {tipos.length > 0 && (
+        <Link
+          href={`/promociones?tipos=${encodeURIComponent(tipos.join("|"))}`}
+          className="flex items-center justify-between gap-3 rounded-2xl border border-rosa-200 bg-rosa-50/60 px-5 py-4 transition hover:border-rosa-400"
+        >
+          <span>
+            <span className="block text-sm font-semibold text-noche">Mira las promociones de lo que buscaste</span>
+            <span className="block text-xs text-noche/60">
+              {tipos.join(", ")} con más del 10% de descuento, en tallas disponibles.
+            </span>
+          </span>
+          <span className="shrink-0 text-sm font-medium text-rosa-600">Ver promociones →</span>
+        </Link>
+      )}
     </div>
-    <Promociones tipos={tipos} />
     </div>
   );
 }

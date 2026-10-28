@@ -53,13 +53,13 @@ export default function MembresiaPage() {
     },
     {
       que: "Prendas en tu clóset",
-      sin: TOPES.anonimo.prendasCloset ?? "—",
+      sin: TOPES.anonimo.prendasCloset || "—",
       gratis: TOPES.gratis.prendasCloset ?? "—",
       membresia: `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
     },
     {
       que: "Buscar combinaciones",
-      sin: TOPES.anonimo.combinacionesClosetGratis ?? "—",
+      sin: TOPES.anonimo.combinacionesClosetGratis || "—",
       gratis: TOPES.gratis.combinacionesClosetGratis ?? "—",
       membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
     },
@@ -76,7 +76,13 @@ export default function MembresiaPage() {
       membresia: "Siempre",
     },
     {
-      que: "Avisos cuando baja el precio",
+      que: "Mis marcas favoritas (promociones solo de tus marcas)",
+      sin: "Sí",
+      gratis: "Sí",
+      membresia: "Sí",
+    },
+    {
+      que: "Me gusta (corazón): aviso cuando baja el precio",
       sin: "—",
       gratis: "—",
       membresia: "Sí, notificación en tu app",

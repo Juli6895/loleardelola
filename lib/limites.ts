@@ -167,7 +167,7 @@ export async function revisarTope(
 /**
  * ¿Puede buscar combinaciones? Con membresía, sin tope a la vista (solo
  * el freno de seguridad del mes). Sin membresía, un total desde siempre:
- * 1 sin cuenta y 2 con cuenta gratis (TOPES.combinacionesClosetGratis).
+ * ver TOPES.combinacionesClosetGratis (0 sin cuenta, 1 con cuenta gratis).
  */
 export async function puedeVerCombinaciones(
   usuario: UsuarioActual,
@@ -184,6 +184,13 @@ export async function puedeVerCombinaciones(
   if (usadas < tope) return { permitido: true };
 
   const cuantas = tope === 1 ? "tu combinación gratis" : `tus ${tope} combinaciones gratis`;
+  if (usuario.plan === "anonimo" && tope === 0) {
+    return {
+      permitido: false,
+      mensaje: "Para buscar combinaciones, crea tu cuenta gratis con tu correo.",
+      destrabaCon: "gratis",
+    };
+  }
   if (usuario.plan === "anonimo") {
     return {
       permitido: false,

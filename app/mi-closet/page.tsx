@@ -21,8 +21,9 @@ export default function MiClosetPage() {
   const [items, setItems] = useState<ClosetItem[] | null>(null);
   const { usuario } = useUsuario();
   const conMembresia = usuario?.plan === "membresia";
-  // Sin cuenta es 1 prenda; con cuenta gratis, 2.
+  // Ver TOPES en lib/planes.ts: sin cuenta, 0 (hay que crearla).
   const TOPE_GRATIS = (usuario?.conSesion ? TOPES.gratis.prendasCloset : TOPES.anonimo.prendasCloset) ?? 1;
+  const sinCuentaNiPrendas = !usuario?.conSesion && TOPE_GRATIS === 0;
 
   useEffect(() => {
     fetchConDispositivo("/api/closet")
@@ -55,13 +56,31 @@ export default function MiClosetPage() {
       </header>
 
       <div className="mx-auto max-w-2xl">
-        <ClosetUpload
-          onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
-        />
-        {atLimit ? (
+        {/* En el tope no se muestra el botón de subir: el servidor la
+            rechazaría igual (ver revisarTope). */}
+        {!atLimit && (
+          <ClosetUpload
+            onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
+          />
+        )}
+        {sinCuentaNiPrendas ? (
+          <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
+            <p className="text-sm font-medium text-noche">Para subir tus prendas, crea tu cuenta gratis.</p>
+            <p className="mt-1 text-xs text-noche/60">
+              Con tu cuenta subes {TOPES.gratis.prendasCloset} {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} y te
+              armamos {TOPES.gratis.combinacionesClosetGratis === 1 ? "una combinación" : `${TOPES.gratis.combinacionesClosetGratis} combinaciones`} con lo que tienes.
+            </p>
+            <a
+              href="/entrar?volver=/mi-closet&motivo=Crea tu cuenta gratis para subir las prendas de tu clóset."
+              className="mt-3 inline-block rounded-full bg-noche px-5 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
+            >
+              Crear mi cuenta gratis
+            </a>
+          </div>
+        ) : atLimit ? (
           <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
             <p className="text-sm font-medium text-noche">
-              Ya subiste tus {TOPE_GRATIS} prendas gratis.
+              {TOPE_GRATIS === 1 ? "Ya subiste tu prenda gratis." : `Ya subiste tus ${TOPE_GRATIS} prendas gratis.`}
             </p>
             <p className="mt-1 text-xs text-noche/60">
               Con la membresía subes las que quieras y armamos tu manual de
@@ -80,7 +99,7 @@ export default function MiClosetPage() {
           </p>
         ) : (
           <p className="mt-2 text-center text-xs text-noche/40">
-            {count}/{TOPE_GRATIS} prendas gratis.
+            {count}/{TOPE_GRATIS} {TOPE_GRATIS === 1 ? "prenda gratis" : "prendas gratis"}.
           </p>
         )}
       </div>

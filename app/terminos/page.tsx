@@ -71,7 +71,8 @@ export default function TerminosPage() {
       `${DIAS_PRUEBA_PROMOS.gratis} días`,
       "Siempre",
     ],
-    ["Avisos de rebaja (corazón)", "No incluye", "No incluye", "Sí"],
+    ["Mis marcas favoritas", "Sí", "Sí", "Sí"],
+    ["Me gusta (corazón) con aviso de rebaja", "No incluye", "No incluye", "Sí"],
   ];
 
   return (

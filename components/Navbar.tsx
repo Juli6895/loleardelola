@@ -8,11 +8,12 @@ import { esAdmin } from "@/lib/admin-correos";
 import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
 
-// En este orden, a pedido de Juliana (arriba y en el menú ☰): Buscar,
-// Mis outfits, Mi perfil, Mi manual, Mi clóset, Membresía, Mis marcas
+// En este orden, a pedido de Juliana (arriba y en el menú ☰):
+// Promociones, Buscar, Mis outfits, Mi perfil, Mi manual, Mi clóset, Membresía, Mis marcas
 // favoritas, Preguntas y Salir. "Mis marcas favoritas" no es una página
 // sino un panel, por eso va entre las dos listas.
 const LINKS = [
+  { href: "/promociones", label: "Promociones" },
   { href: "/buscar", label: "Buscar" },
   { href: "/mis-outfits", label: "Mis outfits" },
   { href: "/mi-perfil", label: "Mi perfil" },
@@ -73,8 +74,8 @@ export default function Navbar() {
         </Link>
 
         {/* Desktop */}
-        {/* Desde 1024 px: por debajo no caben los enlaces y se usa el menú ☰. */}
-        <div className="hidden items-center gap-3 lg:flex xl:gap-5">
+        {/* Desde 1280 px: por debajo no caben los diez enlaces y se usa el menú ☰. */}
+        <div className="hidden items-center gap-3 xl:flex 2xl:gap-5">
           {LINKS.map((l) => (
             <Link
               key={l.href}
@@ -139,7 +140,7 @@ export default function Navbar() {
                 <span className="flex h-7 w-7 items-center justify-center rounded-full bg-rosa-300 text-xs font-semibold uppercase text-noche">
                   {nombre.slice(0, 1)}
                 </span>
-                <span className="hidden xl:inline">{nombre}</span>
+                <span className="hidden 2xl:inline">{nombre}</span>
               </Link>
               <button
                 onClick={salir}
@@ -158,7 +159,7 @@ export default function Navbar() {
           )}
           <Link
             href="/buscar"
-            className={`hidden rounded-full px-4 py-2 text-sm font-medium transition xl:inline-block ${
+            className={`hidden rounded-full px-4 py-2 text-sm font-medium transition 2xl:inline-block ${
               dentro
                 ? "bg-rosa-400 text-white hover:bg-rosa-300"
                 : "bg-noche text-white hover:bg-rosa-500"
@@ -170,7 +171,7 @@ export default function Navbar() {
 
         {/* Mobile */}
         <button
-          className="flex items-center p-2 lg:hidden"
+          className="flex items-center p-2 xl:hidden"
           aria-label="Menú"
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -184,7 +185,7 @@ export default function Navbar() {
 
       {menuOpen && (
         <div
-          className={`border-t px-4 pb-4 pt-2 lg:hidden ${
+          className={`border-t px-4 pb-4 pt-2 xl:hidden ${
             dentro ? "border-white/10 bg-noche" : "border-rosa-100 bg-white"
           }`}
         >

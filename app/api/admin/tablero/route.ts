@@ -31,6 +31,7 @@ type Evento = {
 // nombre con que se anota el tiempo (ver useAnotarUnaVez).
 const SECCIONES = [
   { clave: "inicio", nombre: "Inicio", evento: "inicio_visto" },
+  { clave: "promociones", nombre: "Promociones", evento: "promociones_visto" },
   { clave: "buscar", nombre: "Buscar", evento: "buscar_visto" },
   { clave: "closet", nombre: "Mi clóset", evento: "closet_visto" },
   { clave: "perfil", nombre: "Mi perfil", evento: "perfil_visto" },

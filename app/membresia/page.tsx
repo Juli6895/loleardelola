@@ -79,7 +79,7 @@ export default function MembresiaPage() {
       que: "Avisos cuando baja el precio",
       sin: "—",
       gratis: "—",
-      membresia: "Sí, al celular",
+      membresia: "Sí, notificación en tu app",
     },
     {
       que: "Búsquedas adicionales",

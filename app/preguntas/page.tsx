@@ -41,7 +41,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               </li>
               <li>
                 <strong>Promociones:</strong> las rebajas de más del 10% de todos los comercios en un solo
-                lugar, y un aviso al celular cuando baja de precio lo que te gustó (membresía).
+                lugar, y una notificación en tu app cuando baja de precio lo que te gustó (membresía).
               </li>
             </ol>
           </>
@@ -134,7 +134,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               <li>Outfits guardados sin tope.</li>
               <li>Tu manual de estilo completo, para descargar ({TOPES_MES_MEMBRESIA.manuales} nuevo al mes).</li>
               <li>Las promociones de todas las tiendas, siempre.</li>
-              <li>Avisos al celular cuando baja de precio lo que te gustó.</li>
+              <li>Notificación en tu app cuando baja de precio lo que te gustó.</li>
             </ul>
             <p className="mt-2">Los límites se renuevan el 1 de cada mes.</p>
           </>
@@ -245,7 +245,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         r: (
           <p>
             Tócala en una prenda de tienda que te guste y, si baja de precio 10% o más, te llega una
-            notificación al celular. Es parte de la membresía. La primera vez el celular te pregunta si
+            notificación en tu app (no es un mensaje de texto ni de WhatsApp). Es parte de la membresía. La primera vez el celular te pregunta si
             LoleardLola puede enviarte notificaciones: dale Permitir. Las prendas que sigues están en Mis
             outfits.
           </p>

@@ -263,6 +263,80 @@ export async function GET(req: Request) {
     .map((f) => ({ ...f, clics: clicsPorDominio.get(f.dominio) ?? clicsPorDominio.get(f.instagram ?? "") ?? 0 }))
     .sort((a, b) => Number(b.catalogo) - Number(a.catalogo) || b.clics - a.clics || a.nombre.localeCompare(b.nombre));
   const comerciosExcluidos = getExcludedMerchants();
+
+  // ------------------------------------- me gusta y marcas favoritas
+  // Me gusta: el corazón de las prendas (tabla seguimientos, solo los
+  // activos). Marcas favoritas: "Mis marcas favoritas" del menú
+  // (users.marcas_favoritas, de la migración de marcas). Las dos, también
+  // por el rango de edad que cada quien puso en Mi perfil.
+  const nombreDe = (dominio: string) => vinculados.get(limpio(dominio))?.nombre ?? dominio;
+  const { data: corazones } = await sb.from("seguimientos").select("user_id, tienda, dominio").eq("activo", true);
+  const { data: conFavoritas } = await sb
+    .from("users")
+    .select("id, marcas_favoritas")
+    .not("marcas_favoritas", "is", null);
+  const likes = (corazones ?? []).filter((c) => !idsPrueba.has(c.user_id));
+  const favoritas = ((conFavoritas ?? []) as Array<{ id: string; marcas_favoritas: string[] | null }>).filter(
+    (u) => !idsPrueba.has(u.id) && (u.marcas_favoritas?.length ?? 0) > 0
+  );
+  const idsConGusto = Array.from(new Set([...likes.map((c) => c.user_id), ...favoritas.map((u) => u.id)]));
+  const edadDe = new Map<string, string>();
+  for (let i = 0; i < idsConGusto.length; i += 200) {
+    const { data } = await sb.from("users").select("id, rango_edad").in("id", idsConGusto.slice(i, i + 200));
+    for (const u of data ?? []) if (u.rango_edad) edadDe.set(u.id, u.rango_edad);
+  }
+
+  type Conteo = Map<string, { veces: number; personas: Set<string> }>;
+  const sumar = (m: Conteo, clave: string, persona: string) => {
+    const f = m.get(clave) ?? { veces: 0, personas: new Set<string>() };
+    f.veces++;
+    f.personas.add(persona);
+    m.set(clave, f);
+  };
+  const ordenar = (m: Conteo) => Array.from(m.entries()).sort((a, b) => b[1].veces - a[1].veces);
+  const top = (m: Conteo | undefined, n: number) =>
+    m ? ordenar(m).slice(0, n).map(([d, f]) => `${nombreDe(d)} (${f.veces})`).join(", ") : "";
+
+  const likesPorComercio: Conteo = new Map();
+  const favoritasPorMarca: Conteo = new Map();
+  const likesPorEdad = new Map<string, Conteo>();
+  const favoritasPorEdad = new Map<string, Conteo>();
+  const personasPorEdad = new Map<string, Set<string>>();
+  const SIN_EDAD = "Sin edad en el perfil";
+  const enEdad = (mapa: Map<string, Conteo>, edad: string) => {
+    const m = mapa.get(edad) ?? new Map();
+    mapa.set(edad, m);
+    return m;
+  };
+  for (const c of likes) {
+    const edad = edadDe.get(c.user_id) ?? SIN_EDAD;
+    sumar(likesPorComercio, c.dominio, c.user_id);
+    sumar(enEdad(likesPorEdad, edad), c.dominio, c.user_id);
+    personasPorEdad.set(edad, (personasPorEdad.get(edad) ?? new Set()).add(c.user_id));
+  }
+  for (const u of favoritas) {
+    const edad = edadDe.get(u.id) ?? SIN_EDAD;
+    for (const d of u.marcas_favoritas ?? []) {
+      sumar(favoritasPorMarca, d, u.id);
+      sumar(enEdad(favoritasPorEdad, edad), d, u.id);
+    }
+    personasPorEdad.set(edad, (personasPorEdad.get(edad) ?? new Set()).add(u.id));
+  }
+  const RANGOS = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+", SIN_EDAD];
+  const gustos = {
+    meGusta: ordenar(likesPorComercio)
+      .slice(0, 20)
+      .map(([d, f]) => ({ comercio: nombreDe(d), meGusta: f.veces, personas: f.personas.size })),
+    favoritas: ordenar(favoritasPorMarca)
+      .slice(0, 20)
+      .map(([d, f]) => ({ comercio: nombreDe(d), personas: f.personas.size })),
+    porEdad: RANGOS.filter((r) => personasPorEdad.has(r)).map((r) => ({
+      edad: r,
+      personas: personasPorEdad.get(r)!.size,
+      masMeGusta: top(likesPorEdad.get(r), 3),
+      masFavoritas: top(favoritasPorEdad.get(r), 3),
+    })),
+  };
   const prendas = agrupar((e) => (e.props?.prenda ? String(e.props.prenda) : null));
 
   // ------------------------------------------------- actividad diaria
@@ -424,6 +498,7 @@ export async function GET(req: Request) {
     comercios,
     prendas,
     comerciosVinculados,
+    gustos,
     comerciosExcluidos,
     actividad,
     dinero: {

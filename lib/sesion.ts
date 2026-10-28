@@ -90,7 +90,7 @@ export async function crearCodigo(correo: string): Promise<ResultadoEnvio> {
 // Versión del documento de privacidad. Si el texto de app/privacy
 // cambia de fondo, sube este valor — eso hace que a todo el mundo se le
 // vuelva a pedir el consentimiento, aunque ya hubiera aceptado antes.
-export const VERSION_POLITICA = "2026-09-24";
+export const VERSION_POLITICA = "2026-10-28";
 
 export async function verificarCodigo(
   req: Request,
@@ -179,12 +179,45 @@ async function unirIdentidades(req: Request, correo: string): Promise<Identidad 
     .eq("email", correo)
     .maybeSingle();
 
-  // Caso 1: el correo es nuevo. La fila que ya venía usando se queda
-  // como está y solo se le pone el correo — así no pierde nada.
+  // Caso 1: el correo es nuevo.
   if (!porCorreo) {
     if (!idDispositivo) return null;
-    await sb.from("users").update({ email: correo }).eq("id", idDispositivo);
-    return { id: idDispositivo, esNuevo: true };
+    const ahora = new Date().toISOString();
+    const { data: delNavegador } = await sb
+      .from("users")
+      .select("email, created_at")
+      .eq("id", idDispositivo)
+      .maybeSingle();
+
+    // 1a. El navegador nunca tuvo cuenta: la fila que ya venía usando se
+    // queda como está y solo se le pone el correo — así no pierde nada.
+    if (!delNavegador?.email) {
+      await sb.from("users").update({ email: correo }).eq("id", idDispositivo);
+      // Aparte: si la migración de promos no se ha corrido, estas
+      // columnas no existen y el error no debe tumbar el ingreso.
+      await sb.from("users").update({ registrado_at: ahora, promos_prueba_desde: ahora }).eq("id", idDispositivo);
+      return { id: idDispositivo, esNuevo: true };
+    }
+
+    // 1b. En este navegador ya hay OTRA cuenta (salió y entró con otro
+    // correo). Antes se le cambiaba el correo a esa fila, y la otra
+    // persona perdía su cuenta. Ahora se crea una fila nueva, que hereda
+    // la fecha de prueba de promos del navegador: la prueba gratis es una
+    // por navegador, no una por correo.
+    const { data: anterior } = await sb
+      .from("users")
+      .select("promos_prueba_desde, registrado_at")
+      .eq("id", idDispositivo)
+      .maybeSingle();
+    const pruebaDesde = anterior?.promos_prueba_desde ?? anterior?.registrado_at ?? delNavegador.created_at;
+    const nueva = await sb
+      .from("users")
+      .insert({ email: correo, registrado_at: ahora, promos_prueba_desde: pruebaDesde })
+      .select("id")
+      .single();
+    const fila = nueva.data ?? (await sb.from("users").insert({ email: correo }).select("id").single()).data;
+    if (!fila?.id) return null;
+    return { id: fila.id, esNuevo: true };
   }
 
   // Caso 2: ya tenía cuenta y es este mismo navegador.

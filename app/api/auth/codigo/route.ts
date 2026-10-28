@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { crearCodigo, normalizarCorreo } from "@/lib/sesion";
 import { enviarCodigo } from "@/lib/email";
 import { contextoDe, registrar } from "@/lib/eventos";
+import { esCorreoDesechable } from "@/lib/correos-desechables";
 
 // POST /api/auth/codigo  { email }
 // Manda un código de 6 dígitos al correo.
@@ -11,6 +12,14 @@ export async function POST(req: Request) {
     const correo = normalizarCorreo(body.email);
     if (!correo) {
       return NextResponse.json({ error: "Escribe un correo válido." }, { status: 400 });
+    }
+    // Buzones de usar y botar: sirven para sacar pruebas gratis una tras
+    // otra (ver lib/correos-desechables.ts).
+    if (esCorreoDesechable(correo)) {
+      return NextResponse.json(
+        { error: "Usa tu correo de siempre: no aceptamos correos temporales." },
+        { status: 400 }
+      );
     }
 
     const resultado = await crearCodigo(correo);

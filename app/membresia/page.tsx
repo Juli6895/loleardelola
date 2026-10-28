@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { DIAS_PRUEBA_PROMOS, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 import { fetchConDispositivo } from "@/lib/device-id";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
@@ -37,6 +37,7 @@ export default function MembresiaPage() {
   }, [conMembresia]);
 
   const mes = (n: number) => `${n} al mes`;
+  const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
   const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
     {
       que: "Búsquedas de outfits",
@@ -66,7 +67,13 @@ export default function MembresiaPage() {
       que: "Manual de estilo",
       sin: "—",
       gratis: "—",
-      membresia: `Sí, ${TOPES_MES_MEMBRESIA.manuales} nuevos al mes`,
+      membresia: `Sí, ${TOPES_MES_MEMBRESIA.manuales} ${TOPES_MES_MEMBRESIA.manuales === 1 ? "nuevo" : "nuevos"} al mes`,
+    },
+    {
+      que: "Promociones de todas las tiendas",
+      sin: dias(DIAS_PRUEBA_PROMOS.anonimo),
+      gratis: dias(DIAS_PRUEBA_PROMOS.gratis),
+      membresia: "Siempre",
     },
     {
       que: "Avisos cuando baja el precio",

@@ -44,6 +44,8 @@ const EMBUDO = [
   { paso: "Entraron a la página", evento: null },
   { paso: "Buscaron un outfit", evento: "busqueda_ok" },
   { paso: "Crearon su cuenta", evento: "registro_ok" },
+  // El gancho: se acabó la prueba gratis de promociones y vio el aviso.
+  { paso: "Se les acabó la prueba de promos", evento: "promo_bloqueada" },
   { paso: "Vieron la membresía", evento: "membresia_vista" },
   { paso: "Abrieron el pago", evento: "pago_abierto" },
   { paso: "Pagaron", evento: "pago_aprobado" },
@@ -385,13 +387,21 @@ export async function GET(req: Request) {
     if (e.nombre === "registro_ok" && e.user_id && !registro.has(e.user_id)) registro.set(e.user_id, e.created_at);
     if (!ultimaVez.has(p) || e.created_at > ultimaVez.get(p)!) ultimaVez.set(p, e.created_at);
   }
+  // Celular y fecha de registro: columnas de la migración de promos. Si
+  // no se ha corrido, la consulta falla y el listado sale sin ellas.
+  const { data: extra } = await sb
+    .from("users")
+    .select("id, celular, registrado_at")
+    .not("email", "is", null);
+  const extraDe = new Map((extra ?? []).map((u: any) => [u.id, u]));
   const cuentas = (conCorreo ?? [])
     .filter((u) => !idsPrueba.has(u.id))
     .map((u) => {
       const conMembresiaActiva = u.premium_until && new Date(u.premium_until).getTime() > ahora.getTime();
       return {
         email: u.email as string,
-        desde: registro.get(u.id) ?? u.created_at,
+        celular: (extraDe.get(u.id)?.celular as string | null) ?? null,
+        desde: registro.get(u.id) ?? extraDe.get(u.id)?.registrado_at ?? u.created_at,
         ultimaVez: ultimaVez.get(u.id) ?? null,
         plan: conMembresiaActiva ? (planDe.get(u.id) ?? "membresía") : "gratis",
         venceMembresia: conMembresiaActiva ? u.premium_until : null,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { normalizarCorreo, verificarCodigo, usuarioActual } from "@/lib/sesion";
 import { contextoDe, registrar } from "@/lib/eventos";
+import { supabaseAdmin } from "@/lib/supabase";
 
 // POST /api/auth/verificar  { email, codigo }
 // Valida el código y deja la sesión abierta (cookie).
@@ -27,7 +28,16 @@ export async function POST(req: Request) {
     registrar("ingreso_ok", contextoDe(req, resultado.userId));
     if (resultado.esNuevo) registrar("registro_ok", contextoDe(req, resultado.userId));
     const usuario = await usuarioActual(req);
-    return NextResponse.json({ ok: true, usuario });
+    // Si la cuenta todavía no tiene celular, la página de entrar lo pide
+    // antes de seguir. Si la columna no existe (falta la migración), no
+    // se pide.
+    const { data: conCelular, error: sinColumna } = await supabaseAdmin()
+      .from("users")
+      .select("celular")
+      .eq("id", resultado.userId)
+      .maybeSingle();
+    const pideCelular = !sinColumna && !conCelular?.celular;
+    return NextResponse.json({ ok: true, usuario, pideCelular });
   } catch (e) {
     console.error("[auth/verificar] falló:", e);
     return NextResponse.json({ error: "No pudimos validar tu código." }, { status: 500 });

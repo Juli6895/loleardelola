@@ -7,7 +7,8 @@ import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 
 // Ingreso en dos pasos: correo → código de 6 dígitos. No hay contraseña
-// a propósito, así que tampoco hay nada que recuperar.
+// a propósito, así que tampoco hay nada que recuperar. Si la cuenta no
+// tiene celular, un tercer paso lo pide (sin código por mensaje).
 //
 // La petición va con fetchConDispositivo para que el servidor sepa qué
 // navegador es y pueda unir lo que la usuaria ya tenía sin cuenta —el
@@ -29,9 +30,10 @@ function Formulario() {
   const volverA = params.get("volver") ?? "/";
   const motivo = params.get("motivo");
 
-  const [paso, setPaso] = useState<"correo" | "codigo">("correo");
+  const [paso, setPaso] = useState<"correo" | "codigo" | "celular">("correo");
   const [correo, setCorreo] = useState("");
   const [codigo, setCodigo] = useState("");
+  const [celular, setCelular] = useState("");
   const [cargando, setCargando] = useState(false);
   // Sin marcar por defecto: un consentimiento válido exige una acción
   // explícita, no una casilla premarcada.
@@ -68,6 +70,10 @@ function Formulario() {
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No pudimos validar el código");
+      if (json.pideCelular) {
+        setPaso("celular");
+        return;
+      }
       toast.success("¡Listo! Ya estás dentro");
       router.push(volverA);
       router.refresh();
@@ -76,6 +82,69 @@ function Formulario() {
     } finally {
       setCargando(false);
     }
+  }
+
+  async function guardarCelular(e: React.FormEvent) {
+    e.preventDefault();
+    setCargando(true);
+    try {
+      const res = await fetchConDispositivo("/api/auth/celular", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ celular }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "No pudimos guardar tu celular");
+      toast.success("¡Listo! Ya estás dentro");
+      router.push(volverA);
+      router.refresh();
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setCargando(false);
+    }
+  }
+
+  if (paso === "celular") {
+    return (
+      <div className="mx-auto max-w-md py-10">
+        <div className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-9">
+          <h1 className="font-display text-3xl text-noche">Tu celular</h1>
+          <p className="mt-3 text-sm text-noche/60">
+            Un último dato para tu cuenta. No te mandamos ningún código: lo usamos solo para contactarte
+            sobre tu cuenta y tu membresía.
+          </p>
+          <form onSubmit={guardarCelular} className="mt-6 space-y-4">
+            <div>
+              <label htmlFor="celular" className="text-sm font-medium text-noche/80">
+                Celular
+              </label>
+              <div className="mt-1.5 flex items-center gap-2 rounded-full border border-rosa-200 bg-rosa-50/40 px-4 focus-within:border-rosa-400 focus-within:bg-white">
+                <span className="text-sm text-noche/50">+57</span>
+                <input
+                  id="celular"
+                  type="tel"
+                  inputMode="numeric"
+                  autoComplete="tel-national"
+                  required
+                  value={celular}
+                  onChange={(e) => setCelular(e.target.value.replace(/[^\d ]/g, "").slice(0, 13))}
+                  placeholder="300 123 4567"
+                  className="w-full bg-transparent py-2.5 text-sm outline-none"
+                />
+              </div>
+            </div>
+            <button
+              type="submit"
+              disabled={cargando || celular.replace(/\D/g, "").length !== 10}
+              className="w-full rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {cargando ? "Guardando..." : "Continuar"}
+            </button>
+          </form>
+        </div>
+      </div>
+    );
   }
 
   return (

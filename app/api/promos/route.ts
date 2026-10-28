@@ -1,30 +1,52 @@
 import { NextResponse } from "next/server";
-import { buscarPromos } from "@/lib/catalogo-tiendas";
+import { deLosTipos, porMarca, todasLasPromos } from "@/lib/promos-guardadas";
 
-// GET /api/promos?tipos=vestido|blusa
+// GET /api/promos
+//   ?tipos=vestido|blusa  → { relacionadas, marcas }: las de esas prendas
+//                           y todas, agrupadas por marca (4 de cada una).
+//   ?marca=dominio&desde=0[&tipos=...] → { promos, total }: todas las de
+//                           esa marca, de a POR_PAGINA ("Ver más promos
+//                           de esta marca").
+//   ?muestra=1            → { promos }: unas pocas, para la vista borrosa
+//                           cuando se acabó la prueba.
 //
-// Prendas en promoción de las tiendas de la lista, para el panel "Promo".
-// Con tipos (lo que se detectó en la foto), solo de esas prendas, hasta
-// 3 por tienda. Sin tipos, "otros descuentos" de todo tipo de prenda,
-// hasta 2 por tienda. Sin tope total: con tope solo quedaban las más
-// rebajadas (50% o más) y las de 10% a 49% nunca salían. El panel pide las dos por separado, para que las
-// de su búsqueda no esperen a las demás. No usa IA: sale del catálogo de cada
-// tienda, que ya se guarda 30 minutos en memoria.
-// Con más de 40 tiendas, la primera búsqueda (sin caché) puede pasar de los 10
-// segundos que Vercel da por defecto.
+// Salen de la revisión diaria (lib/promos-diarias.ts): más de 10% de
+// descuento y con una talla disponible. Quién puede verlas lo decide
+// /api/promos/acceso. La respuesta es la misma para todas, así que se
+// guarda en la caché de Vercel media hora.
 export const maxDuration = 60;
 
+const VISTA_PREVIA = 4;
+const POR_PAGINA = 40;
+const CACHE = "public, s-maxage=1800, stale-while-revalidate=3600";
+
 export async function GET(req: Request) {
-  const tipos = (new URL(req.url).searchParams.get("tipos") ?? "")
+  const params = new URL(req.url).searchParams;
+  const tipos = (params.get("tipos") ?? "")
     .split("|")
     .map((t) => t.trim())
     .filter(Boolean)
-    .slice(0, 6);
+    .slice(0, 8);
+  const marca = params.get("marca");
+
   try {
-    const promos = tipos.length > 0 ? await buscarPromos(tipos, Infinity, 3) : await buscarPromos([], Infinity, 2);
-    return NextResponse.json({ promos });
+    const todas = await todasLasPromos();
+    const json = (cuerpo: unknown) => NextResponse.json(cuerpo, { headers: { "Cache-Control": CACHE } });
+
+    if (params.get("muestra") === "1") return json({ promos: todas.slice(0, 8) });
+
+    if (marca) {
+      const deLaMarca = deLosTipos(todas, tipos).filter((p) => p.dominio === marca);
+      const desde = Math.max(0, Number(params.get("desde")) || 0);
+      return json({ promos: deLaMarca.slice(desde, desde + POR_PAGINA), total: deLaMarca.length });
+    }
+
+    return json({
+      relacionadas: tipos.length > 0 ? porMarca(deLosTipos(todas, tipos), VISTA_PREVIA) : [],
+      marcas: porMarca(todas, VISTA_PREVIA),
+    });
   } catch (e) {
     console.error("[api/promos] falló:", e);
-    return NextResponse.json({ promos: [] });
+    return NextResponse.json({ relacionadas: [], marcas: [], promos: [], total: 0 });
   }
 }

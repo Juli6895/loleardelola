@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
-import { PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { DIAS_PRUEBA_PROMOS, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
 // app instalada, que es la misma página). Los precios y los límites
@@ -40,8 +40,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
                 combinar tus prendas favoritas y los básicos de tu armario (membresía).
               </li>
               <li>
-                <strong>Promociones:</strong> las rebajas de los comercios en un solo lugar, y un aviso al
-                celular cuando baja de precio lo que te gustó (membresía).
+                <strong>Promociones:</strong> las rebajas de más del 10% de todos los comercios en un solo
+                lugar, y un aviso al celular cuando baja de precio lo que te gustó (membresía).
               </li>
             </ol>
           </>
@@ -61,9 +61,10 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         p: "¿En qué tiendas buscan?",
         r: (
           <p>
-            En tiendas que venden en Colombia: marcas con tienda en línea de las que tenemos el catálogo (por
-            ejemplo Especia, Bybla, Navissi, Gracies, Esprit o Color Blue), tiendas en Instagram, y una
-            búsqueda en Google Imágenes filtrada a comercios colombianos.
+            En tiendas que venden en Colombia: más de 40 marcas con tienda en línea de las que tenemos el
+            catálogo, la mayoría hechas en Colombia (por ejemplo Studio F, ELA, Leonisa, Mattelsa, Tennis,
+            Vélez, Stop Jeans, Especia o Bybla), tiendas en Instagram, y una búsqueda en Google Imágenes
+            filtrada a comercios colombianos.
           </p>
         ),
       },
@@ -80,17 +81,19 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
                 <strong>Sin cuenta:</strong> {TOPES.anonimo.busquedas} {TOPES.anonimo.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
-                {TOPES.anonimo.prendasCloset} prenda en tu clóset y {TOPES.anonimo.combinacionesClosetGratis}{" "}
-                combinación.
+                {TOPES.anonimo.prendasCloset} prenda en tu clóset, {TOPES.anonimo.combinacionesClosetGratis}{" "}
+                combinación y las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día.
               </li>
               <li>
                 <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"},{" "}
                 {TOPES.gratis.outfits} outfits guardados, {TOPES.gratis.prendasCloset} prendas y{" "}
-                {TOPES.gratis.combinacionesClosetGratis} combinaciones.
+                {TOPES.gratis.combinacionesClosetGratis} combinaciones, y las promociones por {DIAS_PRUEBA_PROMOS.gratis} días
+                desde que creas la cuenta.
               </li>
             </ul>
             <p className="mt-2">
-              Para usarla sin esos límites, el manual de estilo y los avisos de rebaja está la{" "}
+              Para usarla sin esos límites, ver las promociones siempre, el manual de estilo y los avisos de
+              rebaja está la{" "}
               <Link href="/membresia" className="font-medium text-rosa-600 underline">
                 membresía
               </Link>
@@ -107,7 +110,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               Toca <strong>Entrar</strong>, arriba a la derecha (en el celular, en el menú ☰).
             </li>
             <li>Escribe tu correo. Te llega un código de 6 números.</li>
-            <li>Escribe el código y listo: no necesitas contraseña.</li>
+            <li>Escribe el código: no necesitas contraseña.</li>
+            <li>La primera vez te pedimos tu celular. No te mandamos ningún código al celular.</li>
           </ol>
         ),
       },
@@ -129,9 +133,26 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               </li>
               <li>Outfits guardados sin tope.</li>
               <li>Tu manual de estilo completo, para descargar ({TOPES_MES_MEMBRESIA.manuales} nuevo al mes).</li>
+              <li>Las promociones de todas las tiendas, siempre.</li>
               <li>Avisos al celular cuando baja de precio lo que te gustó.</li>
             </ul>
             <p className="mt-2">Los límites se renuevan el 1 de cada mes.</p>
+          </>
+        ),
+      },
+      {
+        p: "¿Cómo funcionan las promociones?",
+        r: (
+          <>
+            <p>
+              Cada día revisamos el catálogo de todas las tiendas y te mostramos las prendas con más del 10% de
+              descuento que tienen alguna talla disponible. El precio es el de la talla más económica, y al
+              dar clic la tienda te abre justo esa talla.
+            </p>
+            <p className="mt-2">
+              Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día, con cuenta gratis {DIAS_PRUEBA_PROMOS.gratis} días desde que
+              la creas, y con la membresía siempre. La prueba gratis es una por celular o computador.
+            </p>
           </>
         ),
       },

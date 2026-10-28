@@ -22,7 +22,8 @@ export async function GET(req: Request) {
   }
 
   const color = params.get("color")?.trim() || null;
-  // "Mis marcas" de quien busca: solo esas tiendas. Vacío = todas.
+  // ?marcas=a.com,b.co: solo esas tiendas. Vacío = todas. ("Mis marcas"
+  // del menú NO lo usa: filtra solo las promociones.)
   const marcas = (params.get("marcas") ?? "")
     .split(",")
     .map((d) => d.trim().toLowerCase())

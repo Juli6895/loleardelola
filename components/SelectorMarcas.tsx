@@ -19,8 +19,8 @@ function cargarMarcas(): Promise<Marca[]> {
 }
 
 /**
- * "Mis marcas", en el menú: todas las marcas con una casilla. Las que
- * marque son las únicas que le salen en la app (ver
+ * "Mis marcas", en el menú: todas las marcas con una casilla. De las que
+ * marque son las únicas promociones que le salen (ver
  * lib/marcas-favoritas.ts). Sin ninguna marcada, salen todas.
  */
 export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean }) {
@@ -46,8 +46,8 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
     <div>
       <p className={`text-xs ${suave}`}>
         {escogidas.length === 0
-          ? "Marca las que te gustan y solo te mostramos esas. Sin ninguna marcada, ves todas."
-          : `Solo ves ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}.`}
+          ? "Marca las que te gustan y solo te mostramos promociones de esas marcas. En la búsqueda siguen apareciendo todas."
+          : `Solo ves promociones de ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}. En la búsqueda siguen apareciendo todas.`}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <input

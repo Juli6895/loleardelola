@@ -66,6 +66,9 @@ export default function RootLayout({
               <Link href="/preguntas" className="hover:text-rosa-600 hover:underline">
                 Preguntas frecuentes
               </Link>
+              <Link href="/terminos" className="hover:text-rosa-600 hover:underline">
+                Términos y condiciones
+              </Link>
               <Link href="/privacy" className="hover:text-rosa-600 hover:underline">
                 Privacidad
               </Link>

@@ -5,7 +5,6 @@ import type { ClosetCategory, TiendaInstagram } from "@/types";
 import type { ProductoTienda } from "@/lib/use-catalogo";
 import { prendaDeTienda, type GrupoProductos } from "@/lib/use-catalogo";
 import { anotarClicComercio } from "@/lib/use-evento";
-import { esDeMisMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 
 type Props = {
   tiendas: TiendaInstagram[];
@@ -43,13 +42,10 @@ const A_LA_VISTA = 10;
 
 export default function TiendasInstagram({ tiendas, categorias, grupos, flexibles }: Props) {
   const [todas, setTodas] = useState(false);
-  // "Mis marcas" del menú: si escogió algunas, solo esas.
-  const misMarcas = useMarcasFavoritas();
   if (categorias.length === 0) return null;
 
   const deInstagram: Tarjeta[] = tiendas
     .filter((t) => t.categorias.some((c) => categorias.includes(c)))
-    .filter((t) => esDeMisMarcas(misMarcas, t.dominio))
     .map((t) => ({
       clave: t.handle,
       nombre: t.nombre,

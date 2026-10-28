@@ -12,7 +12,7 @@ import {
 export const metadata: Metadata = {
   title: "Términos y condiciones — LoleardLola",
   description:
-    "Las reglas de uso de LoleardLola: tu cuenta, los planes y sus límites, la membresía, las promociones, los avisos de rebaja y Mis marcas.",
+    "Las reglas de uso de LoleardLola: tu cuenta, los planes y sus límites, la membresía, las promociones, los avisos de rebaja y Mis marcas favoritas.",
 };
 
 // Términos y condiciones, en el mismo dominio de la app. Los precios y
@@ -217,7 +217,7 @@ export default function TerminosPage() {
           </li>
         </Lista>
 
-        <Titulo>7. Mis marcas</Titulo>
+        <Titulo>7. Mis marcas favoritas</Titulo>
         <p className="mt-3 text-noche/80">
           En el menú puedes escoger las marcas que te gustan. Si escoges alguna, solo te mostramos promociones de
           esas marcas; cuando buscas un outfit siguen apareciendo todas las tiendas. Si no escoges ninguna, ves

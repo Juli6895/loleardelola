@@ -12,12 +12,13 @@ import { usePathname } from "next/navigation";
 // Se monta en cada página de la cuenta (mi-perfil, mi-closet,
 // mis-outfits, manual, membresia) — no en el navbar de arriba, que
 // sigue igual para el resto del sitio.
+// Mismo orden que el navbar (components/Navbar.tsx).
 const PESTANAS = [
-  { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/buscar", label: "Buscar" },
-  { href: "/mi-closet", label: "Mi clóset" },
   { href: "/mis-outfits", label: "Mis outfits" },
+  { href: "/mi-perfil", label: "Mi perfil" },
   { href: "/manual", label: "Mi manual" },
+  { href: "/mi-closet", label: "Mi clóset" },
   { href: "/membresia", label: "Membresía" },
 ];
 

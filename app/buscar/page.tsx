@@ -54,7 +54,7 @@ export default function BuscarPage() {
       )}
 
       {/* Ver outfits guardados: en negro si puede guardarlos; en gris, y
-          con el enlace a la membresía, si no. */}
+          con el enlace para crear la cuenta gratis, si no. */}
       <div className="flex flex-col items-center gap-2 border-t border-rosa-100 pt-6 text-center">
         {puedeGuardar ? (
           <Link
@@ -71,8 +71,11 @@ export default function BuscarPage() {
             >
               Ver outfits guardados
             </span>
-            <Link href="/membresia" className="text-xs font-medium text-rosa-600 underline-offset-2 hover:underline">
-              Actívala con la membresía
+            <Link
+              href="/entrar?volver=/buscar&motivo=Crea tu cuenta gratis para guardar tus outfits."
+              className="text-xs font-medium text-rosa-600 underline-offset-2 hover:underline"
+            >
+              Actívala con tu cuenta gratis
             </Link>
           </>
         )}

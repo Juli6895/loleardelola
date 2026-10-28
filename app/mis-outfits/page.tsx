@@ -8,6 +8,7 @@ import { fetchConDispositivo } from "@/lib/device-id";
 import type { Outfit, TiendaInstagram } from "@/types";
 import MisAvisos from "@/components/MisAvisos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
+import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 
 // Página "Mis Outfits": outfits guardados en este dispositivo.
 // La sección de boards de Pinterest quedó para la fase del login.
@@ -19,6 +20,8 @@ export default function MisOutfitsPage() {
   // una lista cerrada de comercios.
   const [excludedMerchants, setExcludedMerchants] = useState<string[]>([]);
   const [allowedMerchants, setAllowedMerchants] = useState<string[]>([]);
+  // "Mis marcas" del menú: si escogió algunas, Google busca solo en esas.
+  const misMarcas = useMarcasFavoritas();
   const [tiendasInstagram, setTiendasInstagram] = useState<TiendaInstagram[]>([]);
 
   useEffect(() => {
@@ -108,7 +111,7 @@ export default function MisOutfitsPage() {
                 outfit={o}
                 onDelete={handleDelete}
                 excludeMerchants={excludedMerchants}
-                includeMerchants={allowedMerchants}
+                includeMerchants={misMarcas.length > 0 ? misMarcas : allowedMerchants}
                 tiendasInstagram={tiendasInstagram}
               />
             ))}

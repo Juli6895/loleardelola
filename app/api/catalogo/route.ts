@@ -22,6 +22,11 @@ export async function GET(req: Request) {
   }
 
   const color = params.get("color")?.trim() || null;
+  // "Mis marcas" de quien busca: solo esas tiendas. Vacío = todas.
+  const marcas = (params.get("marcas") ?? "")
+    .split(",")
+    .map((d) => d.trim().toLowerCase())
+    .filter(Boolean);
 
   // ?flexible=1 lo piden las tarjetas de Instagram: no buscan "la misma
   // prenda" sino una prenda de ESA tienda para ponerle foto a la
@@ -32,10 +37,10 @@ export async function GET(req: Request) {
   if (params.get("flexible") === "1") {
     try {
       const [conColor, soloTipo] = await Promise.all([
-        color ? buscarEnCatalogos({ tipo, color, rasgos: [] }, 24) : Promise.resolve([]),
+        color ? buscarEnCatalogos({ tipo, color, rasgos: [] }, 24, 0, marcas) : Promise.resolve([]),
         // 60 y no 24: salen hasta 3 por tienda, y con 24 solo unas 8 de
         // las más de 40 tiendas alcanzaban a tener foto en su tarjeta.
-        buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 60),
+        buscarEnCatalogos({ tipo, color: null, rasgos: [] }, 60, 0, marcas),
       ]);
       const vistos = new Set<string>();
       const productos = [...conColor, ...soloTipo].filter((p) => !vistos.has(p.url) && !!vistos.add(p.url));
@@ -63,7 +68,7 @@ export async function GET(req: Request) {
     // sobra son las que alimentan las tarjetas de Instagram, que
     // necesitan una prenda de UNA tienda puntual, y esa puede no estar
     // entre las mejores 8 del conjunto.
-    const productos = await buscarEnCatalogos(consulta, 24);
+    const productos = await buscarEnCatalogos(consulta, 24, 0, marcas);
     return NextResponse.json({ productos });
   } catch (e) {
     console.error("[api/catalogo] falló:", e);

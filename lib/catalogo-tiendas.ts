@@ -766,7 +766,10 @@ function consultasPara(
 export async function buscarEnCatalogos(
   c: ConsultaPrenda,
   maximo = 8,
-  descuentoMinimo = 0
+  descuentoMinimo = 0,
+  // "Mis marcas" (ver lib/marcas-favoritas.ts): solo se les pregunta a
+  // esas tiendas. Vacío = todas.
+  marcas: string[] = []
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();
   if (!tipo) return [];
@@ -790,8 +793,9 @@ export async function buscarEnCatalogos(
   }
 
   const consultas = consultasPara(tipo, color, obligatorios[0] ?? (esEstampada ? "estampado" : null));
+  const tiendas = marcas.length > 0 ? TIENDAS.filter((t) => marcas.includes(t.dominio)) : TIENDAS;
   const lotes = await Promise.all(
-    TIENDAS.flatMap((t) =>
+    tiendas.flatMap((t) =>
       t.plataforma === "shopify"
         ? consultas.shopify.map((q) => buscarShopify(t, q))
         : consultas.vtex.map((q) => buscarVtex(t, q))

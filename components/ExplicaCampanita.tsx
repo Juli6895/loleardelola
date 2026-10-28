@@ -24,7 +24,7 @@ export default function ExplicaCampanita() {
       </summary>
       <div className="mt-2 space-y-2 pl-8">
         <p>
-          Tócala en una prenda que te guste y te avisamos con una notificación en el celular si baja de
+          Tócala en una prenda que te guste y te avisamos con una notificación en tu app si baja de
           precio. Revisamos los precios todos los días; el aviso llega cuando baja 10% o más desde que la
           marcaste. Es parte de la membresía.
         </p>

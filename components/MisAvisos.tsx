@@ -46,7 +46,7 @@ export default function MisAvisos() {
       <h2 className="font-display text-2xl text-noche">Te avisamos si bajan</h2>
       <p className="mt-1 text-sm text-noche/60">
         Revisamos su precio todos los días. Si baja 10% o más desde que la marcaste, te llega una
-        notificación al celular.
+        notificación en tu app.
       </p>
       {lista.length === 0 ? (
         <p className="mt-4 rounded-xl bg-rosa-50/60 p-4 text-sm text-noche/60">

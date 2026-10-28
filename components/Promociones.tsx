@@ -8,6 +8,7 @@ import { fetchConDispositivo } from "@/lib/device-id";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
 import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import SelectorMarcas from "@/components/SelectorMarcas";
 
 // =====================================================================
 // Promociones de todas las tiendas
@@ -88,7 +89,10 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
             Más del 10% de descuento, solo en tallas disponibles. Precios de cada tienda, revisados cada día.
           </p>
         </div>
-        {acceso && acceso.plan !== "membresia" && acceso.hasta && <QuedaPrueba hasta={acceso.hasta} />}
+        <div className="flex flex-wrap items-center gap-2">
+          {acceso && acceso.plan !== "membresia" && acceso.hasta && <QuedaPrueba hasta={acceso.hasta} />}
+          <FiltrarMarcas activo cuantas={misMarcas.length} />
+        </div>
       </div>
 
       {misMarcas.length > 0 && (
@@ -256,6 +260,13 @@ function Bloqueo({ plan }: { plan: Acceso["plan"] }) {
 
   const sinCuenta = plan === "anonimo";
   return (
+    <div className="space-y-3">
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <span className="text-xs text-noche/50">
+        {sinCuenta ? "Con tu cuenta gratis filtras las promociones por tus marcas." : "Con la membresía filtras las promociones por tus marcas."}
+      </span>
+      <FiltrarMarcas activo={false} cuantas={0} />
+    </div>
     <section aria-labelledby="promos-titulo" className="relative overflow-hidden rounded-3xl border border-rosa-100 bg-white">
       <div aria-hidden className="pointer-events-none grid select-none grid-cols-2 gap-3 p-4 opacity-60 blur-sm sm:grid-cols-4">
         {muestra.slice(0, 8).map((p) => (
@@ -308,6 +319,7 @@ function Bloqueo({ plan }: { plan: Acceso["plan"] }) {
         </div>
       </div>
     </section>
+    </div>
   );
 }
 
@@ -350,5 +362,42 @@ function Tarjeta({ p }: { p: ProductoTienda }) {
         <p className="text-[11px] text-noche/40">{p.tienda}</p>
       </div>
     </a>
+  );
+}
+
+/**
+ * "Filtrar marcas": en negro abre "Mis marcas favoritas" ahí mismo, para
+ * actualizarlas; en gris (sin poder ver las promociones) no hace nada y
+ * el texto de al lado dice cómo se destraba.
+ */
+function FiltrarMarcas({ activo, cuantas }: { activo: boolean; cuantas: number }) {
+  const [abierto, setAbierto] = useState(false);
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        disabled={!activo}
+        onClick={() => setAbierto((v) => !v)}
+        aria-expanded={abierto}
+        className={
+          activo
+            ? "rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
+            : "cursor-not-allowed rounded-full bg-noche/15 px-4 py-2 text-sm font-medium text-noche/40"
+        }
+      >
+        Filtrar marcas{cuantas > 0 ? ` (${cuantas})` : ""}
+      </button>
+      {activo && abierto && (
+        <div className="absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl sm:left-auto sm:right-0 border border-rosa-100 bg-white p-4 shadow-suave">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-sm font-semibold text-noche">Mis marcas favoritas</p>
+            <button type="button" onClick={() => setAbierto(false)} className="text-xs text-noche/50 underline">
+              Listo
+            </button>
+          </div>
+          <SelectorMarcas />
+        </div>
+      )}
+    </div>
   );
 }

@@ -4,11 +4,16 @@ import { useState } from "react";
 import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
 import Link from "next/link";
+import { useUsuario } from "@/lib/use-usuario";
+import { TOPES } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se hace el análisis de outfit
 export default function BuscarPage() {
   useAnotarUnaVez("buscar_visto");
+  const { usuario } = useUsuario();
+  // Guardar outfits: sin cuenta no se puede (TOPES.anonimo.outfits = 0).
+  const puedeGuardar = (TOPES[usuario?.plan ?? "anonimo"].outfits ?? 1) > 0;
   const [result, setResult] = useState<R | null>(null);
   // Las promos siguen lo que se detectó en la foto (vestido, blusa...).
   const tipos = Array.from(
@@ -47,6 +52,31 @@ export default function BuscarPage() {
           <span className="shrink-0 text-sm font-medium text-rosa-600">Ver promociones →</span>
         </Link>
       )}
+
+      {/* Ver outfits guardados: en negro si puede guardarlos; en gris, y
+          con el enlace a la membresía, si no. */}
+      <div className="flex flex-col items-center gap-2 border-t border-rosa-100 pt-6 text-center">
+        {puedeGuardar ? (
+          <Link
+            href="/mis-outfits"
+            className="rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
+          >
+            Ver outfits guardados
+          </Link>
+        ) : (
+          <>
+            <span
+              aria-disabled="true"
+              className="cursor-not-allowed rounded-full bg-noche/15 px-6 py-2.5 text-sm font-medium text-noche/40"
+            >
+              Ver outfits guardados
+            </span>
+            <Link href="/membresia" className="text-xs font-medium text-rosa-600 underline-offset-2 hover:underline">
+              Actívala con la membresía
+            </Link>
+          </>
+        )}
+      </div>
     </div>
     </div>
   );

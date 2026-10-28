@@ -37,7 +37,7 @@ export default function Hero() {
           </Link>
         </div>
 
-        <p className="mt-4 text-xs text-noche/50">Empieza gratis, sin registrarte.</p>
+        <p className="mt-4 text-xs text-noche/50">Crea tu cuenta gratis y haz tu primera búsqueda.</p>
       </div>
     </section>
   );

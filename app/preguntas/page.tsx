@@ -80,13 +80,13 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> {TOPES.anonimo.busquedas} {TOPES.anonimo.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
-                {TOPES.anonimo.prendasCloset} prenda en tu clóset, {TOPES.anonimo.combinacionesClosetGratis}{" "}
-                combinación y las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día.
+                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día,{" "}
+                {TOPES.anonimo.prendasCloset} prenda en tu clóset y {TOPES.anonimo.combinacionesClosetGratis} combinación.
+                Para buscar outfits y guardarlos necesitas tu cuenta gratis.
               </li>
               <li>
-                <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"},{" "}
-                {TOPES.gratis.outfits} outfits guardados, {TOPES.gratis.prendasCloset} prendas y{" "}
+                <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
+                {TOPES.gratis.outfits} {TOPES.gratis.outfits === 1 ? "outfit guardado" : "outfits guardados"}, {TOPES.gratis.prendasCloset} prendas y{" "}
                 {TOPES.gratis.combinacionesClosetGratis} combinaciones, y las promociones por {DIAS_PRUEBA_PROMOS.gratis} días
                 desde que creas la cuenta.
               </li>

@@ -41,13 +41,13 @@ export default function MembresiaPage() {
   const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
     {
       que: "Búsquedas de outfits",
-      sin: TOPES.anonimo.busquedas ?? "—",
+      sin: TOPES.anonimo.busquedas || "—",
       gratis: TOPES.gratis.busquedas ?? "—",
       membresia: mes(TOPES_MES_MEMBRESIA.busquedas),
     },
     {
       que: "Outfits guardados",
-      sin: TOPES.anonimo.outfits ?? "—",
+      sin: TOPES.anonimo.outfits || "—",
       gratis: TOPES.gratis.outfits ?? "—",
       membresia: "Sin tope",
     },

@@ -61,6 +61,12 @@ export default function SearchBox({ onResult }: Props) {
       body: JSON.stringify({ ...payload, budgetCop }),
     });
     const data = await res.json();
+    // Sin cuenta no hay búsquedas: en vez de un aviso que se pierde, se
+    // la lleva a crear su cuenta y vuelve aquí después.
+    if (res.status === 402 && data.destrabaCon === "gratis") {
+      window.location.href = `/entrar?volver=/buscar&motivo=${encodeURIComponent(data.error ?? "Crea tu cuenta gratis para buscar tu outfit.")}`;
+      throw new Error(data.error ?? "Crea tu cuenta gratis para buscar tu outfit.");
+    }
     if (!res.ok) throw new Error(data.error ?? "Error analizando la imagen");
     return data as SearchResult;
   }

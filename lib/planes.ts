@@ -23,19 +23,21 @@ export type Topes = {
 
 // null = sin tope.
 export const TOPES: Record<Plan, Topes> = {
-  // Sin cuenta: alcanza para probar la app de verdad antes de pedirle
-  // el correo a nadie.
+  // Sin cuenta: ni búsquedas ni outfits guardados (octubre de 2026, a
+  // pedido de Juliana: si llega mucha gente de golpe, cada búsqueda
+  // anónima es plata sin siquiera un correo a cambio). Puede mirar las
+  // promociones, el clóset y una combinación.
   anonimo: {
-    busquedas: 1,
-    outfits: 1,
+    busquedas: 0,
+    outfits: 0,
     prendasCloset: 1,
     manualDeEstilo: false,
     combinacionesClosetGratis: 1,
   },
-  // Con cuenta gratis: un poco más, a cambio del correo.
+  // Con cuenta gratis: una búsqueda y un outfit guardado, para probar.
   gratis: {
-    busquedas: 2,
-    outfits: 3,
+    busquedas: 1,
+    outfits: 1,
     prendasCloset: 2,
     manualDeEstilo: false,
     combinacionesClosetGratis: 2,
@@ -214,6 +216,14 @@ export function mensajeDeTope(
       : recurso === "outfits"
         ? tope === 1 ? "outfit guardado" : "outfits guardados"
         : tope === 1 ? "prenda en tu clóset" : "prendas en tu clóset";
+
+  // Sin cuenta no hay búsquedas ni outfits: no es que "llegó" a nada.
+  if (tope === 0) {
+    const que = recurso === "busquedas" ? "buscar tu outfit" : recurso === "outfits" ? "guardar tus outfits" : "subir prendas";
+    return destrabaCon === "gratis"
+      ? `Para ${que}, crea tu cuenta gratis con tu correo.`
+      : `Para ${que} necesitas la membresía.`;
+  }
 
   const llegaste = `Llegaste a ${tope} ${nombre}.`;
   if (destrabaCon === "gratis") {

@@ -203,8 +203,9 @@ export default function CabeceraCuenta() {
 
           {topes && (
             <p className="mt-5 border-t border-rosa-50 pt-4 text-xs text-noche/40">
-              Ahora mismo tienes {topes.busquedas} búsquedas, {topes.outfits}{" "}
-              outfits guardados y {topes.prendasCloset} prendas en tu clóset.
+              Ahora mismo tienes {topes.busquedas} {topes.busquedas === 1 ? "búsqueda" : "búsquedas"}, {topes.outfits}{" "}
+              {topes.outfits === 1 ? "outfit guardado" : "outfits guardados"} y {topes.prendasCloset}{" "}
+              {topes.prendasCloset === 1 ? "prenda" : "prendas"} en tu clóset.
             </p>
           )}
         </div>

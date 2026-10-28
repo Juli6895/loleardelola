@@ -92,7 +92,7 @@ export default function Servicios() {
       </div>
 
       <p className="mt-5 text-center text-sm text-noche/60">
-        Empieza gratis, sin registrarte.{" "}
+        Crea tu cuenta gratis y haz tu primera búsqueda.{" "}
         <Link href="/membresia" className="font-medium text-rosa-600 underline-offset-2 hover:underline">
           Ver la membresía
         </Link>

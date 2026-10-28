@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 // sigue igual para el resto del sitio.
 // Mismo orden que el navbar (components/Navbar.tsx).
 const PESTANAS = [
+  { href: "/promociones", label: "Promociones" },
   { href: "/buscar", label: "Buscar" },
   { href: "/mis-outfits", label: "Mis outfits" },
   { href: "/mi-perfil", label: "Mi perfil" },

@@ -96,6 +96,7 @@ export const EVENTOS = [
   "tiempo_pagina",
   "inicio_visto",
   "preguntas_visto",
+  "promociones_visto",
   "pagina_error",
 
   // Promociones: se le acabó la prueba gratis y vio el aviso de la

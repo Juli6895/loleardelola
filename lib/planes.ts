@@ -23,24 +23,24 @@ export type Topes = {
 
 // null = sin tope.
 export const TOPES: Record<Plan, Topes> = {
-  // Sin cuenta: ni búsquedas ni outfits guardados (octubre de 2026, a
-  // pedido de Juliana: si llega mucha gente de golpe, cada búsqueda
-  // anónima es plata sin siquiera un correo a cambio). Puede mirar las
-  // promociones, el clóset y una combinación.
+  // Sin cuenta: nada que use la IA (octubre de 2026, a pedido de
+  // Juliana: si llega mucha gente de golpe, cada búsqueda, prenda o
+  // combinación anónima es plata sin siquiera un correo a cambio). Solo
+  // mira las promociones (ver DIAS_PRUEBA_PROMOS).
   anonimo: {
     busquedas: 0,
     outfits: 0,
-    prendasCloset: 1,
+    prendasCloset: 0,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 1,
+    combinacionesClosetGratis: 0,
   },
-  // Con cuenta gratis: una búsqueda y un outfit guardado, para probar.
+  // Con cuenta gratis: una de cada cosa, para probar.
   gratis: {
     busquedas: 1,
     outfits: 1,
-    prendasCloset: 2,
+    prendasCloset: 1,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 2,
+    combinacionesClosetGratis: 1,
   },
   membresia: {
     busquedas: null,

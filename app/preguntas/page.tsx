@@ -80,14 +80,15 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día,{" "}
-                {TOPES.anonimo.prendasCloset} prenda en tu clóset y {TOPES.anonimo.combinacionesClosetGratis} combinación.
-                Para buscar outfits y guardarlos necesitas tu cuenta gratis.
+                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día. Para buscar
+                outfits, guardarlos y usar tu clóset necesitas tu cuenta gratis.
               </li>
               <li>
                 <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
-                {TOPES.gratis.outfits} {TOPES.gratis.outfits === 1 ? "outfit guardado" : "outfits guardados"}, {TOPES.gratis.prendasCloset} prendas y{" "}
-                {TOPES.gratis.combinacionesClosetGratis} combinaciones, y las promociones por {DIAS_PRUEBA_PROMOS.gratis} días
+                {TOPES.gratis.outfits} {TOPES.gratis.outfits === 1 ? "outfit guardado" : "outfits guardados"}, {TOPES.gratis.prendasCloset}{" "}
+                {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} en tu clóset,{" "}
+                {TOPES.gratis.combinacionesClosetGratis}{" "}
+                {TOPES.gratis.combinacionesClosetGratis === 1 ? "combinación" : "combinaciones"}, y las promociones por {DIAS_PRUEBA_PROMOS.gratis} días
                 desde que creas la cuenta.
               </li>
             </ul>
@@ -145,7 +146,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         r: (
           <>
             <p>
-              Cada día revisamos el catálogo de todas las tiendas y te mostramos las prendas con más del 10% de
+              Están en la pestaña <strong>Promociones</strong>, la primera del menú. Cada día revisamos el
+              catálogo de todas las tiendas y te mostramos las prendas con más del 10% de
               descuento que tienen alguna talla disponible. El precio es el de la talla más económica, y al
               dar clic la tienda te abre justo esa talla.
             </p>
@@ -233,7 +235,11 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
           <p>
             Sube fotos de las prendas que ya tienes. Las clasificamos solas y, con "Buscar combinaciones", te
             armamos un outfit alrededor de esa prenda según lo que quieres proyectar, con prendas de tiendas
-            que le suman.
+            que le suman. Necesitas tu cuenta gratis: con ella subes {TOPES.gratis.prendasCloset}{" "}
+            {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} y pruebas{" "}
+            {TOPES.gratis.combinacionesClosetGratis === 1 ? "una combinación" : `${TOPES.gratis.combinacionesClosetGratis} combinaciones`};
+            con la membresía, {TOPES_MES_MEMBRESIA.prendasCloset} prendas y {TOPES_MES_MEMBRESIA.combinaciones} combinaciones al
+            mes.
           </p>
         ),
       },

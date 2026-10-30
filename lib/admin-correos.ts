@@ -28,6 +28,10 @@ export const DISPOSITIVOS_PRUEBA = [
   "ba2c4234-104c-4de1-93ba-b473268fcd8a",
   "350c2bf4-5ad8-4f32-a434-3c144f8e59bb",
   "5c2a469a-9ab4-4ecb-9e4d-6f419d7725a8",
+  // El navegador de Claude otra vez (30 de octubre de 2026): cambió de
+  // identidad, y una prueba se corrió por error en la página publicada.
+  "0f8bd4c7-7dbc-4449-b0bc-8a86c56a00bf",
+  "a85b3e76-389d-44ed-97c1-fe5183085b25",
 ];
 
 export function esAdmin(correo: string | null | undefined): boolean {

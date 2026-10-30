@@ -7,6 +7,7 @@ import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 import { esAdmin } from "@/lib/admin-correos";
 import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
+import BotonFiltrosPromos from "@/components/BotonFiltrosPromos";
 
 // En este orden, a pedido de Juliana (arriba y en el menú ☰):
 // Promociones, Buscar, Mis outfits, Mi perfil, Mi manual, Mi clóset, Membresía, Mis marcas
@@ -77,17 +78,20 @@ export default function Navbar() {
         {/* Desde 1280 px: por debajo no caben los diez enlaces y se usa el menú ☰. */}
         <div className="hidden items-center gap-3 xl:flex 2xl:gap-5">
           {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              className={`text-sm font-medium transition ${
-                dentro
-                  ? "text-white/70 hover:text-rosa-300"
-                  : "text-noche/70 hover:text-rosa-500"
-              }`}
-            >
-              {l.label}
-            </Link>
+            <span key={l.href} className="flex items-center gap-1">
+              <Link
+                href={l.href}
+                className={`text-sm font-medium transition ${
+                  dentro
+                    ? "text-white/70 hover:text-rosa-300"
+                    : "text-noche/70 hover:text-rosa-500"
+                }`}
+              >
+                {l.label}
+              </Link>
+              {/* Los filtros de las promociones, al lado de su opción. */}
+              {l.href === "/promociones" && <BotonFiltrosPromos oscuro={dentro} />}
+            </span>
           ))}
           <div className="relative">
             <button
@@ -190,16 +194,22 @@ export default function Navbar() {
           }`}
         >
           {LINKS.map((l) => (
-            <Link
-              key={l.href}
-              href={l.href}
-              onClick={() => setMenuOpen(false)}
-              className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
-                dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
-              }`}
-            >
-              {l.label}
-            </Link>
+            <div key={l.href} className="flex items-center gap-1">
+              <Link
+                href={l.href}
+                onClick={() => setMenuOpen(false)}
+                className={`block flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                  dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
+                }`}
+              >
+                {l.label}
+              </Link>
+              {l.href === "/promociones" && (
+                <span className="pr-3">
+                  <BotonFiltrosPromos oscuro={dentro} alTocar={() => setMenuOpen(false)} />
+                </span>
+              )}
+            </div>
           ))}
           <button
             type="button"

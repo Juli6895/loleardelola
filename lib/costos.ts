@@ -131,9 +131,10 @@ export const COSTOS_FIJOS: CostoFijo[] = [
   },
   {
     rubro: "Dominio",
-    plan: "No tiene (usa loleardelola.vercel.app)",
-    cop: 0,
-    siCrece: "Un .co cuesta unos $100.000 al año (~$8.500 al mes).",
+    // Comprado en Vercel el 30 de octubre de 2026, con renovación anual.
+    plan: "loleardlola.com: US$11,25 al año",
+    cop: Math.round((11.25 * TRM) / 12),
+    siCrece: "No cambia con el uso. Se renueva solo cada año en Vercel (revisa que la tarjeta esté al día).",
   },
   {
     rubro: "IA (Claude, Anthropic)",

@@ -100,11 +100,13 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {acceso && acceso.plan !== "membresia" && acceso.hasta && <QuedaPrueba hasta={acceso.hasta} />}
-          <FiltrarMarcas activo cuantas={misMarcas.length} />
+          <BotonFiltros activo cuantos={(misMarcas.length > 0 ? 1 : 0) + prendas.length + misTallas.length}>
+            <Filtros facetas={datos?.facetas ?? null} prendas={prendas} onPrendas={setPrendas} tallas={misTallas} />
+            <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-noche/50">Mis marcas favoritas</p>
+            <SelectorMarcas />
+          </BotonFiltros>
         </div>
       </div>
-
-      <Filtros facetas={datos?.facetas ?? null} prendas={prendas} onPrendas={setPrendas} tallas={misTallas} />
 
       {vacio && (prendas.length > 0 || misTallas.length > 0) && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
@@ -283,9 +285,9 @@ function Bloqueo({ plan }: { plan: Acceso["plan"] }) {
     <div className="space-y-3">
     <div className="flex flex-wrap items-center justify-end gap-2">
       <span className="text-xs text-noche/50">
-        {sinCuenta ? "Con tu cuenta gratis filtras las promociones por tus marcas." : "Con la membresía filtras las promociones por tus marcas."}
+        {sinCuenta ? "Con tu cuenta gratis filtras las promociones por prenda, talla y marca." : "Con la membresía filtras las promociones por prenda, talla y marca."}
       </span>
-      <FiltrarMarcas activo={false} cuantas={0} />
+      <BotonFiltros activo={false} cuantos={0} />
     </div>
     <section aria-labelledby="promos-titulo" className="relative overflow-hidden rounded-3xl border border-rosa-100 bg-white">
       <div aria-hidden className="pointer-events-none grid select-none grid-cols-2 gap-3 p-4 opacity-60 blur-sm sm:grid-cols-4">
@@ -386,11 +388,23 @@ function Tarjeta({ p }: { p: ProductoTienda }) {
 }
 
 /**
- * "Filtrar marcas": en negro abre "Mis marcas favoritas" ahí mismo, para
- * actualizarlas; en gris (sin poder ver las promociones) no hace nada y
- * el texto de al lado dice cómo se destraba.
+ * Los filtros de las promociones (tipo de prenda, Mi talla y Mis marcas
+ * favoritas) en un solo botón de rayitas, para que no ocupen espacio. Al
+ * pasar el mouse dice "Filtros"; al tocarlo abre el panel. El número
+ * dice cuántos filtros tiene puestos.
+ *
+ * En gris (sin poder ver las promociones) no abre nada: el texto de al
+ * lado dice cómo se destraba.
  */
-function FiltrarMarcas({ activo, cuantas }: { activo: boolean; cuantas: number }) {
+function BotonFiltros({
+  activo,
+  cuantos,
+  children,
+}: {
+  activo: boolean;
+  cuantos: number;
+  children?: React.ReactNode;
+}) {
   const [abierto, setAbierto] = useState(false);
   return (
     <div className="relative">
@@ -399,23 +413,38 @@ function FiltrarMarcas({ activo, cuantas }: { activo: boolean; cuantas: number }
         disabled={!activo}
         onClick={() => setAbierto((v) => !v)}
         aria-expanded={abierto}
-        className={
-          activo
-            ? "rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
-            : "cursor-not-allowed rounded-full bg-noche/15 px-4 py-2 text-sm font-medium text-noche/40"
-        }
+        aria-label="Filtros"
+        className={`group relative flex h-10 w-10 items-center justify-center rounded-full transition ${
+          activo ? "bg-noche text-white hover:bg-rosa-500" : "cursor-not-allowed bg-noche/15 text-noche/40"
+        }`}
       >
-        Filtrar marcas{cuantas > 0 ? ` (${cuantas})` : ""}
+        <svg viewBox="0 0 24 24" fill="none" className="h-5 w-5" aria-hidden>
+          <path d="M4 7h10M18 7h2M4 12h4M12 12h8M4 17h12M20 17h0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+          <circle cx="16" cy="7" r="2" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="10" cy="12" r="2" stroke="currentColor" strokeWidth="1.8" />
+          <circle cx="18" cy="17" r="2" stroke="currentColor" strokeWidth="1.8" />
+        </svg>
+        {cuantos > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-rosa-500 px-1 text-[10px] font-semibold text-white">
+            {cuantos}
+          </span>
+        )}
+        <span className="pointer-events-none absolute right-0 top-full z-40 mt-2 whitespace-nowrap rounded-md bg-noche px-2 py-1 text-xs font-medium text-white opacity-0 shadow transition group-hover:opacity-100 group-focus-visible:opacity-100">
+          Filtros
+        </span>
       </button>
       {activo && abierto && (
-        <div className="absolute left-0 top-full z-30 mt-2 w-72 max-w-[calc(100vw-2rem)] rounded-2xl sm:left-auto sm:right-0 border border-rosa-100 bg-white p-4 shadow-suave">
-          <div className="mb-2 flex items-center justify-between">
-            <p className="text-sm font-semibold text-noche">Mis marcas favoritas</p>
+        // En celular y tablet el botón puede quedar a la izquierda (el
+        // encabezado se parte en dos líneas): ahí el panel va fijo, de
+        // borde a borde. En computador, debajo del botón.
+        <div className="fixed inset-x-4 top-24 z-30 max-h-[75vh] overflow-y-auto rounded-2xl border border-rosa-100 bg-white p-4 shadow-suave lg:absolute lg:inset-x-auto lg:right-0 lg:top-full lg:mt-2 lg:w-[30rem]">
+          <div className="mb-3 flex items-center justify-between">
+            <p className="text-sm font-semibold text-noche">Filtros</p>
             <button type="button" onClick={() => setAbierto(false)} className="text-xs text-noche/50 underline">
               Listo
             </button>
           </div>
-          <SelectorMarcas />
+          {children}
         </div>
       )}
     </div>
@@ -473,7 +502,7 @@ function Filtros({
   const numeroEscogido = tallas.some((t) => !esTallaDeLetra(t));
 
   return (
-    <div className="space-y-3 rounded-2xl border border-rosa-100 bg-white p-4">
+    <div className="space-y-4">
       <div>
         <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-noche/50">Tipo de prenda</p>
         <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">

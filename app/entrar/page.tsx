@@ -2,7 +2,7 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 
@@ -25,7 +25,6 @@ export default function EntrarPage() {
 }
 
 function Formulario() {
-  const router = useRouter();
   const params = useSearchParams();
   const volverA = params.get("volver") ?? "/";
   const motivo = params.get("motivo");
@@ -75,8 +74,10 @@ function Formulario() {
         return;
       }
       toast.success("¡Listo! Ya estás dentro");
-      router.push(volverA);
-      router.refresh();
+      // Carga completa y no router.push: la barra de arriba (y el botón
+      // Admin) solo pregunta quién es al cargar la página, y con push
+      // seguía diciendo "Entrar" hasta recargar a mano.
+      window.location.assign(volverA);
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -96,8 +97,10 @@ function Formulario() {
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "No pudimos guardar tu celular");
       toast.success("¡Listo! Ya estás dentro");
-      router.push(volverA);
-      router.refresh();
+      // Carga completa y no router.push: la barra de arriba (y el botón
+      // Admin) solo pregunta quién es al cargar la página, y con push
+      // seguía diciendo "Entrar" hasta recargar a mano.
+      window.location.assign(volverA);
     } catch (err: any) {
       toast.error(err.message);
     } finally {

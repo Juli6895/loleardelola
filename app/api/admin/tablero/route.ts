@@ -280,7 +280,15 @@ export async function GET(req: Request) {
   const favoritas = ((conFavoritas ?? []) as Array<{ id: string; marcas_favoritas: string[] | null }>).filter(
     (u) => !idsPrueba.has(u.id) && (u.marcas_favoritas?.length ?? 0) > 0
   );
-  const idsConGusto = Array.from(new Set([...likes.map((c) => c.user_id), ...favoritas.map((u) => u.id)]));
+  // "Mi talla" de las promociones (users.tallas_favoritas, de la
+  // migración de tallas; sin ella, vacío).
+  const { data: conTallas } = await sb.from("users").select("id, tallas_favoritas").not("tallas_favoritas", "is", null);
+  const tallasDe = ((conTallas ?? []) as Array<{ id: string; tallas_favoritas: string[] | null }>).filter(
+    (u) => !idsPrueba.has(u.id) && (u.tallas_favoritas?.length ?? 0) > 0
+  );
+  const idsConGusto = Array.from(
+    new Set([...likes.map((c) => c.user_id), ...favoritas.map((u) => u.id), ...tallasDe.map((u) => u.id)])
+  );
   const edadDe = new Map<string, string>();
   for (let i = 0; i < idsConGusto.length; i += 200) {
     const { data } = await sb.from("users").select("id, rango_edad").in("id", idsConGusto.slice(i, i + 200));
@@ -323,6 +331,16 @@ export async function GET(req: Request) {
     }
     personasPorEdad.set(edad, (personasPorEdad.get(edad) ?? new Set()).add(u.id));
   }
+  const tallasElegidas: Conteo = new Map();
+  const tallasPorEdad = new Map<string, Conteo>();
+  for (const u of tallasDe) {
+    const edad = edadDe.get(u.id) ?? SIN_EDAD;
+    for (const t of u.tallas_favoritas ?? []) {
+      sumar(tallasElegidas, t, u.id);
+      sumar(enEdad(tallasPorEdad, edad), t, u.id);
+    }
+    personasPorEdad.set(edad, (personasPorEdad.get(edad) ?? new Set()).add(u.id));
+  }
   const RANGOS = ["18-24", "25-34", "35-44", "45-54", "55-64", "65+", SIN_EDAD];
   const gustos = {
     meGusta: ordenar(likesPorComercio)
@@ -331,11 +349,13 @@ export async function GET(req: Request) {
     favoritas: ordenar(favoritasPorMarca)
       .slice(0, 20)
       .map(([d, f]) => ({ comercio: nombreDe(d), personas: f.personas.size })),
+    tallas: ordenar(tallasElegidas).map(([t, f]) => ({ talla: t, personas: f.personas.size })),
     porEdad: RANGOS.filter((r) => personasPorEdad.has(r)).map((r) => ({
       edad: r,
       personas: personasPorEdad.get(r)!.size,
       masMeGusta: top(likesPorEdad.get(r), 3),
       masFavoritas: top(favoritasPorEdad.get(r), 3),
+      masTallas: top(tallasPorEdad.get(r), 3),
     })),
   };
   const prendas = agrupar((e) => (e.props?.prenda ? String(e.props.prenda) : null));

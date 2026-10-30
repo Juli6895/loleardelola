@@ -152,6 +152,12 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               dar clic la tienda te abre justo esa talla.
             </p>
             <p className="mt-2">
+              Arriba puedes filtrar por <strong>tipo de prenda</strong> (vestidos, jeans, blusas…) y por{" "}
+              <strong>Mi talla</strong>: si escoges tu talla, solo ves las promociones que la tienen disponible y
+              rebajada, con el precio de esa talla. Tu talla queda guardada para la próxima vez y la cambias
+              cuando quieras desde ese mismo filtro.
+            </p>
+            <p className="mt-2">
               Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día, con cuenta gratis {DIAS_PRUEBA_PROMOS.gratis} días desde que
               la creas, y con la membresía siempre. La prueba gratis es una por celular o computador.
             </p>

@@ -9,6 +9,7 @@ import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
 import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
+import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
 
 // =====================================================================
 // Promociones de todas las tiendas
@@ -26,6 +27,7 @@ import SelectorMarcas from "@/components/SelectorMarcas";
 // =====================================================================
 
 type Grupo = { dominio: string; tienda: string; total: number; promos: ProductoTienda[] };
+type Facetas = { tipos: Array<{ tipo: string; n: number }>; tallas: Array<{ talla: string; n: number }> };
 type Acceso = { permitido: boolean; plan: "anonimo" | "gratis" | "membresia"; hasta: string | null };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
@@ -44,8 +46,14 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   // "Mis marcas" del menú: si escogió algunas, solo esas.
   const misMarcas = useMarcasFavoritas();
   const marcas = marcasParaUrl(misMarcas);
+  // Filtros de la página: el tipo de prenda es de esta visita; la talla
+  // se guarda para la próxima ("Mi talla", ver lib/tallas-favoritas.ts).
+  const [prendas, setPrendas] = useState<string[]>([]);
+  const misTallas = useTallasFavoritas();
+  const filtros = `&prendas=${encodeURIComponent(prendas.join(","))}&tallas=${encodeURIComponent(misTallas.join(","))}`;
+  const conFiltros = misMarcas.length > 0 || prendas.length > 0 || misTallas.length > 0;
   const [acceso, setAcceso] = useState<Acceso | null>(null);
-  const [datos, setDatos] = useState<{ relacionadas: Grupo[]; marcas: Grupo[] } | null>(null);
+  const [datos, setDatos] = useState<{ relacionadas: Grupo[]; marcas: Grupo[]; facetas: Facetas | null } | null>(null);
 
   useEffect(() => {
     fetchConDispositivo("/api/promos/acceso")
@@ -58,20 +66,21 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
     if (!acceso?.permitido) return;
     let vigente = true;
     setDatos(null);
-    fetch(`/api/promos?tipos=${encodeURIComponent(clave)}&marcas=${encodeURIComponent(marcas)}`)
+    fetch(`/api/promos?tipos=${encodeURIComponent(clave)}&marcas=${encodeURIComponent(marcas)}${filtros}`)
       .then((r) => r.json())
-      .then((j) => vigente && setDatos({ relacionadas: j.relacionadas ?? [], marcas: j.marcas ?? [] }))
-      .catch(() => vigente && setDatos({ relacionadas: [], marcas: [] }));
+      .then((j) => vigente && setDatos({ relacionadas: j.relacionadas ?? [], marcas: j.marcas ?? [], facetas: j.facetas ?? null }))
+      .catch(() => vigente && setDatos({ relacionadas: [], marcas: [], facetas: null }));
     return () => {
       vigente = false;
     };
-  }, [clave, marcas, acceso?.permitido]);
+  }, [clave, marcas, filtros, acceso?.permitido]);
 
   if (acceso && !acceso.permitido) return <Bloqueo plan={acceso.plan} />;
   const vacio = datos && datos.relacionadas.length === 0 && datos.marcas.length === 0;
-  // Sin promos de ninguna tienda no se muestra nada; si es por el filtro
-  // de "Mis marcas", se le dice, para que no crea que la app falla.
-  if (vacio && misMarcas.length === 0) return null;
+  // Sin promos de ninguna tienda no se muestra nada; si es por un filtro
+  // (marcas, prenda o talla), se le dice, para que no crea que la app
+  // falla.
+  if (vacio && !conFiltros) return null;
 
   // Las de arriba no se repiten en la vista previa de abajo.
   const yaArriba = new Set(datos?.relacionadas.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
@@ -95,6 +104,14 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         </div>
       </div>
 
+      <Filtros facetas={datos?.facetas ?? null} prendas={prendas} onPrendas={setPrendas} tallas={misTallas} />
+
+      {vacio && (prendas.length > 0 || misTallas.length > 0) && (
+        <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
+          No hay promociones con esos filtros hoy. Prueba con otra prenda u otra talla.
+        </p>
+      )}
+
       {misMarcas.length > 0 && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
           {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo promociones de tus marcas (${misMarcas.length}). `}
@@ -109,13 +126,14 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
       )}
 
       {!sinPromos && clave && (datos === null || datos.relacionadas.length > 0) && (
-        <Parte titulo="De lo que buscaste" grupos={datos?.relacionadas ?? null} tipos={clave} marcasALaVista={MARCAS_RELACIONADAS} />
+        <Parte titulo="De lo que buscaste" grupos={datos?.relacionadas ?? null} tipos={clave} filtros={filtros} marcasALaVista={MARCAS_RELACIONADAS} />
       )}
       {!sinPromos && (
       <Parte
         titulo={clave ? "Otros descuentos" : "Descuentos de hoy"}
         grupos={otras}
         tipos=""
+        filtros={filtros}
         marcasALaVista={MARCAS_OTRAS}
       />
       )}
@@ -142,11 +160,13 @@ function Parte({
   titulo,
   grupos,
   tipos,
+  filtros,
   marcasALaVista,
 }: {
   titulo: string;
   grupos: Grupo[] | null;
   tipos: string;
+  filtros: string;
   marcasALaVista: number;
 }) {
   const [todasLasMarcas, setTodasLasMarcas] = useState(false);
@@ -163,7 +183,7 @@ function Parte({
                 ))}
               </div>
             ))
-          : visibles.filter((g) => g.promos.length > 0 || g.total > 0).map((g) => <Marca key={g.dominio} grupo={g} tipos={tipos} />)}
+          : visibles.filter((g) => g.promos.length > 0 || g.total > 0).map((g) => <Marca key={g.dominio + filtros} grupo={g} tipos={tipos} filtros={filtros} />)}
       </div>
       {grupos && grupos.length > marcasALaVista && (
         <button
@@ -179,7 +199,7 @@ function Parte({
 }
 
 /** Una marca: su vista previa y, al abrirla, todas sus promos. */
-function Marca({ grupo, tipos }: { grupo: Grupo; tipos: string }) {
+function Marca({ grupo, tipos, filtros }: { grupo: Grupo; tipos: string; filtros: string }) {
   const [todas, setTodas] = useState<ProductoTienda[] | null>(null);
   const [cargando, setCargando] = useState(false);
 
@@ -187,7 +207,7 @@ function Marca({ grupo, tipos }: { grupo: Grupo; tipos: string }) {
     setCargando(true);
     try {
       const r = await fetch(
-        `/api/promos?marca=${encodeURIComponent(grupo.dominio)}&tipos=${encodeURIComponent(tipos)}&desde=${desde}`
+        `/api/promos?marca=${encodeURIComponent(grupo.dominio)}&tipos=${encodeURIComponent(tipos)}&desde=${desde}${filtros}`
       );
       const j = await r.json();
       setTodas((antes) => [...(desde === 0 ? [] : (antes ?? [])), ...(j.promos ?? [])]);
@@ -398,6 +418,113 @@ function FiltrarMarcas({ activo, cuantas }: { activo: boolean; cuantas: number }
           <SelectorMarcas />
         </div>
       )}
+    </div>
+  );
+}
+
+// Cómo se ve cada tipo en los botones (en plural).
+const NOMBRE_TIPO: Record<string, string> = {
+  blusa: "Blusas", camisa: "Camisas", camiseta: "Camisetas", top: "Tops", body: "Bodys", buzo: "Buzos",
+  sueter: "Suéteres", cardigan: "Cárdigans", chaqueta: "Chaquetas", blazer: "Blazers", abrigo: "Abrigos",
+  chaleco: "Chalecos", pantalon: "Pantalones", jean: "Jeans", falda: "Faldas", short: "Shorts",
+  vestido: "Vestidos", enterizo: "Enterizos", tenis: "Tenis", sandalia: "Sandalias", zapato: "Zapatos",
+  bota: "Botas", bolso: "Bolsos", cinturon: "Cinturones", aretes: "Aretes", collar: "Collares", pulsera: "Pulseras",
+};
+
+function Boton({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={activo}
+      className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+        activo ? "border-noche bg-noche text-white" : "border-rosa-200 bg-white text-noche/70 hover:border-rosa-400"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
+
+/**
+ * Filtros de tipo de prenda y talla. La prenda se escoge para esta
+ * visita; la talla queda guardada ("Mi talla") y se cambia aquí mismo
+ * cuando quiera. Los números dicen cuántas promos hay con cada uno.
+ */
+function Filtros({
+  facetas,
+  prendas,
+  onPrendas,
+  tallas,
+}: {
+  facetas: Facetas | null;
+  prendas: string[];
+  onPrendas: (p: string[]) => void;
+  tallas: string[];
+}) {
+  const [masTallas, setMasTallas] = useState(false);
+  if (!facetas) return null;
+  const alternar = (lista: string[], x: string) => (lista.includes(x) ? lista.filter((y) => y !== x) : [...lista, x]);
+  const cuantasTalla = new Map(facetas.tallas.map((t) => [t.talla, t.n]));
+  // Las escogidas siempre se ven, aunque hoy no tengan promos.
+  const todasTallas = ordenarTallas(Array.from(new Set([...facetas.tallas.map((t) => t.talla), ...tallas])));
+  const letras = todasTallas.filter(esTallaDeLetra);
+  const numeros = todasTallas.filter((t) => !esTallaDeLetra(t));
+  const numeroEscogido = tallas.some((t) => !esTallaDeLetra(t));
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-rosa-100 bg-white p-4">
+      <div>
+        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-noche/50">Tipo de prenda</p>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+          <Boton activo={prendas.length === 0} onClick={() => onPrendas([])}>
+            Todas
+          </Boton>
+          {facetas.tipos.map((t) => (
+            <Boton key={t.tipo} activo={prendas.includes(t.tipo)} onClick={() => onPrendas(alternar(prendas, t.tipo))}>
+              {NOMBRE_TIPO[t.tipo] ?? t.tipo} <span className="opacity-60">{t.n}</span>
+            </Boton>
+          ))}
+        </div>
+      </div>
+      <div>
+        <p className="mb-2 flex flex-wrap items-baseline gap-x-2 text-xs font-semibold uppercase tracking-wide text-noche/50">
+          Mi talla
+          <span className="font-normal normal-case tracking-normal text-noche/40">
+            {tallas.length > 0
+              ? "Guardada para la próxima vez. Tócala para cambiarla."
+              : "Escógela y la guardamos para la próxima vez."}
+          </span>
+        </p>
+        <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+          <Boton activo={tallas.length === 0} onClick={() => guardarTallas([])}>
+            Todas
+          </Boton>
+          {letras.map((t) => (
+            <Boton key={t} activo={tallas.includes(t)} onClick={() => guardarTallas(alternar(tallas, t))}>
+              {t} <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>
+            </Boton>
+          ))}
+          {numeros.length > 0 && !masTallas && !numeroEscogido && (
+            <button
+              type="button"
+              onClick={() => setMasTallas(true)}
+              className="shrink-0 px-2 py-1.5 text-xs font-medium text-rosa-600 underline-offset-2 hover:underline"
+            >
+              Tallas en número ({numeros.length})
+            </button>
+          )}
+        </div>
+        {numeros.length > 0 && (masTallas || numeroEscogido) && (
+          <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
+            {numeros.map((t) => (
+              <Boton key={t} activo={tallas.includes(t)} onClick={() => guardarTallas(alternar(tallas, t))}>
+                {t} <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>
+              </Boton>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

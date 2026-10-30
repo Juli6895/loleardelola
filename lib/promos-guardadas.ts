@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "./supabase";
 import { buscarPromos, tiendasParaPromos, tipoNormalizado, type ProductoTienda } from "./catalogo-tiendas";
+import type { TallaPromo } from "./promos-diarias";
 
 // =====================================================================
 // Las promociones que dejó la revisión diaria (lib/promos-diarias.ts)
@@ -10,7 +11,7 @@ import { buscarPromos, tiendasParaPromos, tipoNormalizado, type ProductoTienda }
 // se buscan en vivo como antes.
 // =====================================================================
 
-export type Promo = ProductoTienda & { tipo: string | null };
+export type Promo = ProductoTienda & { tipo: string | null; tallas?: TallaPromo[] | null };
 
 export type GrupoMarca = {
   dominio: string;
@@ -27,15 +28,26 @@ async function desdeLaBase(): Promise<Promo[]> {
   const sb = supabaseAdmin();
   const vigentes = new Set(tiendasParaPromos().map((t) => t.dominio));
   const promos: Promo[] = [];
+  // Con las tallas; si la migración de tallas no se ha corrido, sin ellas.
+  let columnas = "url, dominio, tienda, titulo, imagen, tipo, precio_cop, precio_antes_cop, tallas";
   for (let desde = 0; desde < 30_000; desde += 1000) {
-    const { data, error } = await sb
+    let { data, error } = await sb
       .from("promos")
-      .select("url, dominio, tienda, titulo, imagen, tipo, precio_cop, precio_antes_cop")
+      .select(columnas)
       .order("descuento", { ascending: false })
       .order("url", { ascending: true })
       .range(desde, desde + 999);
+    if (error && /tallas/.test(error.message)) {
+      columnas = "url, dominio, tienda, titulo, imagen, tipo, precio_cop, precio_antes_cop";
+      ({ data, error } = await sb
+        .from("promos")
+        .select(columnas)
+        .order("descuento", { ascending: false })
+        .order("url", { ascending: true })
+        .range(desde, desde + 999));
+    }
     if (error) throw new Error(error.message);
-    for (const f of data ?? []) {
+    for (const f of (data ?? []) as any[]) {
       // Una tienda que se quitó de la lista deja de salir de una vez.
       if (!vigentes.has(f.dominio)) continue;
       promos.push({
@@ -47,6 +59,7 @@ async function desdeLaBase(): Promise<Promo[]> {
         tipo: f.tipo,
         precioCop: f.precio_cop,
         precioAntesCop: f.precio_antes_cop,
+        tallas: f.tallas ?? null,
       });
     }
     if (!data || data.length < 1000) break;
@@ -92,4 +105,52 @@ export function porMarca(promos: Promo[], vistaPrevia: number): GrupoMarca[] {
   // Las promos ya vienen de la más rebajada a la menos, así que el orden
   // en que aparece cada marca es el de su mejor rebaja.
   return Array.from(grupos.values());
+}
+
+// ---------------------------------------------------------------------
+// Filtros de la página de Promociones: tipo de prenda y talla
+// ---------------------------------------------------------------------
+const MINIMO = 10;
+const porcentaje = (p: number, a: number) => Math.round((1 - p / a) * 100);
+
+/**
+ * Solo las de esos tipos (sin tipos, todas) y, si hay tallas, solo las
+ * que tienen alguna de esas tallas disponible Y rebajada más de 10%. En
+ * ese caso el precio y el enlace pasan a ser los de esa talla, para que
+ * al entrar a la tienda se vea lo mismo.
+ */
+export function filtrar(promos: Promo[], tipos: string[], tallas: string[]): Promo[] {
+  const conTipo = tipos.length > 0 ? deLosTipos(promos, tipos) : promos;
+  if (tallas.length === 0) return conTipo;
+  const buscadas = new Set(tallas);
+  const salida: Promo[] = [];
+  for (const p of conTipo) {
+    const sirven = (p.tallas ?? []).filter((t) => buscadas.has(t.t) && t.a && porcentaje(t.p, t.a) > MINIMO);
+    if (sirven.length === 0) continue;
+    const t = sirven.reduce((x, y) => (y.p < x.p ? y : x));
+    salida.push({ ...p, precioCop: t.p, precioAntesCop: t.a, url: p.url.split("?")[0] + t.q });
+  }
+  // El descuento pudo cambiar con la talla: de nuevo, de mayor a menor.
+  const desc = (p: Promo) => (p.precioCop && p.precioAntesCop ? 1 - p.precioCop / p.precioAntesCop : 0);
+  return salida.sort((a, b) => desc(b) - desc(a));
+}
+
+/**
+ * Cuántas promos hay de cada tipo y de cada talla, para los botones del
+ * filtro. Los tipos se cuentan con la talla escogida, y las tallas con
+ * los tipos escogidos: así el número dice cuántas va a ver al tocarlo.
+ */
+export function facetas(promos: Promo[], tipos: string[], tallas: string[]) {
+  const porTipo = new Map<string, number>();
+  for (const p of filtrar(promos, [], tallas)) if (p.tipo) porTipo.set(p.tipo, (porTipo.get(p.tipo) ?? 0) + 1);
+  const porTalla = new Map<string, number>();
+  for (const p of filtrar(promos, tipos, [])) {
+    for (const t of p.tallas ?? []) {
+      if (t.a && porcentaje(t.p, t.a) > MINIMO) porTalla.set(t.t, (porTalla.get(t.t) ?? 0) + 1);
+    }
+  }
+  return {
+    tipos: Array.from(porTipo, ([tipo, n]) => ({ tipo, n })).sort((a, b) => b.n - a.n),
+    tallas: Array.from(porTalla, ([talla, n]) => ({ talla, n })),
+  };
 }

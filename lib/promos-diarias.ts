@@ -29,6 +29,9 @@ const TIEMPO_MS = 45_000;
 // VTEX no deja pedir más allá de este punto de la lista.
 const VTEX_MAXIMO = 2500;
 
+// Una talla disponible de la promo, con su precio (ver migracion-tallas).
+export type TallaPromo = { t: string; p: number; a: number | null; q: string };
+
 type Fila = {
   url: string;
   dominio: string;
@@ -39,7 +42,50 @@ type Fila = {
   precio_cop: number;
   precio_antes_cop: number;
   descuento: number;
+  tallas: TallaPromo[] | null;
 };
+
+// ---------------------------------------------------------------- tallas
+// Cada tienda las escribe a su manera: "06" y "6", "MD" (Maaji) y "M",
+// "U" y "Única". Se unifican para que el filtro funcione en todas.
+const SINONIMOS_TALLA: Record<string, string> = {
+  XXS: "XXS", XS: "XS", S: "S", M: "M", L: "L", XL: "XL", XXL: "XXL", XXXL: "XXXL",
+  "2XL": "XXL", "3XL": "XXXL", "XXG": "XXL",
+  SM: "S", SMALL: "S", MD: "M", MED: "M", MEDIUM: "M", LG: "L", LARGE: "L",
+  XSM: "XS", XLG: "XL", XXLG: "XXL",
+  U: "Única", UNICA: "Única", "TALLA UNICA": "Única", TU: "Única", "ONE SIZE": "Única", OS: "Única", STD: "Única",
+};
+
+export function normalizarTalla(valor: unknown): string | null {
+  if (typeof valor !== "string" && typeof valor !== "number") return null;
+  const t = String(valor)
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toUpperCase()
+    .replace(/^TALLA\s+/, "");
+  if (!t) return null;
+  if (SINONIMOS_TALLA[t]) return SINONIMOS_TALLA[t];
+  // Números: "06" → "6"; "4-5", "36.5" se dejan como vienen.
+  if (/^\d+$/.test(t)) return String(Number(t));
+  if (/^\d+([.,-]\d+)?$/.test(t)) return t.replace(",", ".");
+  return null;
+}
+
+const ES_OPCION_DE_TALLA = /talla|size|tamano|medida/i;
+
+/** Las tallas disponibles, una vez cada una, con el precio más bajo de esa talla. */
+function juntarTallas(lista: Array<{ talla: string | null; precio: number; antes: number | null; q: string }>): TallaPromo[] | null {
+  const porTalla = new Map<string, TallaPromo>();
+  for (const x of lista) {
+    if (!x.talla || !(x.precio > 0)) continue;
+    const ya = porTalla.get(x.talla);
+    if (!ya || x.precio < ya.p) {
+      porTalla.set(x.talla, { t: x.talla, p: Math.round(x.precio), a: x.antes && x.antes > x.precio ? Math.round(x.antes) : null, q: x.q });
+    }
+  }
+  return porTalla.size > 0 ? Array.from(porTalla.values()) : null;
+}
 
 type Tienda = ReturnType<typeof tiendasParaPromos>[number];
 
@@ -82,6 +128,7 @@ const porcentaje = (precio: number, antes: number) => Math.round((1 - precio / a
 type ProductoShopify = {
   title?: string;
   handle?: string;
+  options?: Array<{ name?: string; position?: number }>;
   product_type?: string;
   tags?: string[] | string;
   body_html?: string;
@@ -119,6 +166,21 @@ async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
       });
       const imagen = p.images?.[0]?.src ?? null;
       if (!tipo || !imagen) continue;
+      // La opción que es la talla ("Talla", "TALLA", "Sizes"...).
+      const posicion = p.options?.find((o) => ES_OPCION_DE_TALLA.test(o.name ?? ""))?.position;
+      const v = p.variants as Array<VarianteShopify & Record<string, unknown>>;
+      const tallas = posicion
+        ? juntarTallas(
+            v
+              .filter((x) => x.available !== false)
+              .map((x) => ({
+                talla: normalizarTalla(x[`option${posicion}`]),
+                precio: Number(x.price),
+                antes: x.compare_at_price ? Number(x.compare_at_price) : null,
+                q: x.id ? `?variant=${x.id}` : "",
+              }))
+          )
+        : null;
       filas.push({
         // Con ?variant= la tienda abre justo la talla de ese precio.
         url: `https://${t.host}/products/${p.handle}${r.varianteId && p.variants.length > 1 ? `?variant=${r.varianteId}` : ""}`,
@@ -130,6 +192,7 @@ async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
         precio_cop: r.precioCop,
         precio_antes_cop: r.precioAntesCop,
         descuento: 1 - r.precioCop / r.precioAntesCop,
+        tallas,
       });
     }
     // Una página que no respondió: lo leído se guarda, pero sin borrar
@@ -149,8 +212,12 @@ type ProductoVtex = {
   categories?: string[];
   items?: Array<{
     itemId?: string;
+    // Los nombres de las variaciones ("Color", "Talla") y, con ese mismo
+    // nombre como clave, su valor: item["Talla"] = ["M"].
+    variations?: string[];
     images?: Array<{ imageUrl?: string }>;
     sellers?: Array<{ commertialOffer?: { Price?: number; ListPrice?: number; AvailableQuantity?: number } }>;
+    [variacion: string]: unknown;
   }>;
 };
 
@@ -218,6 +285,18 @@ async function promosVtex(t: Tienda, hasta: number): Promise<Lectura> {
       const imagen = elegida.item.images?.[0]?.imageUrl ?? p.items?.[0]?.images?.[0]?.imageUrl ?? null;
       if (!tipo || !imagen) continue;
       const conTalla = (p.items?.length ?? 0) > 1 && elegida.item.itemId ? `?skuId=${elegida.item.itemId}` : "";
+      const tallas = juntarTallas(
+        disponibles.map(({ item, o }) => {
+          const clave = (item.variations ?? []).find((n) => ES_OPCION_DE_TALLA.test(n));
+          const valor = clave ? (item[clave] as unknown[] | undefined)?.[0] : null;
+          return {
+            talla: normalizarTalla(valor),
+            precio: o!.Price!,
+            antes: o!.ListPrice ?? null,
+            q: item.itemId ? `?skuId=${item.itemId}` : "",
+          };
+        })
+      );
       filas.push({
         url: `https://${t.host}/${p.linkText}/p${conTalla}`,
         dominio: t.dominio,
@@ -228,6 +307,7 @@ async function promosVtex(t: Tienda, hasta: number): Promise<Lectura> {
         precio_cop: precio,
         precio_antes_cop: antes,
         descuento: 1 - precio / antes,
+        tallas,
       });
     }
     if (ultima.size > 0 && mejorDeLaPagina <= MINIMO_PORCENTAJE) break;
@@ -243,7 +323,12 @@ async function guardar(dominio: string, { filas, completa }: Lectura, inicio: st
   // La misma prenda puede salir dos veces (VTEX la repite entre páginas).
   const unicas = Array.from(new Map(filas.map((f) => [f.url, { ...f, vista_at: inicio }])).values());
   for (let i = 0; i < unicas.length; i += 500) {
-    const { error } = await sb.from("promos").upsert(unicas.slice(i, i + 500), { onConflict: "url" });
+    const lote = unicas.slice(i, i + 500);
+    let { error } = await sb.from("promos").upsert(lote, { onConflict: "url" });
+    // Sin la migración de tallas, la columna no existe: se guarda sin ellas.
+    if (error && /tallas/.test(error.message)) {
+      ({ error } = await sb.from("promos").upsert(lote.map(({ tallas: _t, ...resto }) => resto), { onConflict: "url" }));
+    }
     if (error) throw new Error(error.message);
   }
   // Lo que ya no está rebajado (o se agotó) no vino hoy: se borra. Solo

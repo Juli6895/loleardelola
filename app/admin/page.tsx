@@ -48,7 +48,8 @@ type Datos = {
   gustos: {
     meGusta: Array<{ comercio: string; meGusta: number; personas: number }>;
     favoritas: Array<{ comercio: string; personas: number }>;
-    porEdad: Array<{ edad: string; personas: number; masMeGusta: string; masFavoritas: string }>;
+    tallas: Array<{ talla: string; personas: number }>;
+    porEdad: Array<{ edad: string; personas: number; masMeGusta: string; masFavoritas: string; masTallas: string }>;
   };
   actividad: Array<{ dia: string; personas: number; busquedas: number; registros: number; pagos: number }>;
   dinero: { pagosDelMes: number; brutoCop: number; netoEstimadoCop: number };
@@ -537,7 +538,7 @@ function SeccionGustos({ gustos }: { gustos: Datos["gustos"] }) {
   return (
     <Seccion
       titulo="Me gusta y marcas favoritas"
-      nota="Me gusta: los corazones de las prendas (solo con membresía). Marcas favoritas: las que eligen en el menú. La edad es la que pusieron en Mi perfil."
+      nota="Me gusta: los corazones de las prendas (solo con membresía). Marcas favoritas: las que eligen en el menú. Tallas: &quot;Mi talla&quot; del filtro de Promociones. La edad es la que pusieron en Mi perfil."
     >
       <div className="grid gap-6 lg:grid-cols-2">
         <div>
@@ -563,13 +564,28 @@ function SeccionGustos({ gustos }: { gustos: Datos["gustos"] }) {
           )}
         </div>
       </div>
-      <p className="mb-2 mt-6 text-sm font-semibold text-noche">Por edad: qué comercios eligen</p>
+      <p className="mb-2 mt-6 text-sm font-semibold text-noche">Tallas más elegidas en Promociones</p>
+      {gustos.tallas.length === 0 ? (
+        vacio
+      ) : (
+        <Tabla
+          columnas={["Talla", "Personas que la eligieron"]}
+          filas={gustos.tallas.map((g) => [g.talla, String(g.personas)])}
+        />
+      )}
+      <p className="mb-2 mt-6 text-sm font-semibold text-noche">Por edad: qué comercios y tallas eligen</p>
       {gustos.porEdad.length === 0 ? (
         vacio
       ) : (
         <Tabla
-          columnas={["Edad", "Personas", "Más me gusta", "Más elegidas como favoritas"]}
-          filas={gustos.porEdad.map((g) => [g.edad, String(g.personas), g.masMeGusta || "—", g.masFavoritas || "—"])}
+          columnas={["Edad", "Personas", "Más me gusta", "Más elegidas como favoritas", "Tallas más elegidas"]}
+          filas={gustos.porEdad.map((g) => [
+            g.edad,
+            String(g.personas),
+            g.masMeGusta || "—",
+            g.masFavoritas || "—",
+            g.masTallas || "—",
+          ])}
         />
       )}
     </Seccion>

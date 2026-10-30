@@ -197,6 +197,10 @@ export default function TerminosPage() {
             la tienda. LoleardLola no maneja las promociones: son de cada tienda.
           </li>
           <li>
+            Puedes filtrarlas por tipo de prenda y por talla. La talla que escojas se guarda para la próxima vez
+            y la puedes cambiar cuando quieras; con una talla escogida, el precio que ves es el de esa talla.
+          </li>
+          <li>
             Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día desde la primera vez que entras; con cuenta gratis,{" "}
             {DIAS_PRUEBA_PROMOS.gratis} días desde que la creas; con la membresía, siempre.
           </li>

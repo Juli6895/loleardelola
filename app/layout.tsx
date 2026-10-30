@@ -31,7 +31,11 @@ export const metadata: Metadata = {
     icon: [{ url: "/iconos/icono-192.png", sizes: "192x192", type: "image/png" }],
     apple: [{ url: "/iconos/icono-180.png", sizes: "180x180" }],
   },
+  // La dirección de la página desde octubre de 2026 (las imágenes y los
+  // enlaces al compartir salen de aquí).
+  metadataBase: new URL("https://www.loleardlola.com"),
   openGraph: {
+    url: "https://www.loleardlola.com",
     title: "LoleardLola",
     description:
       "Encuentra dónde comprar los outfits que te inspiran en Pinterest.",

@@ -284,7 +284,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         r: (
           <ol className="list-decimal space-y-1 pl-5">
             <li>
-              Abre <strong>Safari</strong> y entra a loleardelola.vercel.app.
+              Abre <strong>Safari</strong> y entra a www.loleardlola.com.
             </li>
             <li>
               Toca <strong>Compartir</strong> (el cuadrito con una flecha hacia arriba, abajo en el centro).
@@ -301,7 +301,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         r: (
           <ol className="list-decimal space-y-1 pl-5">
             <li>
-              Abre <strong>Chrome</strong> y entra a loleardelola.vercel.app.
+              Abre <strong>Chrome</strong> y entra a www.loleardlola.com.
             </li>
             <li>
               Toca <strong>Instalar</strong> en el aviso que aparece abajo. Si no sale, toca los tres puntos
@@ -327,6 +327,16 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
           <p>
             La app no siempre comparte la sesión con el navegador. Entra con tu correo una vez dentro de la
             app y aparecen tu clóset, tu perfil y tu membresía.
+          </p>
+        ),
+      },
+      {
+        p: "¿Cambió la dirección de LoleardLola?",
+        r: (
+          <p>
+            Sí: ahora es <strong>www.loleardlola.com</strong>. La dirección anterior (loleardelola.vercel.app) te
+            trae aquí sola. Si instalaste la app antes del cambio, bórrala e instálala de nuevo desde
+            www.loleardlola.com, y entra con tu correo: todo lo tuyo sigue en tu cuenta.
           </p>
         ),
       },

@@ -438,7 +438,7 @@ async function pedir(url: string, ms = 9000): Promise<Response> {
       // tiempo y sobreviviendo a publicaciones nuevas.
       cache: "no-store",
       headers: {
-        "user-agent": "LoleardLola/1.0 (+https://loleardelola.vercel.app)",
+        "user-agent": "LoleardLola/1.0 (+https://www.loleardlola.com)",
       },
     });
   } finally {

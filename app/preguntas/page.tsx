@@ -117,6 +117,20 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
+        p: "No me llega el código",
+        r: (
+          <ol className="list-decimal space-y-1 pl-5">
+            <li>
+              Espera uno o dos minutos y revisa la carpeta de <strong>correo no deseado</strong> (spam). Llega de{" "}
+              <strong>codigo@loleardlola.com</strong>.
+            </li>
+            <li>Si está ahí, márcalo como "No es correo no deseado" para que los siguientes lleguen bien.</li>
+            <li>Revisa que escribiste bien tu correo. Puedes pedir un código nuevo cada minuto.</li>
+            <li>Si sigue sin llegar, escríbenos a {CORREO}.</li>
+          </ol>
+        ),
+      },
+      {
         p: "¿Qué incluye la membresía y cuánto cuesta?",
         r: (
           <>

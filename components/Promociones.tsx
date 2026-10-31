@@ -70,9 +70,16 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   const vista = useVistaPromos();
   const [panelAbierto, setPanelAbierto] = useState(false);
   useAlAbrirFiltros(useCallback(() => setPanelAbierto(true), []));
-  // Desde otra página, la barra trae aquí con ?filtros=1.
+  // Desde otra página, la barra trae aquí con ?filtros=1. Se quita de la
+  // dirección al abrir: si no, cada vez que recargaba la página le salía
+  // otra vez el panel con la lista de marcas.
   useEffect(() => {
-    if (new URLSearchParams(window.location.search).get("filtros") === "1") setPanelAbierto(true);
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("filtros") !== "1") return;
+    setPanelAbierto(true);
+    params.delete("filtros");
+    const resto = params.toString();
+    window.history.replaceState(null, "", window.location.pathname + (resto ? `?${resto}` : ""));
   }, []);
   const cerrarPanel = useCallback(() => setPanelAbierto(false), []);
   const [datos, setDatos] = useState<{ relacionadas: Grupo[]; marcas: Grupo[]; facetas: Facetas | null } | null>(null);
@@ -668,7 +675,24 @@ function Filtros({
   tallas: string[];
 }) {
   const [masTallas, setMasTallas] = useState(false);
-  if (!facetas) return null;
+  // Mientras llegan, el lugar de los filtros (si no, el panel abre solo
+  // con la lista de marcas y los filtros aparecen después encima).
+  if (!facetas) {
+    return (
+      <div className="space-y-4" aria-busy="true">
+        {["Tipo de prenda", "Mi talla"].map((t) => (
+          <div key={t}>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-noche/50">{t}</p>
+            <div className="flex gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <span key={i} className="h-7 w-16 animate-pulse rounded-full bg-rosa-50" />
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
   const alternar = (lista: string[], x: string) => (lista.includes(x) ? lista.filter((y) => y !== x) : [...lista, x]);
   const cuantasTalla = new Map(facetas.tallas.map((t) => [t.talla, t.n]));
   // Las escogidas siempre se ven, aunque hoy no tengan promos.

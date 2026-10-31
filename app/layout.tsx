@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import InstalarApp from "@/components/InstalarApp";
 import ErroresGlobales from "@/components/ErroresGlobales";
+import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
 
 // Fuentes — Playfair para titulares, Inter para cuerpo
 const inter = Inter({
@@ -76,6 +77,9 @@ export default function RootLayout({
               <Link href="/privacy" className="hover:text-rosa-600 hover:underline">
                 Privacidad
               </Link>
+              <a href={ENLACE_SUGERIR} className="hover:text-rosa-600 hover:underline">
+                Sugiere un comercio
+              </a>
               <a href="mailto:hola@loleardlola.com" className="hover:text-rosa-600 hover:underline">
                 hola@loleardlola.com
               </a>

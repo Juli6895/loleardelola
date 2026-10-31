@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { guardarMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import SugerirComercio from "@/components/SugerirComercio";
 
 type Marca = { dominio: string; nombre: string };
 
@@ -90,7 +91,13 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
             </li>
           );
         })}
+        {marcas !== null && visibles.length === 0 && (
+          <li className={`px-2 py-1.5 text-sm ${suave}`}>No tenemos esa marca todavía.</li>
+        )}
       </ul>
+      <div className={`mt-2 border-t pt-2 ${oscuro ? "border-white/10" : "border-rosa-100"}`}>
+        <SugerirComercio forma="linea" origen="mis_marcas" oscuro={oscuro} />
+      </div>
     </div>
   );
 }

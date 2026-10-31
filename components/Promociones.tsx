@@ -8,6 +8,7 @@ import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
 import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
+import SugerirComercio from "@/components/SugerirComercio";
 import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
 import { guardarPrendas, useAccesoPromos, useAlAbrirFiltros, usePrendasFiltro } from "@/lib/filtros-promos";
 
@@ -143,6 +144,8 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         marcasALaVista={MARCAS_OTRAS}
       />
       )}
+
+      <SugerirComercio origen="promociones" />
     </section>
   );
 }

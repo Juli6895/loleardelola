@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
+import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
 import { DIAS_PRUEBA_PROMOS, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
@@ -400,6 +401,19 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
+        p: "¿Pueden agregar una tienda que me gusta?",
+        r: (
+          <p>
+            ¡Sí, queremos tener cada vez más comercios!{" "}
+            <a href={ENLACE_SUGERIR} className="font-medium text-rosa-600 underline">
+              Escríbenos a {CORREO}
+            </a>{" "}
+            con el nombre del comercio y su página web (y su Instagram, si lo sabes). Lo revisamos y, si tiene
+            catálogo en línea, lo agregamos: sus prendas salen en las búsquedas y sus descuentos en Promociones.
+          </p>
+        ),
+      },
+      {
         p: "¿Cómo me comunico con LoleardLola?",
         r: (
           <p>
@@ -453,6 +467,12 @@ export default function PreguntasPage() {
           Escríbenos a{" "}
           <a href={`mailto:${CORREO}`} className="font-medium text-rosa-600 underline">
             {CORREO}
+          </a>
+        </p>
+        <p className="mt-3 text-sm text-noche/60">
+          ¿Qué comercio te gustaría tener aquí?{" "}
+          <a href={ENLACE_SUGERIR} className="font-medium text-rosa-600 underline">
+            Escríbenos y envíanos su página web
           </a>
         </p>
       </div>

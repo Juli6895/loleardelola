@@ -5,6 +5,7 @@ import type { ClosetCategory, TiendaInstagram } from "@/types";
 import type { ProductoTienda } from "@/lib/use-catalogo";
 import { prendaDeTienda, type GrupoProductos } from "@/lib/use-catalogo";
 import { anotarClicComercio } from "@/lib/use-evento";
+import SugerirComercio from "@/components/SugerirComercio";
 
 type Props = {
   tiendas: TiendaInstagram[];
@@ -163,6 +164,9 @@ export default function TiendasInstagram({ tiendas, categorias, grupos, flexible
           {todas ? "Ver menos" : `Ver todas las tiendas (${tarjetas.length})`}
         </button>
       )}
+      <div className="mt-3">
+        <SugerirComercio forma="linea" origen="buscar" />
+      </div>
       <p className="mt-5 flex items-start gap-2 rounded-xl bg-rosa-50/70 px-4 py-3 text-xs leading-relaxed text-noche/60">
         <svg viewBox="0 0 24 24" fill="none" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rosa-500" aria-hidden>
           <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />

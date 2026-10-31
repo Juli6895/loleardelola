@@ -107,6 +107,9 @@ export const EVENTOS = [
   // Puso su celular al crear la cuenta.
   "celular_puesto",
 
+  // Tocó "Escríbenos" para sugerir un comercio (ver SugerirComercio).
+  "comercio_sugerido",
+
   // Lo que costó cada llamada a la IA (ver lib/costos.ts).
   "consumo_ia",
 

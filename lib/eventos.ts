@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { supabaseAdmin } from "./supabase";
 
 // =====================================================================
@@ -134,6 +135,8 @@ export type ContextoEvento = {
   userId?: string | null;
   deviceId?: string | null;
   sesionId?: string | null;
+  // La huella del aparato (ver huellaDe): se guarda en props.huella.
+  huella?: string | null;
 };
 
 /**
@@ -157,7 +160,7 @@ export async function registrar(
       user_id: ctx.userId ?? null,
       device_id: ctx.deviceId ?? null,
       sesion_id: ctx.sesionId ?? null,
-      props,
+      props: ctx.huella ? { ...props, huella: ctx.huella } : props,
     });
   } catch (e) {
     console.warn(`[eventos] no se pudo anotar "${nombre}":`, e);
@@ -166,11 +169,29 @@ export async function registrar(
 
 const DEVICE_ID_HEADER = "x-device-id";
 
+/**
+ * La huella del aparato: un código de 16 letras sacado de la conexión
+ * (IP) y del modelo de celular o computador (user-agent), revueltos con
+ * una clave. No se puede volver atrás para saber la IP, y no se guarda
+ * nada más. Sirve para contar UNA persona por celular o computador: el
+ * device_id vive en el navegador, y abrir el enlace desde Instagram o
+ * WhatsApp, una ventana privada o borrar los datos le daba uno nuevo
+ * (ver "quién es cada persona" en app/api/admin/tablero).
+ */
+export function huellaDe(req: Request): string | null {
+  const ip = (req.headers.get("x-forwarded-for") ?? req.headers.get("x-real-ip") ?? "").split(",")[0].trim();
+  const aparato = req.headers.get("user-agent") ?? "";
+  if (!ip || !aparato) return null;
+  const clave = process.env.HUELLA_CLAVE || process.env.CRON_SECRET || "loleardlola";
+  return createHash("sha256").update(`${clave}|${ip}|${aparato}`).digest("hex").slice(0, 16);
+}
+
 /** Saca el contexto de una petición, sin costo extra de base de datos. */
 export function contextoDe(req: Request, userId?: string | null): ContextoEvento {
   return {
     userId: userId ?? null,
     deviceId: req.headers.get(DEVICE_ID_HEADER),
     sesionId: req.headers.get("x-sesion-id"),
+    huella: huellaDe(req),
   };
 }

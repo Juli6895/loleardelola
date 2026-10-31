@@ -158,7 +158,10 @@ export default function PrivacyPage() {
                 <td className="py-2.5 text-noche/70">
                   Entender dónde la gente tiene dificultades para mejorar la
                   app. No incluye tus medidas, tu correo ni el contenido de
-                  tus búsquedas — solo qué acción ocurrió y cuándo.
+                  tus búsquedas — solo qué acción ocurrió y cuándo. Para no
+                  contar dos veces a la misma persona guardamos un código
+                  revuelto hecho con tu conexión y el modelo de tu celular o
+                  computador: con él no se puede saber tu dirección IP.
                 </td>
               </tr>
             </tbody>

@@ -111,27 +111,64 @@ export async function GET(req: Request) {
     todos.push(...((data ?? []) as Evento[]));
     if (!data || data.length < 1000) break;
   }
-  // Los navegadores donde alguna vez se entró con una cuenta de prueba.
-  for (const e of todos) if (e.user_id && idsPrueba.has(e.user_id) && e.device_id) dispositivosPrueba.add(e.device_id);
-  const eventos = todos.filter(
-    (e) => !(e.user_id && idsPrueba.has(e.user_id)) && !(e.device_id && dispositivosPrueba.has(e.device_id))
-  );
-
   // ---------------------------------------------- quién es cada persona
-  // Una persona es su cuenta. El navegador donde entró con su correo
-  // cuenta como esa misma cuenta: antes, la visita sin sesión y la
-  // visita ya con sesión sumaban dos personas.
+  // Una persona por celular o computador, o por cuenta. Se juntan en una
+  // sola persona los eventos que comparten cualquiera de estas cosas:
+  // - la cuenta con correo (la misma persona en el celular y en el pc),
+  // - el navegador (device_id),
+  // - la huella del aparato (props.huella, ver huellaDe en lib/eventos):
+  //   el mismo celular con un device_id nuevo (enlace abierto desde
+  //   Instagram, ventana privada, datos borrados) sigue siendo el mismo.
+  // Así, la visita sin sesión y la de después con sesión, o cinco
+  // "navegadores" del mismo celular en el mismo minuto, son una persona.
   const { data: conCorreo } = await sb
     .from("users")
     .select("id, email, created_at, premium_until")
     .not("email", "is", null);
   const idsConCorreo = new Set((conCorreo ?? []).map((u) => u.id));
-  const cuentaDelNavegador = new Map<string, string>();
-  for (const e of eventos) {
-    if (e.device_id && e.user_id && idsConCorreo.has(e.user_id)) cuentaDelNavegador.set(e.device_id, e.user_id);
+  const huellaDe = (e: Evento) => (typeof e.props?.huella === "string" ? (e.props.huella as string) : null);
+
+  // Grupos que se van uniendo (union-find).
+  const padre = new Map<string, string>();
+  const raiz = (k: string): string => {
+    let r = k;
+    while (padre.has(r) && padre.get(r) !== r) r = padre.get(r)!;
+    padre.set(k, r);
+    return r;
+  };
+  const unir = (a: string, b: string) => {
+    const ra = raiz(a);
+    const rb = raiz(b);
+    if (ra === rb) return;
+    // La cuenta queda de cabeza del grupo.
+    if (rb.startsWith("c:")) padre.set(ra, rb);
+    else padre.set(rb, ra);
+  };
+  const clavesDe = (e: Evento) => {
+    const k: string[] = [];
+    if (e.user_id) k.push(idsConCorreo.has(e.user_id) ? `c:${e.user_id}` : `u:${e.user_id}`);
+    if (e.device_id) k.push(`d:${e.device_id}`);
+    const h = huellaDe(e);
+    if (h) k.push(`h:${h}`);
+    return k;
+  };
+  for (const e of todos) {
+    const k = clavesDe(e);
+    for (let i = 1; i < k.length; i++) unir(k[0], k[i]);
   }
-  const persona = (e: Evento) =>
-    (e.device_id && cuentaDelNavegador.get(e.device_id)) || e.user_id || e.device_id || "?";
+  const persona = (e: Evento) => {
+    const k = clavesDe(e);
+    return k.length > 0 ? raiz(k[0]) : "?";
+  };
+
+  // Lo tuyo no cuenta: todo lo que esté unido a una cuenta de prueba
+  // (contacto@lakaja.co entra aquí) o a un navegador de prueba, aunque
+  // haya sido sin sesión, en otro navegador del mismo celular.
+  const gruposPrueba = new Set([
+    ...Array.from(idsPrueba, (id) => raiz(`c:${id}`)),
+    ...Array.from(dispositivosPrueba, (d) => raiz(`d:${d}`)),
+  ]);
+  const eventos = todos.filter((e) => !(e.user_id && idsPrueba.has(e.user_id)) && !gruposPrueba.has(persona(e)));
   // Lo que anota el servidor sin saber de quién es (el costo de cada
   // llamada a la IA) no es una visita: no cuenta como persona.
   const visitas = eventos.filter((e) => e.nombre !== "consumo_ia" && (e.user_id || e.device_id));

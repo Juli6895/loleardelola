@@ -83,7 +83,7 @@ export async function POST(req: Request) {
     const { error: errorSaldo } = await sb.from("users").update({ busquedas_extra: saldo }).eq("id", pago.user_id);
     if (errorSaldo) {
       console.error("[confirmar] no se pudo sumar el paquete:", errorSaldo.message);
-      return NextResponse.json({ error: "No pudimos sumar tus búsquedas. Escríbenos a contacto@lakaja.co." }, { status: 500 });
+      return NextResponse.json({ error: "No pudimos sumar tus búsquedas. Escríbenos a hola@loleardlola.com." }, { status: 500 });
     }
     await sb
       .from("pagos")

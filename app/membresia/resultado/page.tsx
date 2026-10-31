@@ -137,7 +137,7 @@ function Resultado() {
             </p>
             <p className="mt-2 text-sm text-noche/70">{detalle}</p>
             <p className="mt-3 text-xs text-noche/50">
-              Si el dinero salió de tu cuenta, escríbenos a contacto@lakaja.co
+              Si el dinero salió de tu cuenta, escríbenos a hola@loleardlola.com
               con la hora del pago y lo revisamos.
             </p>
             <Link

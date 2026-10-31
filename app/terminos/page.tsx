@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 // sobre todo lo de pagos y devoluciones.
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
-const CORREO = "contacto@lakaja.co";
+const CORREO = "hola@loleardlola.com";
 const cuantas = (n: number | null, una: string, varias: string) =>
   n === null ? "Sin tope" : n === 0 ? "No incluye" : `${n} ${n === 1 ? una : varias}`;
 

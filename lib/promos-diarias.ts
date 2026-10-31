@@ -32,7 +32,7 @@ const VTEX_MAXIMO = 2500;
 // Una talla disponible de la promo, con su precio (ver migracion-tallas).
 export type TallaPromo = { t: string; p: number; a: number | null; q: string };
 
-type Fila = {
+export type Fila = {
   url: string;
   dominio: string;
   tienda: string;
@@ -40,7 +40,8 @@ type Fila = {
   imagen: string | null;
   tipo: string;
   precio_cop: number;
-  precio_antes_cop: number;
+  // null solo en "Ver todo" (lib/catalogo-completo.ts): sin rebaja.
+  precio_antes_cop: number | null;
   descuento: number;
   tallas: TallaPromo[] | null;
 };
@@ -87,9 +88,9 @@ function juntarTallas(lista: Array<{ talla: string | null; precio: number; antes
   return porTalla.size > 0 ? Array.from(porTalla.values()) : null;
 }
 
-type Tienda = ReturnType<typeof tiendasParaPromos>[number];
+export type Tienda = ReturnType<typeof tiendasParaPromos>[number];
 
-async function pedirJson(url: string, intento = 1): Promise<unknown> {
+export async function pedirJson(url: string, intento = 1): Promise<unknown> {
   try {
     const res = await fetch(url, {
       cache: "no-store",
@@ -113,7 +114,7 @@ async function pedirJson(url: string, intento = 1): Promise<unknown> {
 const PAGINAS_A_LA_VEZ = 4;
 
 /** La página, o null si no respondió ni reintentando. */
-async function pagina<T>(url: string, sacar: (x: unknown) => T[]): Promise<T[] | null> {
+export async function pagina<T>(url: string, sacar: (x: unknown) => T[]): Promise<T[] | null> {
   try {
     return sacar(await pedirJson(url));
   } catch (e) {
@@ -125,7 +126,7 @@ async function pagina<T>(url: string, sacar: (x: unknown) => T[]): Promise<T[] |
 const porcentaje = (precio: number, antes: number) => Math.round((1 - precio / antes) * 100);
 
 // ---------------------------------------------------------------- Shopify
-type ProductoShopify = {
+export type ProductoShopify = {
   title?: string;
   handle?: string;
   options?: Array<{ name?: string; position?: number }>;
@@ -137,6 +138,57 @@ type ProductoShopify = {
 };
 
 type Lectura = { filas: Fila[]; completa: boolean };
+
+/**
+ * Una prenda de Shopify como fila, o null si no sirve (agotada, sin foto,
+ * de hombre...). Con `minimo`, solo si está rebajada más de eso; con
+ * null, a cualquier precio ("Ver todo").
+ */
+export function filaShopify(t: Tienda, p: ProductoShopify, minimo: number | null): Fila | null {
+  if (!p.title || !p.handle || !p.variants?.length) return null;
+  // Precios en pesos (no en centavos, como en <url>.js).
+  const r = precioDeVariantes(p.variants, false);
+  if (!r || !r.disponible) return null;
+  if (minimo !== null && (!r.precioAntesCop || porcentaje(r.precioCop, r.precioAntesCop) <= minimo)) return null;
+  const tags = Array.isArray(p.tags) ? p.tags : String(p.tags ?? "").split(",").map((x) => x.trim());
+  const tipo = clasificarPrenda({
+    dominio: t.dominio,
+    titulo: p.title,
+    clase: p.product_type ?? "",
+    tags,
+    descripcion: p.body_html ?? "",
+  });
+  const imagen = p.images?.[0]?.src ?? null;
+  if (!tipo || !imagen) return null;
+  // La opción que es la talla ("Talla", "TALLA", "Sizes"...).
+  const posicion = p.options?.find((o) => ES_OPCION_DE_TALLA.test(o.name ?? ""))?.position;
+  const v = p.variants as Array<VarianteShopify & Record<string, unknown>>;
+  const tallas = posicion
+    ? juntarTallas(
+        v
+          .filter((x) => x.available !== false)
+          .map((x) => ({
+            talla: normalizarTalla(x[`option${posicion}`]),
+            precio: Number(x.price),
+            antes: x.compare_at_price ? Number(x.compare_at_price) : null,
+            q: x.id ? `?variant=${x.id}` : "",
+          }))
+      )
+    : null;
+  return {
+    // Con ?variant= la tienda abre justo la talla de ese precio.
+    url: `https://${t.host}/products/${p.handle}${r.varianteId && p.variants.length > 1 ? `?variant=${r.varianteId}` : ""}`,
+    dominio: t.dominio,
+    tienda: t.nombre,
+    titulo: p.title.trim(),
+    imagen,
+    tipo,
+    precio_cop: r.precioCop,
+    precio_antes_cop: r.precioAntesCop,
+    descuento: r.precioAntesCop ? 1 - r.precioCop / r.precioAntesCop : 0,
+    tallas,
+  };
+}
 
 async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
   const filas: Fila[] = [];
@@ -151,49 +203,8 @@ async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
     if (primera === 1 && leidas[0] === null) throw new Error("no respondió");
     const paginas = leidas.map((x) => x ?? []);
     for (const p of paginas.flat()) {
-      if (!p.title || !p.handle || !p.variants?.length) continue;
-      // Precios en pesos (no en centavos, como en <url>.js).
-      const r = precioDeVariantes(p.variants, false);
-      if (!r || !r.disponible || !r.precioAntesCop) continue;
-      if (porcentaje(r.precioCop, r.precioAntesCop) <= MINIMO_PORCENTAJE) continue;
-      const tags = Array.isArray(p.tags) ? p.tags : String(p.tags ?? "").split(",").map((x) => x.trim());
-      const tipo = clasificarPrenda({
-        dominio: t.dominio,
-        titulo: p.title,
-        clase: p.product_type ?? "",
-        tags,
-        descripcion: p.body_html ?? "",
-      });
-      const imagen = p.images?.[0]?.src ?? null;
-      if (!tipo || !imagen) continue;
-      // La opción que es la talla ("Talla", "TALLA", "Sizes"...).
-      const posicion = p.options?.find((o) => ES_OPCION_DE_TALLA.test(o.name ?? ""))?.position;
-      const v = p.variants as Array<VarianteShopify & Record<string, unknown>>;
-      const tallas = posicion
-        ? juntarTallas(
-            v
-              .filter((x) => x.available !== false)
-              .map((x) => ({
-                talla: normalizarTalla(x[`option${posicion}`]),
-                precio: Number(x.price),
-                antes: x.compare_at_price ? Number(x.compare_at_price) : null,
-                q: x.id ? `?variant=${x.id}` : "",
-              }))
-          )
-        : null;
-      filas.push({
-        // Con ?variant= la tienda abre justo la talla de ese precio.
-        url: `https://${t.host}/products/${p.handle}${r.varianteId && p.variants.length > 1 ? `?variant=${r.varianteId}` : ""}`,
-        dominio: t.dominio,
-        tienda: t.nombre,
-        titulo: p.title.trim(),
-        imagen,
-        tipo,
-        precio_cop: r.precioCop,
-        precio_antes_cop: r.precioAntesCop,
-        descuento: 1 - r.precioCop / r.precioAntesCop,
-        tallas,
-      });
+      const fila = filaShopify(t, p, MINIMO_PORCENTAJE);
+      if (fila) filas.push(fila);
     }
     // Una página que no respondió: lo leído se guarda, pero sin borrar
     // nada (no se sabe qué había en ella).
@@ -205,7 +216,7 @@ async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
 }
 
 // ------------------------------------------------------------------- VTEX
-type ProductoVtex = {
+export type ProductoVtex = {
   productName?: string;
   linkText?: string;
   description?: string;
@@ -227,15 +238,67 @@ type ProductoVtex = {
  * dañada: ahí se pide de a 10 para saltarse solo ese pedazo. `fallo`
  * avisa que algo se quedó sin leer.
  */
-async function tramoVtex(t: Tienda, desde: number): Promise<{ productos: ProductoVtex[]; fallo: boolean } | null> {
+export async function tramoVtex(
+  t: Tienda,
+  desde: number,
+  orden = "OrderByBestDiscountDESC"
+): Promise<{ productos: ProductoVtex[]; fallo: boolean } | null> {
   const url = (d: number, n: number) =>
-    `https://${t.host}/api/catalog_system/pub/products/search?O=OrderByBestDiscountDESC&_from=${d}&_to=${d + n - 1}`;
+    `https://${t.host}/api/catalog_system/pub/products/search?O=${orden}&_from=${d}&_to=${d + n - 1}`;
   const comoLista = (x: unknown) => (Array.isArray(x) ? (x as ProductoVtex[]) : []);
   const entero = await pagina(url(desde, 50), comoLista);
   if (entero) return { productos: entero, fallo: false };
   const pedazos = await Promise.all([0, 10, 20, 30, 40].map((i) => pagina(url(desde + i, 10), comoLista)));
   if (pedazos.every((p) => p === null)) return null;
   return { productos: pedazos.flatMap((p) => p ?? []), fallo: pedazos.some((p) => p === null) };
+}
+
+/** Igual que filaShopify, para una prenda de VTEX. */
+export function filaVtex(t: Tienda, p: ProductoVtex, minimo: number | null): Fila | null {
+  if (!p.productName || !p.linkText) return null;
+  const ofertas = (p.items ?? []).map((i) => ({ item: i, o: i.sellers?.[0]?.commertialOffer }));
+  // La talla disponible más económica.
+  const disponibles = ofertas.filter(({ o }) => o?.Price && o.Price > 0 && (o.AvailableQuantity ?? 0) > 0);
+  if (disponibles.length === 0) return null;
+  const elegida = disponibles.reduce((a, b) => (b.o!.Price! < a.o!.Price! ? b : a));
+  const precio = Math.round(elegida.o!.Price!);
+  const antes = Math.round(elegida.o!.ListPrice ?? 0);
+  const rebajada = antes > precio;
+  if (minimo !== null && (!rebajada || porcentaje(precio, antes) <= minimo)) return null;
+  const tipo = clasificarPrenda({
+    dominio: t.dominio,
+    titulo: p.productName,
+    clase: (p.categories ?? []).join(" "),
+    tags: [p.linkText],
+    descripcion: p.description ?? "",
+  });
+  const imagen = elegida.item.images?.[0]?.imageUrl ?? p.items?.[0]?.images?.[0]?.imageUrl ?? null;
+  if (!tipo || !imagen) return null;
+  const conTalla = (p.items?.length ?? 0) > 1 && elegida.item.itemId ? `?skuId=${elegida.item.itemId}` : "";
+  const tallas = juntarTallas(
+    disponibles.map(({ item, o }) => {
+      const clave = (item.variations ?? []).find((n) => ES_OPCION_DE_TALLA.test(n));
+      const valor = clave ? (item[clave] as unknown[] | undefined)?.[0] : null;
+      return {
+        talla: normalizarTalla(valor),
+        precio: o!.Price!,
+        antes: o!.ListPrice ?? null,
+        q: item.itemId ? `?skuId=${item.itemId}` : "",
+      };
+    })
+  );
+  return {
+    url: `https://${t.host}/${p.linkText}/p${conTalla}`,
+    dominio: t.dominio,
+    tienda: t.nombre,
+    titulo: p.productName.trim(),
+    imagen,
+    tipo,
+    precio_cop: precio,
+    precio_antes_cop: rebajada ? antes : null,
+    descuento: rebajada ? 1 - precio / antes : 0,
+    tallas,
+  };
 }
 
 async function promosVtex(t: Tienda, hasta: number): Promise<Lectura> {
@@ -267,48 +330,8 @@ async function promosVtex(t: Tienda, hasta: number): Promise<Lectura> {
           mejorDeLaPagina = Math.max(mejorDeLaPagina, porcentaje(o.Price, o.ListPrice));
         }
       }
-      if (!p.productName || !p.linkText) continue;
-      // La talla disponible más económica.
-      const disponibles = ofertas.filter(({ o }) => o?.Price && o.Price > 0 && (o.AvailableQuantity ?? 0) > 0);
-      if (disponibles.length === 0) continue;
-      const elegida = disponibles.reduce((a, b) => (b.o!.Price! < a.o!.Price! ? b : a));
-      const precio = Math.round(elegida.o!.Price!);
-      const antes = Math.round(elegida.o!.ListPrice ?? 0);
-      if (!(antes > precio) || porcentaje(precio, antes) <= MINIMO_PORCENTAJE) continue;
-      const tipo = clasificarPrenda({
-        dominio: t.dominio,
-        titulo: p.productName,
-        clase: (p.categories ?? []).join(" "),
-        tags: [p.linkText],
-        descripcion: p.description ?? "",
-      });
-      const imagen = elegida.item.images?.[0]?.imageUrl ?? p.items?.[0]?.images?.[0]?.imageUrl ?? null;
-      if (!tipo || !imagen) continue;
-      const conTalla = (p.items?.length ?? 0) > 1 && elegida.item.itemId ? `?skuId=${elegida.item.itemId}` : "";
-      const tallas = juntarTallas(
-        disponibles.map(({ item, o }) => {
-          const clave = (item.variations ?? []).find((n) => ES_OPCION_DE_TALLA.test(n));
-          const valor = clave ? (item[clave] as unknown[] | undefined)?.[0] : null;
-          return {
-            talla: normalizarTalla(valor),
-            precio: o!.Price!,
-            antes: o!.ListPrice ?? null,
-            q: item.itemId ? `?skuId=${item.itemId}` : "",
-          };
-        })
-      );
-      filas.push({
-        url: `https://${t.host}/${p.linkText}/p${conTalla}`,
-        dominio: t.dominio,
-        tienda: t.nombre,
-        titulo: p.productName.trim(),
-        imagen,
-        tipo,
-        precio_cop: precio,
-        precio_antes_cop: antes,
-        descuento: 1 - precio / antes,
-        tallas,
-      });
+      const fila = filaVtex(t, p, MINIMO_PORCENTAJE);
+      if (fila) filas.push(fila);
     }
     if (ultima.size > 0 && mejorDeLaPagina <= MINIMO_PORCENTAJE) break;
     // Una página corta (sin fallas) es el final de la lista.

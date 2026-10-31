@@ -85,3 +85,37 @@ export function useAccesoPromos(): AccesoPromos | null {
   }, []);
   return acceso;
 }
+
+// "Solo promociones" o "Ver todo" (todas las prendas de las marcas, ver
+// lib/catalogo-completo.ts). Se guarda en el navegador para la próxima.
+export type VistaPromos = "promos" | "todo";
+const CLAVE_VISTA = "loleardelola:vista-promos";
+const VISTA_CAMBIO = "loleardelola:vista-promos-cambio";
+
+function leerVista(): VistaPromos {
+  try {
+    return localStorage.getItem(CLAVE_VISTA) === "todo" ? "todo" : "promos";
+  } catch {
+    return "promos";
+  }
+}
+
+export function guardarVista(vista: VistaPromos): void {
+  try {
+    localStorage.setItem(CLAVE_VISTA, vista);
+  } catch {
+    // Sin almacenamiento: dura lo que dure la página.
+  }
+  window.dispatchEvent(new CustomEvent(VISTA_CAMBIO, { detail: vista }));
+}
+
+export function useVistaPromos(): VistaPromos {
+  const [vista, setVista] = useState<VistaPromos>("promos");
+  useEffect(() => {
+    setVista(leerVista());
+    const alCambiar = (e: Event) => setVista((e as CustomEvent<VistaPromos>).detail ?? leerVista());
+    window.addEventListener(VISTA_CAMBIO, alCambiar);
+    return () => window.removeEventListener(VISTA_CAMBIO, alCambiar);
+  }, []);
+  return vista;
+}

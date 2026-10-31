@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
-const CORREO = "contacto@lakaja.co";
+const CORREO = "hola@loleardlola.com";
 
 type Pregunta = { p: string; r: React.ReactNode };
 

@@ -76,8 +76,8 @@ export default function RootLayout({
               <Link href="/privacy" className="hover:text-rosa-600 hover:underline">
                 Privacidad
               </Link>
-              <a href="mailto:contacto@lakaja.co" className="hover:text-rosa-600 hover:underline">
-                contacto@lakaja.co
+              <a href="mailto:hola@loleardlola.com" className="hover:text-rosa-600 hover:underline">
+                hola@loleardlola.com
               </a>
             </p>
           </footer>

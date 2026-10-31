@@ -261,10 +261,10 @@ export default function PrivacyPage() {
             Contacto para temas de privacidad
           </span>
           <a
-            href="mailto:contacto@lakaja.co"
+            href="mailto:hola@loleardlola.com"
             className="font-medium text-rosa-600 hover:underline"
           >
-            contacto@lakaja.co
+            hola@loleardlola.com
           </a>
         </div>
       </div>

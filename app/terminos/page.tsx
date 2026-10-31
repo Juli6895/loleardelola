@@ -204,6 +204,11 @@ export default function TerminosPage() {
             Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día desde la primera vez que entras; con cuenta gratis,{" "}
             {DIAS_PRUEBA_PROMOS.gratis} días desde que la creas; con la membresía, siempre.
           </li>
+          <li>
+            Con <strong>Ver todo</strong> ves también las prendas sin descuento de las tiendas, de lo más nuevo a lo
+            más viejo y en tallas disponibles. Las leemos de cada tienda en el momento; el precio y la
+            disponibilidad finales son los de la tienda.
+          </li>
         </Lista>
 
         <Titulo>6. El corazón y los avisos de rebaja</Titulo>
@@ -224,9 +229,10 @@ export default function TerminosPage() {
 
         <Titulo>7. Mis marcas favoritas</Titulo>
         <p className="mt-3 text-noche/80">
-          En el menú puedes escoger las marcas que te gustan. Si escoges alguna, solo te mostramos promociones de
-          esas marcas; cuando buscas un outfit siguen apareciendo todas las tiendas. Si no escoges ninguna, ves
-          las promociones de todas. Tu selección se guarda en ese celular o computador, no en tu cuenta.
+          En el menú puedes escoger las marcas que te gustan. Si escoges alguna, en Promociones (Solo promociones y
+          Ver todo) solo te mostramos esas marcas; cuando buscas un outfit siguen apareciendo todas las tiendas. Si
+          no escoges ninguna, ves todas. Tu selección se guarda en ese celular o computador y, si tienes cuenta,
+          también en ella.
         </p>
 
         <Titulo>8. Lo que no se permite</Titulo>

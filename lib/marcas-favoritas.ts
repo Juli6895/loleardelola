@@ -6,7 +6,7 @@ import { fetchConDispositivo } from "./device-id";
 // =====================================================================
 // Mis marcas: las que cada quien escoge en el menú
 // =====================================================================
-// Si escogió alguna, en las PROMOCIONES solo le salen esas. En lo demás
+// Si escogió alguna, en las PROMOCIONES (y en "Ver todo") solo le salen esas. En lo demás
 // (prendas de la búsqueda, tiendas, Google) siguen saliendo todas, a
 // pedido de Juliana. Sin ninguna escogida, salen todas.
 //

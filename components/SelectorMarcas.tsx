@@ -4,11 +4,11 @@ import { useEffect, useState } from "react";
 import { guardarMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SugerirComercio from "@/components/SugerirComercio";
 
-type Marca = { dominio: string; nombre: string };
+export type Marca = { dominio: string; nombre: string };
 
 // La lista sale de /api/config; se pide una vez por visita.
 let pedida: Promise<Marca[]> | null = null;
-function cargarMarcas(): Promise<Marca[]> {
+export function cargarMarcas(): Promise<Marca[]> {
   pedida ??= fetch("/api/config")
     .then((r) => r.json())
     .then((j) => (j.marcas ?? []) as Marca[])
@@ -47,8 +47,8 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
     <div>
       <p className={`text-xs ${suave}`}>
         {escogidas.length === 0
-          ? "Marca las que te gustan y solo te mostramos promociones de esas marcas. En la búsqueda siguen apareciendo todas."
-          : `Solo ves promociones de ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}. En la búsqueda siguen apareciendo todas.`}
+          ? "Marca las que te gustan y en Promociones (Solo promociones y Ver todo) solo te mostramos esas marcas. En la búsqueda siguen apareciendo todas."
+          : `En Promociones solo ves ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}. En la búsqueda siguen apareciendo todas.`}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <input

@@ -180,13 +180,24 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
+        p: "¿Puedo ver también las prendas que no están en promoción?",
+        r: (
+          <p>
+            Sí. Arriba en Promociones escoge <strong>Ver todo</strong> (o <strong>Solo promociones</strong> para volver).
+            Ahí ves todo lo que tienen las tiendas, con o sin descuento, de lo más nuevo a lo más viejo y solo en
+            tallas disponibles. Si escogiste tus marcas favoritas, solo salen esas. Dale corazón a lo que te guste:
+            si después baja de precio, te llega una notificación en tu app.
+          </p>
+        ),
+      },
+      {
         p: "¿Puedo ver promociones solo de las marcas que me gustan?",
         r: (
           <p>
-            Sí. En el menú (☰ en el celular) toca <strong>Mis marcas favoritas</strong> y marca las que te gustan. Desde ahí
-            solo te mostramos promociones de esas marcas. Cuando buscas un outfit siguen apareciendo todas las
-            tiendas, para que no te pierdas dónde venden lo que buscas. Si no marcas ninguna, ves las promociones
-            de todas. Se guarda en ese celular o computador.
+            Sí. En el menú (☰ en el celular) toca <strong>Mis marcas favoritas</strong> y marca las que te gustan. Desde ahí,
+            en Promociones solo te mostramos esas marcas, tanto en Solo promociones como en Ver todo. Cuando buscas
+            un outfit siguen apareciendo todas las tiendas, para que no te pierdas dónde venden lo que buscas. Si
+            no marcas ninguna, ves todas. Si tienes cuenta, quedan guardadas en ella.
           </p>
         ),
       },

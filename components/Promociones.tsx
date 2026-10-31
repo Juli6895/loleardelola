@@ -1,16 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { ProductoTienda } from "@/lib/use-catalogo";
 import { anotar, anotarClicComercio } from "@/lib/use-evento";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
 import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
-import SelectorMarcas from "@/components/SelectorMarcas";
+import SelectorMarcas, { cargarMarcas, type Marca } from "@/components/SelectorMarcas";
 import SugerirComercio from "@/components/SugerirComercio";
 import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
-import { guardarPrendas, useAccesoPromos, useAlAbrirFiltros, usePrendasFiltro } from "@/lib/filtros-promos";
+import {
+  guardarPrendas,
+  guardarVista,
+  useAccesoPromos,
+  useAlAbrirFiltros,
+  usePrendasFiltro,
+  useVistaPromos,
+  type VistaPromos,
+} from "@/lib/filtros-promos";
 
 // =====================================================================
 // Promociones de todas las tiendas
@@ -25,6 +33,10 @@ import { guardarPrendas, useAccesoPromos, useAlAbrirFiltros, usePrendasFiltro } 
 //
 // Es el gancho de la membresía: sin cuenta se ven 1 día, con cuenta
 // gratis 3 (ver lib/acceso-promos.ts). Después, el aviso para pagar.
+//
+// Arriba se escoge "Solo promociones" o "Ver todo": todas las prendas
+// de sus marcas, con o sin rebaja (lib/catalogo-completo.ts), para que
+// les dé corazón y se le avise si después bajan.
 // =====================================================================
 
 type Grupo = { dominio: string; tienda: string; total: number; promos: ProductoTienda[] };
@@ -55,6 +67,7 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   const filtros = `&prendas=${encodeURIComponent(prendas.join(","))}&tallas=${encodeURIComponent(misTallas.join(","))}`;
   const conFiltros = misMarcas.length > 0 || prendas.length > 0 || misTallas.length > 0;
   const acceso = useAccesoPromos();
+  const vista = useVistaPromos();
   const [panelAbierto, setPanelAbierto] = useState(false);
   useAlAbrirFiltros(useCallback(() => setPanelAbierto(true), []));
   // Desde otra página, la barra trae aquí con ?filtros=1.
@@ -82,7 +95,7 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   // Sin promos de ninguna tienda no se muestra nada; si es por un filtro
   // (marcas, prenda o talla), se le dice, para que no crea que la app
   // falla.
-  if (vacio && !conFiltros) return null;
+  if (vacio && !conFiltros && vista === "promos") return null;
 
   // Las de arriba no se repiten en la vista previa de abajo.
   const yaArriba = new Set(datos?.relacionadas.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
@@ -97,8 +110,11 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
             Promociones
           </h2>
           <p className="mt-1 text-sm text-noche/60">
-            Más del 10% de descuento, solo en tallas disponibles. Precios de cada tienda, revisados cada día.
+            {vista === "promos"
+              ? "Más del 10% de descuento, solo en tallas disponibles. Precios de cada tienda, revisados cada día."
+              : "Todo lo que tienen tus marcas, con o sin descuento, de lo más nuevo a lo más viejo. Dale corazón a lo que te guste: si baja de precio, te llega una notificación en tu app."}
           </p>
+          <SelectorVista vista={vista} />
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {acceso && acceso.plan !== "membresia" && acceso.hasta && <QuedaPrueba hasta={acceso.hasta} />}
@@ -107,19 +123,27 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
 
       {panelAbierto && (
         <PanelFiltros onCerrar={cerrarPanel}>
-          <Filtros facetas={datos?.facetas ?? null} prendas={prendas} onPrendas={guardarPrendas} tallas={misTallas} />
+          <Filtros
+            facetas={vista === "promos" ? (datos?.facetas ?? null) : facetasDeTodo(datos?.facetas ?? null)}
+            conNumeros={vista === "promos"}
+            prendas={prendas}
+            onPrendas={guardarPrendas}
+            tallas={misTallas}
+          />
           <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-noche/50">Mis marcas favoritas</p>
           <SelectorMarcas />
         </PanelFiltros>
       )}
 
-      {vacio && (prendas.length > 0 || misTallas.length > 0) && (
+      {vista === "todo" && <VerTodo misMarcas={misMarcas} filtros={filtros} onEscoger={() => setPanelAbierto(true)} />}
+
+      {vista === "promos" && vacio && (prendas.length > 0 || misTallas.length > 0) && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
           No hay promociones con esos filtros hoy. Prueba con otra prenda u otra talla.
         </p>
       )}
 
-      {misMarcas.length > 0 && (
+      {vista === "promos" && misMarcas.length > 0 && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
           {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo promociones de tus marcas (${misMarcas.length}). `}
           <button
@@ -132,10 +156,10 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         </p>
       )}
 
-      {!sinPromos && clave && (datos === null || datos.relacionadas.length > 0) && (
+      {vista === "promos" && !sinPromos && clave && (datos === null || datos.relacionadas.length > 0) && (
         <Parte titulo="De lo que buscaste" grupos={datos?.relacionadas ?? null} tipos={clave} filtros={filtros} marcasALaVista={MARCAS_RELACIONADAS} />
       )}
-      {!sinPromos && (
+      {vista === "promos" && !sinPromos && (
       <Parte
         titulo={clave ? "Otros descuentos" : "Descuentos de hoy"}
         grupos={otras}
@@ -268,6 +292,185 @@ function Marca({ grupo, tipos, filtros }: { grupo: Grupo; tipos: string; filtros
         )}
         {abierta && (
           <button type="button" onClick={() => setTodas(null)} className="text-sm text-noche/50 underline-offset-2 hover:underline">
+            Ver menos
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** "Solo promociones" o "Ver todo". */
+function SelectorVista({ vista }: { vista: VistaPromos }) {
+  const opciones: Array<{ valor: VistaPromos; texto: string }> = [
+    { valor: "promos", texto: "Solo promociones" },
+    { valor: "todo", texto: "Ver todo" },
+  ];
+  return (
+    <div role="group" aria-label="Qué ver" className="mt-3 inline-flex rounded-full border border-rosa-200 bg-white p-0.5">
+      {opciones.map((o) => (
+        <button
+          key={o.valor}
+          type="button"
+          aria-pressed={vista === o.valor}
+          onClick={() => {
+            if (vista === o.valor) return;
+            anotar("promos_vista", { vista: o.valor });
+            guardarVista(o.valor);
+          }}
+          className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+            vista === o.valor ? "bg-noche text-white" : "text-noche/60 hover:text-noche"
+          }`}
+        >
+          {o.texto}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+/** En "Ver todo", el filtro ofrece todos los tipos (no solo los que hoy tienen promo). */
+function facetasDeTodo(f: Facetas | null): Facetas {
+  return {
+    tipos: Object.keys(NOMBRE_TIPO).map((tipo) => ({ tipo, n: 0 })),
+    tallas: f?.tallas ?? [],
+  };
+}
+
+// De cada marca se ven estas de entrada; "Ver más" muestra el resto.
+const VISTA_PREVIA_TODO = 8;
+
+/**
+ * "Ver todo": las marcas favoritas o, si no ha escogido, todas. Cada
+ * marca trae sus prendas cuando la usuaria llega a ella (ver MarcaTodo).
+ */
+function VerTodo({ misMarcas, filtros, onEscoger }: { misMarcas: string[]; filtros: string; onEscoger: () => void }) {
+  const [marcas, setMarcas] = useState<Marca[] | null>(null);
+  useEffect(() => {
+    cargarMarcas().then(setMarcas);
+  }, []);
+  const lista = marcas && (misMarcas.length > 0 ? marcas.filter((m) => misMarcas.includes(m.dominio)) : marcas);
+
+  return (
+    <div className="space-y-6">
+      <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
+        {misMarcas.length > 0
+          ? `Todas las prendas de tus marcas favoritas (${misMarcas.length}). `
+          : "Estás viendo todas las marcas. "}
+        <button type="button" onClick={onEscoger} className="font-medium text-rosa-600 underline-offset-2 hover:underline">
+          {misMarcas.length > 0 ? "Cambiar mis marcas" : "Escoger mis marcas favoritas"}
+        </button>
+      </p>
+      {lista === null
+        ? Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              {Array.from({ length: 4 }).map((_, j) => (
+                <div key={j} className="aspect-[3/4] animate-pulse rounded-xl bg-rosa-50" />
+              ))}
+            </div>
+          ))
+        : lista.map((m) => <MarcaTodo key={m.dominio + filtros} marca={m} filtros={filtros} deUna={misMarcas.length > 0} />)}
+    </div>
+  );
+}
+
+/**
+ * Una marca en "Ver todo". Pide sus prendas a la tienda (en vivo, ver
+ * app/api/promos/todo) solo cuando está por aparecer en la pantalla: con
+ * más de 40 marcas, pedirlas todas de entrada sería lento y pesado. Las
+ * favoritas (pocas) se piden de una (`deUna`).
+ */
+function MarcaTodo({ marca, filtros, deUna }: { marca: Marca; filtros: string; deUna: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [prendas, setPrendas] = useState<ProductoTienda[] | null>(null);
+  const [siguiente, setSiguiente] = useState<number | null>(null);
+  const [abierta, setAbierta] = useState(false);
+  const [cargando, setCargando] = useState(false);
+
+  const cargar = useCallback(
+    async (desde: number) => {
+      setCargando(true);
+      try {
+        const r = await fetch(`/api/promos/todo?marca=${encodeURIComponent(marca.dominio)}&desde=${desde}${filtros}`);
+        const j = await r.json();
+        const nuevas = (j.prendas ?? []) as ProductoTienda[];
+        setPrendas((antes) => {
+          // La primera página reemplaza (puede pedirse dos veces); las
+          // siguientes se suman sin repetir.
+          if (desde === 1) return nuevas;
+          const ya = new Set((antes ?? []).map((p) => p.url));
+          return [...(antes ?? []), ...nuevas.filter((p) => !ya.has(p.url))];
+        });
+        setSiguiente(j.siguiente ?? null);
+      } catch {
+        setPrendas((antes) => antes ?? []);
+        setSiguiente(null);
+      } finally {
+        setCargando(false);
+      }
+    },
+    [marca.dominio, filtros]
+  );
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    if (deUna || typeof IntersectionObserver === "undefined") {
+      cargar(1);
+      return;
+    }
+    const obs = new IntersectionObserver(
+      (entradas) => {
+        if (entradas.some((e) => e.isIntersecting)) {
+          obs.disconnect();
+          cargar(1);
+        }
+      },
+      { rootMargin: "600px 0px" }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [cargar, deUna]);
+
+  // Sin nada con talla disponible (o con esos filtros): la marca no se muestra.
+  if (prendas && prendas.length === 0 && !cargando) return null;
+  const visibles = prendas ? (abierta ? prendas : prendas.slice(0, VISTA_PREVIA_TODO)) : null;
+  const hayMas = prendas && (prendas.length > VISTA_PREVIA_TODO || siguiente !== null);
+
+  return (
+    <div ref={ref}>
+      <p className="text-sm font-semibold text-noche">{marca.nombre}</p>
+      <div className={`mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4 ${abierta ? "lg:grid-cols-5" : ""}`}>
+        {visibles
+          ? visibles.map((p) => <Tarjeta key={p.url} p={p} />)
+          : Array.from({ length: 4 }).map((_, j) => <div key={j} className="aspect-[3/4] animate-pulse rounded-xl bg-rosa-50" />)}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+        {!abierta && hayMas && (
+          <button
+            type="button"
+            onClick={() => {
+              anotar("promo_marca_abierta", { tienda: marca.nombre, vista: "todo" });
+              setAbierta(true);
+              if (prendas!.length <= VISTA_PREVIA_TODO && siguiente !== null) cargar(siguiente);
+            }}
+            className="text-sm font-medium text-rosa-600 underline-offset-2 hover:underline"
+          >
+            Ver más de {marca.nombre}
+          </button>
+        )}
+        {abierta && siguiente !== null && (
+          <button
+            type="button"
+            disabled={cargando}
+            onClick={() => cargar(siguiente)}
+            className="text-sm font-medium text-rosa-600 underline-offset-2 hover:underline disabled:opacity-50"
+          >
+            {cargando ? "Cargando..." : "Cargar más"}
+          </button>
+        )}
+        {abierta && (
+          <button type="button" onClick={() => setAbierta(false)} className="text-sm text-noche/50 underline-offset-2 hover:underline">
             Ver menos
           </button>
         )}
@@ -452,11 +655,14 @@ function Boton({ activo, onClick, children }: { activo: boolean; onClick: () => 
  */
 function Filtros({
   facetas,
+  conNumeros = true,
   prendas,
   onPrendas,
   tallas,
 }: {
   facetas: Facetas | null;
+  // En "Ver todo" los números (que cuentan promos) no aplican.
+  conNumeros?: boolean;
   prendas: string[];
   onPrendas: (p: string[]) => void;
   tallas: string[];
@@ -481,7 +687,7 @@ function Filtros({
           </Boton>
           {facetas.tipos.map((t) => (
             <Boton key={t.tipo} activo={prendas.includes(t.tipo)} onClick={() => onPrendas(alternar(prendas, t.tipo))}>
-              {NOMBRE_TIPO[t.tipo] ?? t.tipo} <span className="opacity-60">{t.n}</span>
+              {NOMBRE_TIPO[t.tipo] ?? t.tipo} {conNumeros && <span className="opacity-60">{t.n}</span>}
             </Boton>
           ))}
         </div>
@@ -501,7 +707,7 @@ function Filtros({
           </Boton>
           {letras.map((t) => (
             <Boton key={t} activo={tallas.includes(t)} onClick={() => guardarTallas(alternar(tallas, t))}>
-              {t} <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>
+              {t} {conNumeros && <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>}
             </Boton>
           ))}
           {numeros.length > 0 && !masTallas && !numeroEscogido && (
@@ -518,7 +724,7 @@ function Filtros({
           <div className="-mx-1 mt-2 flex gap-2 overflow-x-auto px-1 pb-1 sm:flex-wrap">
             {numeros.map((t) => (
               <Boton key={t} activo={tallas.includes(t)} onClick={() => guardarTallas(alternar(tallas, t))}>
-                {t} <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>
+                {t} {conNumeros && <span className="opacity-60">{cuantasTalla.get(t) ?? 0}</span>}
               </Boton>
             ))}
           </div>

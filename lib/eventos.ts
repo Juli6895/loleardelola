@@ -103,6 +103,8 @@ export const EVENTOS = [
   // membresía (el gancho), y cuántas abren todas las de una marca.
   "promo_bloqueada",
   "promo_marca_abierta",
+  // Cambió entre "Solo promociones" y "Ver todo" (props.vista).
+  "promos_vista",
 
   // Puso su celular al crear la cuenta.
   "celular_puesto",

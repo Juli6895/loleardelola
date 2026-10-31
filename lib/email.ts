@@ -17,7 +17,7 @@ export async function enviarCodigo(
   correo: string,
   codigo: string,
   minutos: number
-): Promise<{ enviado: boolean; motivo?: string }> {
+): Promise<{ enviado: boolean; motivo?: string; detalle?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM;
 
@@ -28,6 +28,25 @@ export async function enviarCodigo(
     return { enviado: false, motivo: "correo-no-configurado" };
   }
 
+  // Si Resend rechaza el remitente (dominio sin verificar, o una llave
+  // que solo puede enviar desde otro dominio), se reintenta desde el de
+  // respaldo, que ya funcionaba: así nadie se queda sin poder entrar
+  // por un cambio de configuración (pasó al estrenar loleardlola.com).
+  const respaldo = process.env.RESEND_FROM_RESPALDO || "LoleardLola <contacto@lakaja.co>";
+  const primero = await enviarDesde(apiKey, from, correo, codigo, minutos);
+  if (primero.enviado || from === respaldo || primero.motivo === "red") return primero;
+  console.warn("[email] reintentando desde el remitente de respaldo");
+  const segundo = await enviarDesde(apiKey, respaldo, correo, codigo, minutos);
+  return segundo.enviado ? { ...segundo, detalle: primero.detalle } : segundo;
+}
+
+async function enviarDesde(
+  apiKey: string,
+  from: string,
+  correo: string,
+  codigo: string,
+  minutos: number
+): Promise<{ enviado: boolean; motivo?: string; detalle?: string }> {
   try {
     const res = await fetch(RESEND_URL, {
       method: "POST",
@@ -47,7 +66,7 @@ export async function enviarCodigo(
     if (!res.ok) {
       const detalle = await res.text();
       console.error("[email] Resend respondió", res.status, detalle);
-      return { enviado: false, motivo: "resend-error" };
+      return { enviado: false, motivo: "resend-error", detalle: `${res.status} ${detalle}`.slice(0, 160) };
     }
     return { enviado: true };
   } catch (e) {

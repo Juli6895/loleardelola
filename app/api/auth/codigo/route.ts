@@ -28,6 +28,11 @@ export async function POST(req: Request) {
     }
 
     const envio = await enviarCodigo(correo, resultado.codigo, resultado.expiraEn);
+    // Qué dijo Resend si falló el remitente principal (aunque el de
+    // respaldo haya salvado el envío): sale en Errores del tablero.
+    if (envio.detalle) {
+      registrar("ingreso_error", contextoDe(req), { motivo: `correo: ${envio.detalle}`.slice(0, 120) });
+    }
     if (!envio.enviado && process.env.NODE_ENV === "production") {
       // En local no importa (el código sale por consola), pero en
       // producción un correo que no sale es un usuario que no entra.

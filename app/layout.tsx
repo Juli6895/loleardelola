@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import InstalarApp from "@/components/InstalarApp";
 import ErroresGlobales from "@/components/ErroresGlobales";
+import OtrasSecciones from "@/components/OtrasSecciones";
 import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
 
 // Fuentes — Playfair para titulares, Inter para cuerpo
@@ -62,6 +63,7 @@ export default function RootLayout({
           <main className="mx-auto max-w-6xl px-4 pb-20 pt-6 sm:px-6 lg:px-8">
             {children}
           </main>
+          <OtrasSecciones />
           <footer className="border-t border-rosa-100 bg-white/60 px-4 py-8 text-center text-sm text-noche/60">
             <p className="font-display italic">LoleardLola</p>
             <p className="mt-1">

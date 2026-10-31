@@ -23,9 +23,9 @@ import {
 // =====================================================================
 // Promociones de todas las tiendas
 // =====================================================================
-// Va a todo el ancho, debajo de "Empezar a lolear" (inicio) y de la
-// búsqueda. Más de 10% de descuento, solo con talla disponible (lo deja
-// así la revisión diaria, ver lib/promos-diarias.ts).
+// Va a todo el ancho, en su propia pestaña (app/promociones). Más de 10%
+// de descuento, solo con talla disponible (lo deja así la revisión
+// diaria, ver lib/promos-diarias.ts).
 //
 // Agrupadas por marca: de cada una se ven unas pocas, y "Ver más promos
 // de esta marca" despliega todas. Si buscó algo, arriba van las de esas

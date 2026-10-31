@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 // Sección hero de la landing — en español colombiano. Corta a propósito:
-// lo que explica la app son los cuatro servicios que van debajo
+// lo que explica la app son todas las opciones que van debajo
 // (components/Servicios.tsx).
 export default function Hero() {
   return (

@@ -26,7 +26,10 @@ type Costos = {
   porPersonaCop: number;
   porMembresiaCop: number;
   resultadoDelMesCop: number;
+  gastosManuales: Gasto[];
+  faltaMigracionGastos: boolean;
 };
+type Gasto = { id: string; tipo: "fijo" | "variable"; rubro: string; detalle: string | null; valor_cop: number; fecha: string; activo: boolean };
 type Datos = {
   desde: string | null;
   resumen: { personas: number; cuentasCreadas: number; membresiasActivas: number; mensuales: number; anuales: number };
@@ -62,7 +65,7 @@ export default function AdminPage() {
   const [datos, setDatos] = useState<Datos | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const cargar = () =>
     fetchConDispositivo("/api/admin/tablero")
       .then(async (r) => {
         const j = await r.json();
@@ -70,6 +73,9 @@ export default function AdminPage() {
         setDatos(j);
       })
       .catch((e) => setError(e.message));
+
+  useEffect(() => {
+    cargar();
   }, []);
 
   if (error) {
@@ -113,7 +119,7 @@ export default function AdminPage() {
       <div className="grid grid-cols-3 gap-3">
         <Numero etiqueta="Pagos este mes" valor={datos.dinero.pagosDelMes} />
         <Numero etiqueta="Cobrado este mes" valor={pesos(datos.dinero.brutoCop)} />
-        <Numero etiqueta="Te queda (estimado)" valor={pesos(datos.dinero.netoEstimadoCop)} />
+        <Numero etiqueta="Te queda (después de Bold)" valor={pesos(datos.dinero.netoEstimadoCop)} />
       </div>
 
       {/* ---- Cuentas creadas ---- */}
@@ -187,6 +193,7 @@ export default function AdminPage() {
 
       {/* ---- Costos ---- */}
       <SeccionCostos costos={datos.costos} cobrado={datos.dinero.brutoCop} />
+      <SeccionGastos gastos={datos.costos.gastosManuales} falta={datos.costos.faltaMigracionGastos} onCambio={cargar} />
 
       {/* ---- Día a día ---- */}
       <Seccion titulo="Día a día" nota="Los últimos 30 días.">
@@ -404,6 +411,247 @@ function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number })
           ]}
         />
       </div>
+    </Seccion>
+  );
+}
+
+const hoy = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+const VACIO = { tipo: "fijo" as Gasto["tipo"], rubro: "", valor: "", fecha: "", detalle: "" };
+
+/**
+ * Gastos que la app no mide sola (marketing, pauta, servicios pagados por
+ * fuera): se ingresan aquí y el tablero los suma a Costos. Fijos: cada
+ * mes mientras estén activos. Variables: una vez, en el mes de su fecha.
+ */
+function SeccionGastos({ gastos, falta, onCambio }: { gastos: Gasto[]; falta: boolean; onCambio: () => Promise<unknown> }) {
+  const [form, setForm] = useState({ ...VACIO, fecha: hoy() });
+  const [editando, setEditando] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+
+  async function llamar(metodo: string, url: string, cuerpo?: unknown) {
+    setOcupado(true);
+    setAviso(null);
+    try {
+      const r = await fetchConDispositivo(url, {
+        method: metodo,
+        headers: cuerpo ? { "Content-Type": "application/json" } : undefined,
+        body: cuerpo ? JSON.stringify(cuerpo) : undefined,
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error ?? "No se pudo guardar.");
+      await onCambio();
+      return true;
+    } catch (e) {
+      setAviso((e as Error).message);
+      return false;
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function guardar(e: React.FormEvent) {
+    e.preventDefault();
+    const cuerpo = { tipo: form.tipo, rubro: form.rubro, valor_cop: form.valor, fecha: form.fecha, detalle: form.detalle };
+    const ok = editando
+      ? await llamar("PATCH", "/api/admin/gastos", { id: editando, ...cuerpo })
+      : await llamar("POST", "/api/admin/gastos", cuerpo);
+    if (ok) {
+      setForm({ ...VACIO, tipo: form.tipo, fecha: hoy() });
+      setEditando(null);
+    }
+  }
+
+  function editar(g: Gasto) {
+    setEditando(g.id);
+    setForm({ tipo: g.tipo, rubro: g.rubro, valor: String(g.valor_cop), fecha: g.fecha, detalle: g.detalle ?? "" });
+  }
+
+  function borrar(g: Gasto) {
+    if (confirm(`¿Borrar "${g.rubro}"?`)) llamar("DELETE", `/api/admin/gastos?id=${g.id}`);
+  }
+
+  const fijos = gastos.filter((g) => g.tipo === "fijo");
+  const variables = gastos.filter((g) => g.tipo === "variable");
+  const dia = (f: string) =>
+    new Date(f + "T12:00:00").toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
+  const campo = "mt-1 w-full rounded-xl border border-rosa-200 bg-white px-3 py-2 text-sm text-noche outline-none focus:border-rosa-400";
+  const boton = "text-xs font-medium text-rosa-600 underline-offset-2 hover:underline disabled:opacity-40";
+  const acciones = (g: Gasto) => (
+    <td className="space-x-3 whitespace-nowrap py-2 align-top">
+      <button type="button" className={boton} disabled={ocupado} onClick={() => editar(g)}>
+        Editar
+      </button>
+      {g.tipo === "fijo" && (
+        <button
+          type="button"
+          className={boton}
+          disabled={ocupado}
+          onClick={() => llamar("PATCH", "/api/admin/gastos", { id: g.id, activo: !g.activo })}
+        >
+          {g.activo ? "Pausar" : "Reanudar"}
+        </button>
+      )}
+      <button type="button" className={boton} disabled={ocupado} onClick={() => borrar(g)}>
+        Borrar
+      </button>
+    </td>
+  );
+  const nombre = (g: Gasto) => (
+    <td className="py-2 pr-4 align-top text-noche">
+      {g.rubro}
+      {g.detalle && <span className="block text-xs text-noche/45">{g.detalle}</span>}
+    </td>
+  );
+  const cabeza = (columnas: string[]) => (
+    <thead>
+      <tr className="border-b border-rosa-100 text-left">
+        {columnas.map((c, i) => (
+          <th key={i} className="pb-2 pr-4 font-medium text-noche/50">
+            {c}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
+
+  return (
+    <Seccion
+      titulo="Gastos ingresados a mano"
+      nota="Lo que la app no mide sola: marketing, pauta, servicios que pagas por fuera. Los fijos cuentan cada mes mientras estén activos; los variables, una vez, en el mes de su fecha. Se suman en Costos."
+    >
+      {falta ? (
+        <p className="rounded-xl bg-rosa-50 px-4 py-3 text-sm text-noche/70">
+          Falta crear la tabla de gastos: corre <b>supabase/migracion-gastos.sql</b> en Supabase (SQL Editor) y recarga
+          esta página. Esa migración ya trae tus gastos de marketing ($600.000) y de Meta ($150.000).
+        </p>
+      ) : (
+        <>
+          <form onSubmit={guardar} className="grid grid-cols-1 gap-3 rounded-2xl bg-rosa-50/60 p-4 sm:grid-cols-6">
+            <label className="text-xs text-noche/60 sm:col-span-2">
+              Tipo
+              <select
+                className={campo}
+                value={form.tipo}
+                onChange={(e) => setForm({ ...form, tipo: e.target.value as Gasto["tipo"] })}
+              >
+                <option value="fijo">Fijo (cada mes)</option>
+                <option value="variable">Variable (una vez)</option>
+              </select>
+            </label>
+            <label className="text-xs text-noche/60 sm:col-span-2">
+              Gasto
+              <input
+                className={campo}
+                value={form.rubro}
+                onChange={(e) => setForm({ ...form, rubro: e.target.value })}
+                placeholder="Ej.: Publicidad en Meta"
+                required
+              />
+            </label>
+            <label className="text-xs text-noche/60 sm:col-span-1">
+              Valor (pesos)
+              <input
+                className={`${campo} tabular-nums`}
+                inputMode="numeric"
+                value={form.valor}
+                onChange={(e) => setForm({ ...form, valor: e.target.value })}
+                placeholder="150000"
+                required
+              />
+            </label>
+            <label className="text-xs text-noche/60 sm:col-span-1">
+              {form.tipo === "fijo" ? "Desde" : "Fecha"}
+              <input
+                type="date"
+                className={campo}
+                value={form.fecha}
+                onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+                required
+              />
+            </label>
+            <label className="text-xs text-noche/60 sm:col-span-4">
+              Detalle (opcional)
+              <input
+                className={campo}
+                value={form.detalle}
+                onChange={(e) => setForm({ ...form, detalle: e.target.value })}
+                placeholder="Ej.: pauta de Instagram de noviembre"
+              />
+            </label>
+            <div className="flex items-end gap-3 sm:col-span-2">
+              <button
+                type="submit"
+                disabled={ocupado}
+                className="rounded-full bg-noche px-5 py-2 text-sm font-medium text-white hover:bg-rosa-500 disabled:opacity-50"
+              >
+                {ocupado ? "Guardando..." : editando ? "Guardar cambios" : "Agregar gasto"}
+              </button>
+              {editando && (
+                <button
+                  type="button"
+                  className={boton}
+                  onClick={() => {
+                    setEditando(null);
+                    setForm({ ...VACIO, fecha: hoy() });
+                  }}
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
+          {aviso && <p className="mt-2 text-sm text-rosa-600">{aviso}</p>}
+
+          <h3 className="mt-6 text-sm font-semibold text-noche">Fijos (cada mes)</h3>
+          {fijos.length === 0 ? (
+            <Vacio>Todavía no hay gastos fijos ingresados.</Vacio>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                {cabeza(["Gasto", "Al mes", "Desde", "Estado", ""])}
+                <tbody>
+                  {fijos.map((g) => (
+                    <tr key={g.id} className="border-b border-rosa-50 last:border-0">
+                      {nombre(g)}
+                      <td className="py-2 pr-4 align-top tabular-nums text-noche/70">{pesos(g.valor_cop)}</td>
+                      <td className="py-2 pr-4 align-top text-noche/70">{dia(g.fecha)}</td>
+                      <td className={`py-2 pr-4 align-top ${g.activo ? "text-noche/70" : "text-noche/40"}`}>
+                        {g.activo ? "Activo" : "Pausado"}
+                      </td>
+                      {acciones(g)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          <h3 className="mt-6 text-sm font-semibold text-noche">Variables (una vez)</h3>
+          {variables.length === 0 ? (
+            <Vacio>Todavía no hay gastos variables ingresados.</Vacio>
+          ) : (
+            <div className="mt-2 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
+                {cabeza(["Fecha", "Gasto", "Valor", ""])}
+                <tbody>
+                  {variables.map((g) => (
+                    <tr key={g.id} className="border-b border-rosa-50 last:border-0">
+                      <td className="py-2 pr-4 align-top text-noche/70">{dia(g.fecha)}</td>
+                      {nombre(g)}
+                      <td className="py-2 pr-4 align-top tabular-nums text-noche/70">{pesos(g.valor_cop)}</td>
+                      {acciones(g)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
+      )}
     </Seccion>
   );
 }

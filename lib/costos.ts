@@ -92,8 +92,10 @@ export function anotarConsumoGoogleVision(userId?: string | null): void {
   });
 }
 
-// La comisión de Bold por cada pago (estimada: depende del medio de pago).
-export const COMISION_BOLD = { porcentaje: 0.0329, fijoCop: 900 };
+// La comisión de Bold por cada pago: 2,89% + $900. Es la real del
+// primer pago (31 de octubre de 2026): anual de $49.900, Bold descontó
+// $2.342 ($1.442 del 2,89% + $900 fijos) y llegaron $47.557.
+export const COMISION_BOLD = { porcentaje: 0.0289, fijoCop: 900 };
 
 export type CostoFijo = {
   rubro: string;

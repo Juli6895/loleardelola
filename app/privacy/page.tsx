@@ -194,8 +194,8 @@ export default function PrivacyPage() {
             Claude no está disponible en ese momento.
           </li>
           <li>
-            <strong>Google</strong> recibe los términos de búsqueda que
-            armamos (por ejemplo &ldquo;vestido midi rojo mujer&rdquo;) — nunca
+            <strong>Google</strong> recibe los términos de búsqueda que arma
+            la IA (por ejemplo &ldquo;vestido midi rojo mujer&rdquo;) — nunca
             tu foto ni tu identidad.
           </li>
           <li>

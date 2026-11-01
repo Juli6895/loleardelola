@@ -106,7 +106,7 @@ export default function TerminosPage() {
             cualquier momento. El precio que vale es el que ves en la tienda al comprar.
           </li>
           <li>
-            Las búsquedas por foto, las combinaciones y el manual se arman de forma automática. Son
+            Las búsquedas por foto, las combinaciones y el manual los arma una inteligencia artificial. Son
             sugerencias: pueden no ser exactas.
           </li>
         </Lista>

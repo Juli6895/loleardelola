@@ -415,9 +415,8 @@ export async function GET(req: Request) {
     .sort((a, b) => b.dia.localeCompare(a.dia));
 
   // ---------------------------------------------------------- dinero
-  // Lo cobrado este mes, menos la comisión estimada de Bold
-  // (3,29% + $900 por transacción). Es estimación: la tarifa exacta
-  // depende del medio de pago y del volumen del mes.
+  // Lo cobrado este mes, menos la comisión de Bold (2,89% + $900 por
+  // pago, la real del primer pago; ver COMISION_BOLD en lib/costos.ts).
   const inicioDeMes = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
   const delMes = pagosReales.filter((p) => p.acreditado_at && new Date(p.acreditado_at) >= inicioDeMes);
   const bruto = delMes.reduce((a, p) => a + (p.monto_cop ?? 0), 0);
@@ -428,6 +427,18 @@ export async function GET(req: Request) {
   // Lo que de verdad se gastó: cada llamada a la IA anota su costo
   // (ver lib/costos.ts). Acá van TODAS, también las de las cuentas de
   // prueba, porque esa plata también se paga.
+  // Gastos ingresados a mano en Administración (app/api/admin/gastos):
+  // fijos de cada mes y variables puntuales. Sin la migración
+  // (supabase/migracion-gastos.sql) la tabla no existe y no se suma nada.
+  type Gasto = { id: string; tipo: "fijo" | "variable"; rubro: string; detalle: string | null; valor_cop: number; fecha: string; activo: boolean };
+  const { data: gastosData, error: gastosError } = await sb
+    .from("gastos")
+    .select("id, tipo, rubro, detalle, valor_cop, fecha, activo")
+    .order("fecha", { ascending: false });
+  if (gastosError) console.warn("[admin/tablero] gastos:", gastosError.message);
+  const gastos = ((gastosData ?? []) as Gasto[]);
+  const diaDe = (fecha: string) => new Date(fecha + "T12:00:00");
+
   const resumirCostos = (desde: Date | null) => {
     const consumo = todos.filter(
       (e) => e.nombre === "consumo_ia" && (!desde || new Date(e.created_at) >= desde)
@@ -463,6 +474,22 @@ export async function GET(req: Request) {
         totalCop: Math.round(bold),
         unitarioCop: pagosPeriodo.length ? Math.round(bold / pagosPeriodo.length) : 0,
       },
+      // Los variables ingresados a mano, sumados por nombre.
+      ...Array.from(
+        gastos
+          .filter((g) => g.tipo === "variable" && (!desde || diaDe(g.fecha) >= desde))
+          .reduce((m, g) => {
+            const fila = m.get(g.rubro) ?? { veces: 0, total: 0 };
+            fila.veces++;
+            fila.total += g.valor_cop;
+            return m.set(g.rubro, fila);
+          }, new Map<string, { veces: number; total: number }>())
+      ).map(([rubro, f]) => ({
+        rubro: `${rubro} (a mano)`,
+        veces: f.veces,
+        totalCop: f.total,
+        unitarioCop: Math.round(f.total / f.veces),
+      })),
       // Gratis dentro de su plan: se listan para ver el consumo.
       { rubro: "Catálogos de tiendas y promociones", veces: null, totalCop: 0, unitarioCop: 0 },
       { rubro: "Notificaciones al celular", veces: null, totalCop: 0, unitarioCop: 0 },
@@ -473,7 +500,18 @@ export async function GET(req: Request) {
 
   const delPeriodo = resumirCostos(inicioDeMes);
   const desdeSiempre = resumirCostos(null);
-  const totalFijo = COSTOS_FIJOS.reduce((a, c) => a + c.cop, 0);
+  // Fijos: los de la app (lib/costos.ts) más los ingresados a mano que
+  // estén activos y ya hayan empezado.
+  const fijosManuales = gastos
+    .filter((g) => g.tipo === "fijo" && g.activo && diaDe(g.fecha) <= ahora)
+    .map((g) => ({
+      rubro: g.rubro,
+      plan: g.detalle || "Ingresado a mano",
+      cop: g.valor_cop,
+      siCrece: "Ingresado a mano en Administración.",
+    }));
+  const fijos = [...COSTOS_FIJOS, ...fijosManuales];
+  const totalFijo = fijos.reduce((a, c) => a + c.cop, 0);
   // Por persona: lo variable del mes entre las personas que usaron la app
   // este mes (sin las de prueba), y por cada membresía activa.
   // Los servicios en plan gratis: cuánto de su límite se ha usado, para
@@ -568,8 +606,10 @@ export async function GET(req: Request) {
       trm: TRM,
       delMes: delPeriodo,
       desdeSiempre,
-      fijos: COSTOS_FIJOS,
+      fijos,
       totalFijo,
+      gastosManuales: gastos,
+      faltaMigracionGastos: !!gastosError,
       planesGratis,
       porPersonaCop: personasDelMes ? Math.round(delPeriodo.totalVariable / personasDelMes) : 0,
       porMembresiaCop: activas.length ? Math.round((delPeriodo.totalVariable + totalFijo) / activas.length) : 0,

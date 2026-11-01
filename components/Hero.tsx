@@ -12,7 +12,7 @@ export default function Hero() {
 
       <div className="relative mx-auto max-w-3xl text-center">
         <p className="mb-4 inline-block rounded-full border border-rosa-300 bg-white/70 px-4 py-1 text-xs font-medium tracking-wide text-rosa-700">
-          Moda + IA + Colombia 🇨🇴
+          Moda + Colombia 🇨🇴
         </p>
         <h1 className="font-display text-4xl leading-tight text-noche sm:text-5xl md:text-6xl">
           Encuentra{" "}

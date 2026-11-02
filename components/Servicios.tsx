@@ -1,4 +1,5 @@
 import Link from "next/link";
+import EnlaceEtiquetado from "@/components/EnlaceEtiquetado";
 import { SECCIONES } from "@/lib/secciones";
 
 // =====================================================================
@@ -23,9 +24,11 @@ export default function Servicios() {
 
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {SECCIONES.map((s) => (
-          <Link
+          <EnlaceEtiquetado
             key={s.href}
             href={s.href}
+            etiqueta="servicio_clic"
+            props={{ servicio: s.nombre }}
             className="group flex flex-col rounded-3xl border border-rosa-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-rosa-300 hover:shadow-suave"
           >
             <span className="flex flex-wrap items-center gap-2">
@@ -42,7 +45,7 @@ export default function Servicios() {
             <span className="mt-4 inline-block text-sm font-medium text-rosa-600 group-hover:underline">
               Ir a {s.nombre} →
             </span>
-          </Link>
+          </EnlaceEtiquetado>
         ))}
       </div>
 

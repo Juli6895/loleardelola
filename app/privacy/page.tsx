@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import AnotarVista from "@/components/AnotarVista";
 
 export const metadata: Metadata = {
   title: "Política de Privacidad — LoleardLola",
@@ -20,6 +21,7 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <div className="mx-auto max-w-3xl">
+      <AnotarVista nombre="privacidad_visto" />
       <div className="rounded-3xl border border-rosa-100 bg-white p-8 shadow-sm sm:p-12">
         <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">
           Documento legal

@@ -113,6 +113,27 @@ export const EVENTOS = [
   // Tocó "Escríbenos" para sugerir un comercio (ver SugerirComercio).
   "comercio_sugerido",
 
+  // Descubrir y moverse por la app: de dónde salen los clics y qué
+  // páginas se leen. El catálogo completo, por etapa, está en
+  // lib/etiquetas.ts.
+  "entrar_visto",
+  "terminos_visto",
+  "privacidad_visto",
+  "cta_inicio_clic",
+  "servicio_clic",
+  "otras_secciones_clic",
+
+  // Filtros de Promociones: cuándo se abre el panel y qué se escoge
+  // (props.filtro: marcas, talla o prenda; props.cantidad).
+  "filtros_abiertos",
+  "filtro_aplicado",
+
+  // Errores que antes no quedaban anotados (se cuentan en Errores).
+  "prenda_error",
+  "perfil_error",
+  "personalidad_error",
+  "outfit_error",
+
   // Lo que costó cada llamada a la IA (ver lib/costos.ts).
   "consumo_ia",
 

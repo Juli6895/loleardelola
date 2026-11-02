@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // GET /api/outfits → lista los outfits guardados en este dispositivo
 export async function GET(req: Request) {
@@ -35,6 +36,7 @@ export async function POST(req: Request) {
     );
   }
   const userId = tope.usuario.id;
+  const ctx = contextoDe(req, userId);
 
   const body = await req.json();
   if (!body.imageUrl || !Array.isArray(body.tags)) {
@@ -57,8 +59,10 @@ export async function POST(req: Request) {
     .single();
 
   if (error) {
+    registrar("outfit_error", ctx, { motivo: error.message.slice(0, 120) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  registrar("outfit_guardado", ctx);
 
   // Registramos también la búsqueda asociada
   await sb.from("searches").insert({

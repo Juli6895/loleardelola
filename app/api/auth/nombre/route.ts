@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
+import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/auth/nombre  { nombre }
 // Guarda cómo quiere que la llamemos. Solo con sesión abierta: el
@@ -26,5 +27,6 @@ export async function POST(req: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  registrar("nombre_puesto", contextoDe(req, usuario.id));
   return NextResponse.json({ ok: true, nombre });
 }

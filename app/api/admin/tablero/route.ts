@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA, DISPOSITIVOS_PRUEBA } from "@/lib/admin-correos";
-import { COMISION_BOLD, COSTOS_FIJOS, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
+import { COMISION_BOLD, COSTOS_FIJOS, COSTO_REFERENCIA_COP, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 import { cloudinary } from "@/lib/cloudinary";
+import { ETIQUETAS } from "@/lib/etiquetas";
 import { tiendasConCatalogo } from "@/lib/catalogo-tiendas";
 import { getTiendasInstagram } from "@/lib/tiendas-instagram";
 import { getAllowedMerchants } from "@/lib/merchant-allowlist";
@@ -63,6 +64,10 @@ const LUGAR_ERROR: Record<string, string> = {
   foto_catalogo_error: "Mi clóset · foto",
   outfit_foto_error: "Mi clóset · foto del outfit",
   figura_error: "Mi perfil · ilustración",
+  prenda_error: "Mi clóset · subir prenda",
+  perfil_error: "Mi perfil · guardar",
+  personalidad_error: "Mi perfil · estilo",
+  outfit_error: "Mis outfits · guardar",
   tope_alcanzado: "Se topó con un límite",
 };
 
@@ -209,6 +214,22 @@ export async function GET(req: Request) {
   // --------------------------------------------------------- embudo
   const embudo = EMBUDO.map((p) => ({ paso: p.paso, personas: personasCon(p.evento) }));
 
+  // ------------------------------------------------------- etiquetas
+  // Cada etiqueta de la experiencia (lib/etiquetas.ts): cuántas veces
+  // salió y cuántas personas distintas.
+  const etiquetas = ETIQUETAS.map((et) => ({
+    etapa: et.etapa,
+    etiquetas: et.etiquetas.map((t) => {
+      const deLaEtiqueta = visitas.filter((e) => e.nombre === t.evento);
+      return {
+        evento: t.evento,
+        cuando: t.cuando,
+        veces: deLaEtiqueta.length,
+        personas: new Set(deLaEtiqueta.map(persona)).size,
+      };
+    }),
+  }));
+
   // ------------------------------------------------------ secciones
   const secciones = SECCIONES.map((s) => {
     const deLaSeccion = eventos.filter((e) => e.nombre === s.evento);
@@ -226,21 +247,93 @@ export async function GET(req: Request) {
   });
 
   // -------------------------------------------------------- errores
-  const porError = new Map<string, { lugar: string; error: string; veces: number; personas: Set<string>; ultimaVez: string }>();
+  // Cada error con el servicio donde pasó y el correo de quien lo vio
+  // (user_id → users.email). Sin cuenta: "Sin cuenta" (solo el navegador).
+  // El correo es solo para esta página de administración: en los eventos
+  // sigue guardándose únicamente el user_id (ver lib/eventos.ts).
+  const correoDe = new Map((conCorreo ?? []).map((u) => [u.id as string, u.email as string]));
+  const quien = (e: Evento) => (e.user_id ? correoDe.get(e.user_id) ?? "Sin cuenta" : "Sin cuenta");
+  // El servicio donde pasó: la sección de la app (no la ruta técnica) o
+  // el servicio que falló.
+  const SERVICIO_POR_RUTA: Record<string, string> = {
+    "/": "Inicio",
+    "/promociones": "Promociones",
+    "/buscar": "Buscar",
+    "/mi-closet": "Mi clóset",
+    "/mi-perfil": "Mi perfil",
+    "/mis-outfits": "Mis outfits",
+    "/manual": "Mi manual",
+    "/membresia": "Membresía",
+    "/preguntas": "Preguntas",
+    "/entrar": "Entrar con el correo",
+  };
+  const SERVICIO_POR_LIMITE: Record<string, string> = {
+    busquedas: "Buscar por foto",
+    outfits: "Mis outfits",
+    prendasCloset: "Mi clóset",
+    combinaciones: "Mi clóset · combinaciones",
+    manuales: "Mi manual",
+  };
+  const servicioDe = (e: Evento, lugar: string) => {
+    if (e.nombre === "pagina_error") return SERVICIO_POR_RUTA[String(e.props?.ruta ?? "")] ?? lugar;
+    if (e.nombre === "tope_alcanzado") return SERVICIO_POR_LIMITE[String(e.props?.recurso ?? "")] ?? lugar;
+    return lugar.split(" · ")[0];
+  };
+  const porError = new Map<
+    string,
+    { servicio: string; lugar: string; error: string; veces: number; personas: Set<string>; correos: Set<string>; ultimaVez: string }
+  >();
+  const porCorreo = new Map<
+    string,
+    { correo: string; servicio: string; lugar: string; error: string; veces: number; ultimaVez: string }
+  >();
   for (const e of eventos.filter((x) => esError(x.nombre))) {
     const lugar = lugarDe(e);
-    const error = String(e.props?.motivo ?? e.props?.estado ?? e.props?.recurso ?? "Sin detalle").slice(0, 160);
+    const error =
+      e.nombre === "tope_alcanzado"
+        ? `Llegó al límite de su plan (${e.props?.plan ?? "sin plan"})`
+        : String(e.props?.motivo ?? e.props?.estado ?? e.props?.recurso ?? "Sin detalle").slice(0, 160);
     const clave = `${lugar}|${error}`;
-    const fila = porError.get(clave) ?? { lugar, error, veces: 0, personas: new Set<string>(), ultimaVez: e.created_at };
+    const correo = quien(e);
+    const fila = porError.get(clave) ?? {
+      servicio: servicioDe(e, lugar),
+      lugar,
+      error,
+      veces: 0,
+      personas: new Set<string>(),
+      correos: new Set<string>(),
+      ultimaVez: e.created_at,
+    };
     fila.veces++;
     fila.personas.add(persona(e));
+    fila.correos.add(correo);
     if (e.created_at > fila.ultimaVez) fila.ultimaVez = e.created_at;
     porError.set(clave, fila);
+
+    const claveCorreo = `${correo}|${clave}`;
+    const deCorreo = porCorreo.get(claveCorreo) ?? {
+      correo,
+      servicio: servicioDe(e, lugar),
+      lugar,
+      error,
+      veces: 0,
+      ultimaVez: e.created_at,
+    };
+    deCorreo.veces++;
+    if (e.created_at > deCorreo.ultimaVez) deCorreo.ultimaVez = e.created_at;
+    porCorreo.set(claveCorreo, deCorreo);
   }
   const errores = Array.from(porError.values())
-    .map((f) => ({ ...f, personas: f.personas.size }))
+    .map((f) => ({
+      ...f,
+      personas: f.personas.size,
+      correos: Array.from(f.correos).sort(),
+    }))
     .sort((a, b) => b.veces - a.veces)
     .slice(0, 30);
+  const erroresPorCorreo = Array.from(porCorreo.values())
+    .sort((a, b) => b.ultimaVez.localeCompare(a.ultimaVez))
+    .slice(0, 100);
 
   // ---------------------------------------------- clics a comercios
   const clics = eventos.filter((e) => e.nombre === "comercio_clic");
@@ -510,8 +603,116 @@ export async function GET(req: Request) {
       cop: g.valor_cop,
       siCrece: "Ingresado a mano en Administración.",
     }));
-  const fijos = [...COSTOS_FIJOS, ...fijosManuales];
+  // El dominio que viene fijo en lib/costos.ts se deja de contar cuando
+  // ya hay uno ingresado a mano (si no, se sumaría dos veces).
+  const dominioAMano = gastos.some((g) => g.rubro.toLowerCase().startsWith("dominio"));
+  const fijos = [
+    ...COSTOS_FIJOS.filter((c) => !(dominioAMano && c.rubro.toLowerCase().startsWith("dominio"))),
+    ...fijosManuales,
+  ];
   const totalFijo = fijos.reduce((a, c) => a + c.cop, 0);
+
+  // ------------------------------------------- costo por servicio, a hoy
+  // Cada servicio: cuántas consultas van, cuánto cuesta UNA y el total
+  // (consultas × costo de una). El costo de una es el medido en cada
+  // llamada (promedio de lo anotado como consumo_ia); si todavía no hay
+  // ninguna medida, el de referencia de lib/costos.ts. Las consultas
+  // salen de lo que de verdad se hizo (búsquedas, prendas, etc.), y no
+  // solo de las que ya anotaban su costo.
+  const contar = async (tabla: string) => {
+    const { count } = await sb.from(tabla).select("id", { count: "exact", head: true });
+    return count ?? 0;
+  };
+  const [totalBusquedas, totalPrendas] = await Promise.all([contar("searches"), contar("closet_items")]);
+  const veces = (nombre: string) => todos.filter((e) => e.nombre === nombre).length;
+  const realesDe: Partial<Record<ServicioIA, number>> = {
+    busqueda: totalBusquedas,
+    prenda_closet: totalPrendas,
+    combinacion: veces("combinacion_buscada"),
+    manual: veces("manual_generado"),
+  };
+  const mesDe = (cuando: string) => new Date(cuando) >= inicioDeMes;
+  const porServicio = (Object.keys(NOMBRE_SERVICIO) as ServicioIA[]).map((servicio) => {
+    const medidas = todos.filter((e) => e.nombre === "consumo_ia" && e.props?.servicio === servicio);
+    const usdMedido = medidas.reduce((a, e) => a + (Number(e.props?.usd) || 0), 0);
+    const unitarioMedido = medidas.length ? (usdMedido * TRM) / medidas.length : null;
+    const unitarioCop = Math.round(unitarioMedido ?? COSTO_REFERENCIA_COP[servicio] ?? 0);
+    const consultas = Math.max(realesDe[servicio] ?? 0, medidas.length);
+    const delMes = medidas.filter((e) => mesDe(e.created_at)).length;
+    return {
+      servicio: NOMBRE_SERVICIO[servicio],
+      tipo: "Variable" as const,
+      consultas,
+      unitarioCop,
+      totalCop: consultas * unitarioCop,
+      delMesCop: delMes * unitarioCop,
+      medido: unitarioMedido !== null,
+    };
+  });
+  const pagosAHoy = pagosReales.filter((p) => p.acreditado_at);
+  const boldAHoy = pagosAHoy.reduce((a, p) => a + comisionDe(p.monto_cop ?? 0), 0);
+  const boldDelMes = pagosAHoy
+    .filter((p) => mesDe(p.acreditado_at as string))
+    .reduce((a, p) => a + comisionDe(p.monto_cop ?? 0), 0);
+  porServicio.push({
+    servicio: "Comisión de Bold por cada pago",
+    tipo: "Variable",
+    consultas: pagosAHoy.length,
+    unitarioCop: pagosAHoy.length ? Math.round(boldAHoy / pagosAHoy.length) : 0,
+    totalCop: Math.round(boldAHoy),
+    delMesCop: Math.round(boldDelMes),
+    medido: pagosAHoy.length > 0,
+  });
+  // Variables ingresados a mano: una consulta = una vez que se pagó.
+  const variablesAMano = new Map<string, { veces: number; total: number; mes: number }>();
+  for (const g of gastos.filter((x) => x.tipo === "variable")) {
+    const f = variablesAMano.get(g.rubro) ?? { veces: 0, total: 0, mes: 0 };
+    f.veces++;
+    f.total += g.valor_cop;
+    if (diaDe(g.fecha) >= inicioDeMes) f.mes += g.valor_cop;
+    variablesAMano.set(g.rubro, f);
+  }
+  for (const [rubro, f] of Array.from(variablesAMano)) {
+    porServicio.push({
+      servicio: `${rubro} (a mano)`,
+      tipo: "Variable",
+      consultas: f.veces,
+      unitarioCop: Math.round(f.total / f.veces),
+      totalCop: f.total,
+      delMesCop: f.mes,
+      medido: true,
+    });
+  }
+  // Fijos: lo que va acumulado es lo del mes × los meses que lleva (el mes
+  // en que empezó cuenta completo, como en el resultado del mes).
+  const mesesDesde = (fecha: string) => {
+    const d = diaDe(fecha);
+    return Math.max((ahora.getFullYear() - d.getFullYear()) * 12 + (ahora.getMonth() - d.getMonth()) + 1, 0);
+  };
+  const fijosAHoy = [
+    ...COSTOS_FIJOS.filter(
+      (c) => !(dominioAMano && c.rubro.toLowerCase().startsWith("dominio")) && !c.siCrece.startsWith("Va en los costos variables")
+    ).map((c) => ({
+      servicio: c.rubro,
+      cop: c.cop,
+      meses: c.cop > 0 ? mesesDesde("2026-10-30") : 0,
+    })),
+    ...gastos
+      .filter((g) => g.tipo === "fijo" && g.activo && diaDe(g.fecha) <= ahora)
+      .map((g) => ({ servicio: g.rubro, cop: g.valor_cop, meses: mesesDesde(g.fecha) })),
+  ];
+  const costoPorServicio = [
+    ...porServicio,
+    ...fijosAHoy.map((f) => ({
+      servicio: f.servicio,
+      tipo: "Fijo" as const,
+      consultas: null as number | null,
+      unitarioCop: null as number | null,
+      totalCop: f.cop * f.meses,
+      delMesCop: f.cop,
+      medido: true,
+    })),
+  ];
   // Por persona: lo variable del mes entre las personas que usaron la app
   // este mes (sin las de prueba), y por cada membresía activa.
   // Los servicios en plan gratis: cuánto de su límite se ha usado, para
@@ -589,8 +790,10 @@ export async function GET(req: Request) {
       anuales,
     },
     embudo,
+    etiquetas,
     secciones,
     errores,
+    erroresPorCorreo,
     comercios,
     prendas,
     comerciosVinculados,
@@ -608,6 +811,7 @@ export async function GET(req: Request) {
       desdeSiempre,
       fijos,
       totalFijo,
+      costoPorServicio,
       gastosManuales: gastos,
       faltaMigracionGastos: !!gastosError,
       planesGratis,

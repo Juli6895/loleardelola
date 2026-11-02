@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolverUserId } from "@/lib/sesion";
+import { contextoDe, registrar } from "@/lib/eventos";
 import { inferirSiluetaPorMedidas } from "@/lib/image-consulting/morfologia";
 import {
   inferirContraste,
@@ -142,7 +143,9 @@ async function guardarPerfil(req: Request) {
     .single();
 
   if (error) {
+    registrar("perfil_error", contextoDe(req, userId), { motivo: error.message.slice(0, 120) });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  registrar("perfil_guardado", contextoDe(req, userId));
   return NextResponse.json({ perfil: data });
 }

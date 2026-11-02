@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "./device-id";
+import { anotar } from "./use-evento";
 
 // =====================================================================
 // Lo que comparten la barra de arriba y las promociones
@@ -21,6 +22,7 @@ const CLAVE_PRENDAS = "loleardelola:prendas";
 const PRENDAS_CAMBIARON = "loleardelola:prendas-cambiaron";
 
 export function abrirFiltros(): void {
+  anotar("filtros_abiertos");
   window.dispatchEvent(new Event(ABRIR));
 }
 
@@ -48,6 +50,7 @@ export function guardarPrendas(prendas: string[]): void {
     // Sin almacenamiento: el filtro dura lo que dure la página.
   }
   window.dispatchEvent(new Event(PRENDAS_CAMBIARON));
+  anotar("filtro_aplicado", { filtro: "prenda", cantidad: new Set(prendas).size });
 }
 
 /** El tipo de prenda escogido en esta visita (vacío = todas). */

@@ -35,3 +35,11 @@ where not exists (select 1 from public.gastos where rubro = 'Marketing');
 insert into public.gastos (tipo, rubro, detalle, valor_cop, fecha)
 select 'fijo', 'Publicidad en Meta', 'Pauta mensual en Meta (Instagram y Facebook)', 150000, date '2026-11-01'
 where not exists (select 1 from public.gastos where rubro = 'Publicidad en Meta');
+
+-- El dominio (comprado en Vercel el 30 de octubre de 2026): US$11,25 por
+-- un año = $45.000. Es un gasto de una vez (se vuelve a ingresar cuando
+-- se renueve, el 30 de octubre de 2027). Si lo cambias aquí o en /admin,
+-- deja de contarse el que viene fijo en lib/costos.ts.
+insert into public.gastos (tipo, rubro, detalle, valor_cop, fecha)
+select 'variable', 'Dominio loleardlola.com', 'US$11,25 por 1 año (renueva el 30 oct 2027)', 45000, date '2026-10-30'
+where not exists (select 1 from public.gastos where rubro like 'Dominio%');

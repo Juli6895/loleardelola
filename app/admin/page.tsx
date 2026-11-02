@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "@/lib/device-id";
+import { SQL_GASTOS } from "@/lib/sql-gastos";
 
 // Tablero de administración. Solo para el correo de administración
 // (ver lib/admin.ts) — el permiso se revisa en el servidor, no acá:
@@ -16,8 +17,18 @@ const fecha = (iso: string) =>
 
 type Fila = { nombre: string; tienda: string; clics: number; personas: number };
 type CostoVariable = { rubro: string; veces: number | null; totalCop: number; unitarioCop: number };
+type CostoServicio = {
+  servicio: string;
+  tipo: "Variable" | "Fijo";
+  consultas: number | null;
+  unitarioCop: number | null;
+  totalCop: number;
+  delMesCop: number;
+  medido: boolean;
+};
 type Costos = {
   trm: number;
+  costoPorServicio: CostoServicio[];
   delMes: { variables: CostoVariable[]; totalVariable: number };
   desdeSiempre: { variables: CostoVariable[]; totalVariable: number };
   fijos: Array<{ rubro: string; plan: string; cop: number; siCrece: string }>;
@@ -34,8 +45,10 @@ type Datos = {
   desde: string | null;
   resumen: { personas: number; cuentasCreadas: number; membresiasActivas: number; mensuales: number; anuales: number };
   embudo: Array<{ paso: string; personas: number }>;
+  etiquetas: Array<{ etapa: string; etiquetas: Array<{ evento: string; cuando: string; veces: number; personas: number }> }>;
   secciones: Array<{ seccion: string; visitas: number; personas: number; minutosPromedio: number }>;
-  errores: Array<{ lugar: string; error: string; veces: number; personas: number; ultimaVez: string }>;
+  errores: Array<{ servicio: string; lugar: string; error: string; veces: number; personas: number; correos: string[]; ultimaVez: string }>;
+  erroresPorCorreo: Array<{ correo: string; servicio: string; lugar: string; error: string; veces: number; ultimaVez: string }>;
   comercios: Fila[];
   prendas: Fila[];
   comerciosVinculados: Array<{
@@ -149,15 +162,56 @@ export default function AdminPage() {
         />
       </Seccion>
 
+      {/* ---- Etiquetas de la experiencia ---- */}
+      <Seccion
+        titulo="Etiquetas de la experiencia"
+        nota="Cada paso que da una persona deja una etiqueta. Aquí, por etapa: cuándo sale, cuántas veces y cuántas personas distintas."
+      >
+        <div className="space-y-6">
+          {datos.etiquetas.map((et) => (
+            <div key={et.etapa}>
+              <h3 className="text-sm font-semibold text-noche">{et.etapa}</h3>
+              <div className="mt-2">
+                <Tabla
+                  columnas={["Etiqueta", "Cuándo sale", "Veces", "Personas"]}
+                  filas={et.etiquetas.map((t) => [t.evento, t.cuando, String(t.veces), String(t.personas)])}
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      </Seccion>
+
       {/* ---- Errores ---- */}
-      <Seccion titulo="Errores" nota="Dónde pasó, cuál fue el error, cuántas veces y a cuántas personas.">
+      <Seccion titulo="Errores" nota="En qué servicio pasó, cuál fue el error, a qué correos les salió, cuántas veces y cuándo fue la última.">
         {datos.errores.length === 0 ? (
           <Vacio>Sin errores registrados.</Vacio>
         ) : (
           <Tabla
-            columnas={["Dónde", "Error", "Veces", "Personas", "Última vez"]}
-            filas={datos.errores.map((e) => [e.lugar, e.error, String(e.veces), String(e.personas), fecha(e.ultimaVez)])}
+            columnas={["Servicio", "Dónde", "Error", "Correos", "Veces", "Última vez"]}
+            filas={datos.errores.map((e) => [
+              e.servicio,
+              e.lugar,
+              e.error,
+              e.correos.join(", "),
+              String(e.veces),
+              fecha(e.ultimaVez),
+            ])}
           />
+        )}
+        <h3 className="mt-6 text-sm font-semibold text-noche">Errores por correo</h3>
+        <p className="text-xs text-noche/45">
+          Cada correo con lo que le falló y en qué servicio. &quot;Sin cuenta&quot; es alguien que no ha entrado con su correo.
+        </p>
+        {datos.erroresPorCorreo.length === 0 ? (
+          <Vacio>Sin errores registrados.</Vacio>
+        ) : (
+          <div className="mt-2">
+            <Tabla
+              columnas={["Correo", "Servicio", "Dónde", "Error", "Veces", "Última vez"]}
+              filas={datos.erroresPorCorreo.map((e) => [e.correo, e.servicio, e.lugar, e.error, String(e.veces), fecha(e.ultimaVez)])}
+            />
+          </div>
         )}
       </Seccion>
 
@@ -323,11 +377,6 @@ function Vacio({ children }: { children: React.ReactNode }) {
  * verdad en cada llamada) y fijos (al mes, aunque nadie la use).
  */
 function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number }) {
-  const siempre = new Map(costos.desdeSiempre.variables.map((v) => [v.rubro, v]));
-  const rubros = Array.from(
-    new Set([...costos.delMes.variables.map((v) => v.rubro), ...costos.desdeSiempre.variables.map((v) => v.rubro)])
-  );
-  const delMes = new Map(costos.delMes.variables.map((v) => [v.rubro, v]));
   return (
     <Seccion
       titulo="Costos"
@@ -348,23 +397,32 @@ function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number })
         Resultado = cobrado este mes ({pesos(cobrado)}) − variables − fijos.
       </p>
 
-      <h3 className="mt-6 text-sm font-semibold text-noche">Variables</h3>
+      <h3 className="mt-6 text-sm font-semibold text-noche">Costo por servicio, a hoy</h3>
+      <p className="text-xs text-noche/45">
+        Total a hoy = consultas × costo de una consulta. El costo de una es el medido en cada llamada; donde dice
+        &quot;referencia&quot; todavía no se ha medido y se usa el de octubre de 2026. Los fijos son lo del mes por los
+        meses que llevan.
+      </p>
       <div className="mt-2">
         <Tabla
-          columnas={["Rubro", "Veces (mes)", "Costo del mes", "Costo unitario", "Total desde el inicio"]}
+          columnas={["Servicio", "Tipo", "Consultas", "Costo de 1 consulta", "Total a hoy", "Este mes"]}
           filas={[
-            ...rubros.map((r) => {
-              const m = delMes.get(r);
-              const t = siempre.get(r);
-              return [
-                r,
-                m?.veces == null ? "—" : String(m.veces),
-                pesos(m?.totalCop ?? 0),
-                pesos(m?.unitarioCop || t?.unitarioCop || 0),
-                pesos(t?.totalCop ?? 0),
-              ];
-            }),
-            ["Total variables", "", pesos(costos.delMes.totalVariable), "", pesos(costos.desdeSiempre.totalVariable)],
+            ...costos.costoPorServicio.map((c) => [
+              c.servicio,
+              c.tipo,
+              c.consultas == null ? "—" : String(c.consultas),
+              c.unitarioCop == null ? "—" : pesos(c.unitarioCop) + (c.medido ? "" : " (referencia)"),
+              pesos(c.totalCop),
+              pesos(c.delMesCop),
+            ]),
+            [
+              "Total",
+              "",
+              "",
+              "",
+              pesos(costos.costoPorServicio.reduce((a, c) => a + c.totalCop, 0)),
+              pesos(costos.costoPorServicio.reduce((a, c) => a + c.delMesCop, 0)),
+            ],
           ]}
         />
       </div>
@@ -523,12 +581,8 @@ function SeccionGastos({ gastos, falta, onCambio }: { gastos: Gasto[]; falta: bo
       titulo="Gastos ingresados a mano"
       nota="Lo que la app no mide sola: marketing, pauta, servicios que pagas por fuera. Los fijos cuentan cada mes mientras estén activos; los variables, una vez, en el mes de su fecha. Se suman en Costos."
     >
-      {falta ? (
-        <p className="rounded-xl bg-rosa-50 px-4 py-3 text-sm text-noche/70">
-          Falta crear la tabla de gastos: corre <b>supabase/migracion-gastos.sql</b> en Supabase (SQL Editor) y recarga
-          esta página. Esa migración ya trae tus gastos de marketing ($600.000) y de Meta ($150.000).
-        </p>
-      ) : (
+      {falta && <AvisoTablaGastos />}
+      <fieldset disabled={falta} className={falta ? "opacity-50" : ""}>
         <>
           <form onSubmit={guardar} className="grid grid-cols-1 gap-3 rounded-2xl bg-rosa-50/60 p-4 sm:grid-cols-6">
             <label className="text-xs text-noche/60 sm:col-span-2">
@@ -651,8 +705,38 @@ function SeccionGastos({ gastos, falta, onCambio }: { gastos: Gasto[]; falta: bo
             </div>
           )}
         </>
-      )}
+      </fieldset>
     </Seccion>
+  );
+}
+
+/** La tabla de gastos no existe todavía: el SQL para crearla, listo para copiar. */
+function AvisoTablaGastos() {
+  const [copiado, setCopiado] = useState(false);
+  async function copiar() {
+    try {
+      await navigator.clipboard.writeText(SQL_GASTOS);
+      setCopiado(true);
+    } catch {
+      setCopiado(false);
+    }
+  }
+  return (
+    <div className="mb-4 rounded-2xl border border-rosa-200 bg-rosa-50 px-4 py-4 text-sm text-noche/80">
+      <p className="font-semibold text-noche">Falta un paso para poder guardar gastos</p>
+      <ol className="mt-2 list-decimal space-y-1 pl-5">
+        <li>Toca &quot;Copiar SQL&quot;.</li>
+        <li>En Supabase (proyecto de LoleardLola) abre <b>SQL Editor</b>, pega y dale <b>Run</b>.</li>
+        <li>Recarga esta página: el formulario se activa y ya trae marketing ($600.000), Meta ($150.000) y el dominio ($45.000).</li>
+      </ol>
+      <button
+        type="button"
+        onClick={copiar}
+        className="mt-3 rounded-full bg-noche px-4 py-1.5 text-xs font-medium text-white"
+      >
+        {copiado ? "Copiado" : "Copiar SQL"}
+      </button>
+    </div>
   );
 }
 

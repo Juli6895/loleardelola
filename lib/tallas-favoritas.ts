@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "./device-id";
+import { anotar } from "./use-evento";
 
 // =====================================================================
 // "Mi talla" en las promociones
@@ -37,6 +38,7 @@ function guardarLocal(tallas: string[]): void {
 export function guardarTallas(tallas: string[]): void {
   const unicas = Array.from(new Set(tallas));
   guardarLocal(unicas);
+  anotar("filtro_aplicado", { filtro: "talla", cantidad: unicas.length });
   fetchConDispositivo("/api/tallas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

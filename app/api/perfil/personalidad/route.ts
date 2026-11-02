@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolverUserId } from "@/lib/sesion";
 import { uploadImage } from "@/lib/cloudinary";
+import { contextoDe, registrar } from "@/lib/eventos";
 import {
   inferirPersonalidadPorImagen,
   inferirPersonalidadPorReferencia,
@@ -47,12 +48,15 @@ export async function POST(req: Request) {
       .eq("id", userId);
 
     if (error) {
+      registrar("personalidad_error", contextoDe(req, userId), { motivo: error.message.slice(0, 120) });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
+    registrar("personalidad_calculada", contextoDe(req, userId), { fuente: fuente === "foto" ? "foto" : "referencia" });
     return NextResponse.json({ resultado, fuente });
   } catch (e: any) {
     console.error("[/api/perfil/personalidad] error:", e);
+    registrar("personalidad_error", contextoDe(req, userId), { motivo: String(e?.message ?? e).slice(0, 120) });
     return NextResponse.json(
       { error: "No pudimos analizar el estilo. Intenta de nuevo." },
       { status: 500 }

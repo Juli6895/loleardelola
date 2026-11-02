@@ -1,4 +1,4 @@
-import Link from "next/link";
+import EnlaceEtiquetado from "@/components/EnlaceEtiquetado";
 
 // Sección hero de la landing — en español colombiano. Corta a propósito:
 // lo que explica la app son todas las opciones que van debajo
@@ -23,18 +23,22 @@ export default function Hero() {
         </p>
 
         <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
-          <Link
+          <EnlaceEtiquetado
             href="/buscar"
+            etiqueta="cta_inicio_clic"
+            props={{ boton: "empezar_a_lolear" }}
             className="w-full rounded-full bg-noche px-6 py-3 text-sm font-medium text-white transition hover:bg-rosa-500 sm:w-auto"
           >
             Empezar a lolear
-          </Link>
-          <Link
+          </EnlaceEtiquetado>
+          <EnlaceEtiquetado
             href="/mi-closet"
+            etiqueta="cta_inicio_clic"
+            props={{ boton: "armar_mi_closet" }}
             className="w-full rounded-full border border-noche/20 bg-white px-6 py-3 text-sm font-medium text-noche transition hover:border-rosa-400 hover:text-rosa-500 sm:w-auto"
           >
             Armar mi clóset
-          </Link>
+          </EnlaceEtiquetado>
         </div>
 
         <p className="mt-4 text-xs text-noche/50">Crea tu cuenta gratis y haz tu primera búsqueda.</p>

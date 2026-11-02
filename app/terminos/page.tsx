@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import AnotarVista from "@/components/AnotarVista";
 import {
   DIAS_PRUEBA_PROMOS,
   PAQUETES_BUSQUEDAS,
@@ -77,6 +78,7 @@ export default function TerminosPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
+      <AnotarVista nombre="terminos_visto" />
       <div className="rounded-3xl border border-rosa-100 bg-white p-8 shadow-sm sm:p-12">
         <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">Documento legal</p>
         <h1 className="mt-3 font-display text-3xl text-noche sm:text-4xl">Términos y condiciones</h1>

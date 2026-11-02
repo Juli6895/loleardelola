@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HREF_MIS_MARCAS, SECCIONES } from "@/lib/secciones";
 import { abrirFiltros } from "@/lib/filtros-promos";
+import { anotar } from "@/lib/use-evento";
 
 // Donde no va: el inicio ya muestra todas las opciones, y en entrar y
 // el tablero de administración estorba.
@@ -36,6 +37,7 @@ export default function OtrasSecciones() {
               key={s.href}
               href={s.href}
               onClick={(e) => {
+                anotar("otras_secciones_clic", { desde: pathname, destino: s.nombre });
                 // En Promociones, "Mis marcas favoritas" abre el panel ahí mismo.
                 if (s.href === HREF_MIS_MARCAS && pathname === "/promociones") {
                   e.preventDefault();

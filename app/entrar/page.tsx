@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
+import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Ingreso en dos pasos: correo → código de 6 dígitos. No hay contraseña
 // a propósito, así que tampoco hay nada que recuperar. Si la cuenta no
@@ -25,6 +26,7 @@ export default function EntrarPage() {
 }
 
 function Formulario() {
+  useAnotarUnaVez("entrar_visto");
   const params = useSearchParams();
   const volverA = params.get("volver") ?? "/";
   const motivo = params.get("motivo");

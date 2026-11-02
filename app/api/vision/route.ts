@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       );
     }
 
+    registrar("busqueda_iniciada", contextoDe(req, tope.usuario?.id));
     const body = await req.json();
 
     let imageUrl: string | null = null;

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "./device-id";
+import { anotar } from "./use-evento";
 
 // =====================================================================
 // Mis marcas: las que cada quien escoge en el menú
@@ -40,6 +41,7 @@ function guardarLocal(dominios: string[]): void {
 export function guardarMarcas(dominios: string[]): void {
   const unicas = Array.from(new Set(dominios));
   guardarLocal(unicas);
+  anotar("filtro_aplicado", { filtro: "marcas", cantidad: unicas.length });
   fetchConDispositivo("/api/marcas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

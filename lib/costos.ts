@@ -45,6 +45,18 @@ export const NOMBRE_SERVICIO: Record<ServicioIA, string> = {
   personalidad_referencia: "Personalidad de estilo por referencia",
 };
 
+// Lo que costó UNA consulta, en pesos, medido en octubre de 2026 (ver
+// planes.ts). Se usa para las consultas anteriores a que cada llamada
+// anotara su costo real, y para los servicios que todavía no se han
+// medido ninguna vez. Sin dato: no se inventa, el servicio sale en $0.
+export const COSTO_REFERENCIA_COP: Partial<Record<ServicioIA, number>> = {
+  busqueda: 137,
+  prenda_closet: 61,
+  combinacion: 89,
+  manual: 223,
+  busqueda_respaldo: Math.round(PRECIO_GOOGLE_VISION_USD * TRM),
+};
+
 type Uso = {
   input_tokens?: number | null;
   output_tokens?: number | null;

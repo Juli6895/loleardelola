@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { resolverUserId } from "@/lib/sesion";
 import { revisarTope } from "@/lib/limites";
+import { contextoDe, registrar } from "@/lib/eventos";
 import { uploadImage } from "@/lib/cloudinary";
 import { analyzeClosetItem, type PistaPrenda } from "@/lib/garment-ai";
 
@@ -94,11 +95,14 @@ export async function POST(req: Request) {
       .single();
 
     if (error) {
+      registrar("prenda_error", contextoDe(req, user.id), { motivo: error.message.slice(0, 120) });
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+    registrar("prenda_subida", contextoDe(req, user.id));
     return NextResponse.json({ item });
   } catch (e: any) {
     console.error("[/api/closet] error:", e);
+    registrar("prenda_error", contextoDe(req, user.id), { motivo: String(e?.message ?? e).slice(0, 120) });
     return NextResponse.json(
       { error: "No pudimos analizar la prenda. Intenta con otra foto." },
       { status: 500 }

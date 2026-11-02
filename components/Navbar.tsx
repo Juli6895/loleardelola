@@ -193,40 +193,23 @@ export default function Navbar() {
             dentro ? "border-white/10 bg-noche" : "border-rosa-100 bg-white"
           }`}
         >
+          {/* Los filtros (prenda, talla y marcas) son el mismo panel de Promociones: se abre aquí. */}
           {LINKS.map((l) => (
-            <div key={l.href} className="flex items-center gap-1">
+            <div key={l.href}>
               <Link
                 href={l.href}
                 onClick={() => setMenuOpen(false)}
-                className={`block flex-1 rounded-lg px-3 py-2 text-sm font-medium transition ${
+                className={`block rounded-lg px-3 py-2 text-sm font-medium transition ${
                   dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
                 }`}
               >
                 {l.label}
               </Link>
               {l.href === "/promociones" && (
-                <span className="pr-3">
-                  <BotonFiltrosPromos oscuro={dentro} alTocar={() => setMenuOpen(false)} />
-                </span>
+                <BotonFiltrosPromos oscuro={dentro} conTexto alTocar={() => setMenuOpen(false)} />
               )}
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => setMarcasAbiertas((v) => !v)}
-            aria-expanded={marcasAbiertas}
-            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
-              dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
-            }`}
-          >
-            {etiquetaMarcas}
-            <span aria-hidden className="text-xs">{marcasAbiertas ? "▲" : "▼"}</span>
-          </button>
-          {marcasAbiertas && (
-            <div className="px-3 pb-2">
-              <SelectorMarcas oscuro={dentro} />
-            </div>
-          )}
           {LINKS_DESPUES_DE_MARCAS.map((l) => (
             <Link
               key={l.href}

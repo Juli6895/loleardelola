@@ -13,12 +13,22 @@ import { abrirFiltros, useAccesoPromos, usePrendasFiltro } from "@/lib/filtros-p
  *
  * En gris si no puede ver las promociones (se le acabó la prueba).
  */
-export default function BotonFiltrosPromos({ oscuro = false, alTocar }: { oscuro?: boolean; alTocar?: () => void }) {
+export default function BotonFiltrosPromos({
+  oscuro = false,
+  alTocar,
+  conTexto = false,
+}: {
+  oscuro?: boolean;
+  alTocar?: () => void;
+  // En el menú del celular: una fila con "Filtros" y el número, en vez del ícono solo.
+  conTexto?: boolean;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const acceso = useAccesoPromos();
-  const cuantos =
-    (useMarcasFavoritas().length > 0 ? 1 : 0) + useTallasFavoritas().length + usePrendasFiltro().length;
+  // Cada marca, talla y tipo de prenda cuenta uno: el mismo número que
+  // ve en el panel y en "Mis marcas favoritas".
+  const cuantos = useMarcasFavoritas().length + useTallasFavoritas().length + usePrendasFiltro().length;
   const bloqueado = acceso !== null && !acceso.permitido;
   const ayuda = bloqueado
     ? acceso!.plan === "anonimo"
@@ -30,6 +40,27 @@ export default function BotonFiltrosPromos({ oscuro = false, alTocar }: { oscuro
     alTocar?.();
     if (pathname === "/" || pathname === "/promociones") abrirFiltros();
     else router.push("/promociones?filtros=1");
+  }
+
+  if (conTexto) {
+    return (
+      <button
+        type="button"
+        onClick={tocar}
+        disabled={bloqueado}
+        title={ayuda}
+        className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+          bloqueado ? "cursor-not-allowed opacity-40" : ""
+        } ${oscuro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"}`}
+      >
+        Filtros: prenda, talla y marcas
+        {cuantos > 0 && !bloqueado && (
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rosa-500 px-1.5 text-[11px] font-semibold text-white">
+            {cuantos}
+          </span>
+        )}
+      </button>
+    );
   }
 
   return (

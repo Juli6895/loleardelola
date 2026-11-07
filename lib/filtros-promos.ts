@@ -67,12 +67,20 @@ export function usePrendasFiltro(): string[] {
 
 export type AccesoPromos = { permitido: boolean; plan: "anonimo" | "gratis" | "membresia"; hasta: string | null };
 
-// Se pregunta una vez por visita, aunque lo usen la barra y la página.
+// Se comparte entre la barra y la página, pero solo por un rato: la app
+// instalada puede quedar abierta días, y si se guardara para siempre,
+// quien acaba de pagar la membresía seguiría viendo el bloqueo hasta
+// cerrar la app.
+const VIGENCIA_ACCESO_MS = 30_000;
 let pedido: Promise<AccesoPromos> | null = null;
+let pedidoEn = 0;
 export function pedirAccesoPromos(): Promise<AccesoPromos> {
-  pedido ??= fetchConDispositivo("/api/promos/acceso")
-    .then((r) => r.json() as Promise<AccesoPromos>)
-    .catch(() => ({ permitido: true, plan: "anonimo" as const, hasta: null }));
+  if (!pedido || Date.now() - pedidoEn > VIGENCIA_ACCESO_MS) {
+    pedidoEn = Date.now();
+    pedido = fetchConDispositivo("/api/promos/acceso")
+      .then((r) => r.json() as Promise<AccesoPromos>)
+      .catch(() => ({ permitido: true, plan: "anonimo" as const, hasta: null }));
+  }
   return pedido;
 }
 
@@ -81,9 +89,15 @@ export function useAccesoPromos(): AccesoPromos | null {
   const [acceso, setAcceso] = useState<AccesoPromos | null>(null);
   useEffect(() => {
     let vigente = true;
-    pedirAccesoPromos().then((a) => vigente && setAcceso(a));
+    const preguntar = () => pedirAccesoPromos().then((a) => vigente && setAcceso(a));
+    preguntar();
+    // Al volver a la app (de otra pestaña o del fondo del celular), se
+    // vuelve a preguntar: puede haber pagado mientras tanto.
+    const alVolver = () => document.visibilityState === "visible" && preguntar();
+    document.addEventListener("visibilitychange", alVolver);
     return () => {
       vigente = false;
+      document.removeEventListener("visibilitychange", alVolver);
     };
   }, []);
   return acceso;

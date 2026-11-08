@@ -3,6 +3,7 @@ import { crearCodigo, normalizarCorreo } from "@/lib/sesion";
 import { enviarCodigo } from "@/lib/email";
 import { contextoDe, registrar } from "@/lib/eventos";
 import { esCorreoDesechable } from "@/lib/correos-desechables";
+import { esCorreoBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
 
 // POST /api/auth/codigo  { email }
 // Manda un código de 6 dígitos al correo.
@@ -12,6 +13,12 @@ export async function POST(req: Request) {
     const correo = normalizarCorreo(body.email);
     if (!correo) {
       return NextResponse.json({ error: "Escribe un correo válido." }, { status: 400 });
+    }
+    // Cuentas eliminadas que no pueden volver (lib/correos-bloqueados.ts):
+    // no se les manda ni el código.
+    if (esCorreoBloqueado(correo)) {
+      registrar("ingreso_error", contextoDe(req), { motivo: "correo bloqueado" });
+      return NextResponse.json({ error: MENSAJE_CORREO_BLOQUEADO }, { status: 403 });
     }
     // Buzones de usar y botar: sirven para sacar pruebas gratis una tras
     // otra (ver lib/correos-desechables.ts).

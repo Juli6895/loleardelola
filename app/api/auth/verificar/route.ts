@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { normalizarCorreo, verificarCodigo, usuarioActual } from "@/lib/sesion";
 import { contextoDe, registrar } from "@/lib/eventos";
 import { supabaseAdmin } from "@/lib/supabase";
+import { esCorreoBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
 
 // POST /api/auth/verificar  { email, codigo }
 // Valida el código y deja la sesión abierta (cookie).
@@ -16,6 +17,11 @@ export async function POST(req: Request) {
         { error: "Revisa el correo y el código de 6 dígitos." },
         { status: 400 }
       );
+    }
+
+    if (esCorreoBloqueado(correo)) {
+      registrar("ingreso_error", contextoDe(req), { motivo: "correo bloqueado" });
+      return NextResponse.json({ error: MENSAJE_CORREO_BLOQUEADO }, { status: 403 });
     }
 
     const aceptaPolitica = body.aceptaPolitica === true;

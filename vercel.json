@@ -5,6 +5,10 @@
       "schedule": "0 13 * * *"
     },
     {
+      "path": "/api/membresia/revisar-pendientes",
+      "schedule": "30 13 * * *"
+    },
+    {
       "path": "/api/revisar-precios",
       "schedule": "0 14 * * *"
     },

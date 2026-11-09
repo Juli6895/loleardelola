@@ -6,6 +6,7 @@ import Navbar from "@/components/Navbar";
 import Providers from "@/components/Providers";
 import InstalarApp from "@/components/InstalarApp";
 import ErroresGlobales from "@/components/ErroresGlobales";
+import RevisarPagoPendiente from "@/components/RevisarPagoPendiente";
 import OtrasSecciones from "@/components/OtrasSecciones";
 import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
 
@@ -89,6 +90,7 @@ export default function RootLayout({
           </footer>
           <InstalarApp />
           <ErroresGlobales />
+          <RevisarPagoPendiente />
         </Providers>
       </body>
     </html>

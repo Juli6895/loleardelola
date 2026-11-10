@@ -135,6 +135,9 @@ export default function AdminPage() {
         <Numero etiqueta="Te queda (después de Bold)" valor={pesos(datos.dinero.netoEstimadoCop)} />
       </div>
 
+      {/* ---- Activar membresía a mano ---- */}
+      <SeccionActivarMembresia onCambio={cargar} />
+
       {/* ---- Cuentas creadas ---- */}
       <SeccionCuentas cuentas={datos.cuentas} />
 
@@ -706,6 +709,86 @@ function SeccionGastos({ gastos, falta, onCambio }: { gastos: Gasto[]; falta: bo
           )}
         </>
       </fieldset>
+    </Seccion>
+  );
+}
+
+/**
+ * Activar (o extender) una membresía a mano, después de ver el pago en
+ * la app de Bold: para cuando no se activó sola. Usa /api/admin/membresias
+ * (lib/admin.ts, activarMembresia): si le queda membresía, los días se
+ * suman a lo que le falta.
+ */
+function SeccionActivarMembresia({ onCambio }: { onCambio: () => Promise<unknown> }) {
+  const [correo, setCorreo] = useState("");
+  const [plan, setPlan] = useState<"mensual" | "anual">("mensual");
+  const [ocupado, setOcupado] = useState(false);
+  const [aviso, setAviso] = useState<{ ok: boolean; texto: string } | null>(null);
+  const campo = "mt-1 w-full rounded-xl border border-rosa-200 bg-white px-3 py-2 text-sm text-noche outline-none focus:border-rosa-400";
+
+  async function activar(e: React.FormEvent) {
+    e.preventDefault();
+    const limpio = correo.trim().toLowerCase();
+    if (!limpio) return;
+    if (!confirm(`¿Activar la membresía ${plan} a ${limpio}? Hazlo solo si ya viste el pago en Bold.`)) return;
+    setOcupado(true);
+    setAviso(null);
+    try {
+      const r = await fetchConDispositivo("/api/admin/membresias", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ correo: limpio, plan }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok || !j.ok) throw new Error(j.error ?? "No se pudo activar.");
+      const hasta = new Date(j.hasta).toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" });
+      setAviso({ ok: true, texto: `Listo: ${limpio} tiene membresía hasta el ${hasta}.` });
+      setCorreo("");
+      await onCambio();
+    } catch (err) {
+      setAviso({ ok: false, texto: (err as Error).message });
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <Seccion
+      titulo="Activar membresía a mano"
+      nota="Para cuando alguien pagó y no se le activó sola. Revisa primero el pago en la app de Bold. Si le queda membresía, los días se suman."
+    >
+      <form onSubmit={activar} className="grid grid-cols-1 gap-3 rounded-2xl bg-rosa-50/60 p-4 sm:grid-cols-6">
+        <label className="text-xs text-noche/60 sm:col-span-3">
+          Correo de la cuenta
+          <input
+            type="email"
+            required
+            value={correo}
+            onChange={(e) => setCorreo(e.target.value)}
+            placeholder="correo@ejemplo.com"
+            className={campo}
+          />
+        </label>
+        <label className="text-xs text-noche/60 sm:col-span-2">
+          Plan
+          <select className={campo} value={plan} onChange={(e) => setPlan(e.target.value as "mensual" | "anual")}>
+            <option value="mensual">Mensual (30 días)</option>
+            <option value="anual">Anual (365 días)</option>
+          </select>
+        </label>
+        <div className="flex items-end sm:col-span-1">
+          <button
+            type="submit"
+            disabled={ocupado || !correo.trim()}
+            className="w-full rounded-full bg-noche px-4 py-2 text-sm font-medium text-white transition hover:bg-rosa-500 disabled:opacity-40"
+          >
+            {ocupado ? "Activando..." : "Activar"}
+          </button>
+        </div>
+      </form>
+      {aviso && (
+        <p className={`mt-3 text-sm ${aviso.ok ? "text-noche" : "text-rosa-600"}`}>{aviso.texto}</p>
+      )}
     </Seccion>
   );
 }

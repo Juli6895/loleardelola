@@ -217,11 +217,13 @@ export default function TerminosPage() {
         <Lista>
           <li>
             Con la membresía, al tocar el corazón de una prenda te avisamos con una notificación en tu app si su
-            precio baja 10% o más desde que la marcaste. No es un mensaje de texto ni de WhatsApp.
+            precio baja 10% o más desde que la marcaste. Si la notificación no te puede llegar, te avisamos por
+            correo. No es un mensaje de texto ni de WhatsApp.
           </li>
           <li>
-            Para recibirla tienes que darle permiso a LoleardLola de enviarte notificaciones. En iPhone solo llegan
-            con la app instalada en la pantalla de inicio.
+            Para recibirla en el celular tienes que darle permiso a LoleardLola de enviarte notificaciones. En
+            iPhone solo llegan con la app instalada en la pantalla de inicio. Sin ese permiso, el aviso te llega
+            al correo de tu cuenta.
           </li>
           <li>
             Revisamos los precios una vez al día. Hacemos lo posible para que el aviso llegue, pero no podemos

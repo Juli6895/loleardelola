@@ -36,18 +36,15 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
   const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   const visibles = (marcas ?? []).filter((m) => sinTildes(m.nombre).includes(sinTildes(filtro)));
 
-  // Sin ninguna guardada se ven todas las marcas, así que todas las casillas
-  // salen marcadas: lo del menú es lo mismo que se ve en Promociones.
+  // Sin ninguna escogida se ven todas: eso lo dice la casilla "Todas las
+  // marcas", marcada. Cada marca se marca para escogerla: marcar dos o
+  // tres deja ver solo esas. (En noviembre de 2026 las casillas salían
+  // todas marcadas cuando no había filtro, y al tocar una marca para
+  // escogerla se desmarcaba: se veían todas MENOS esa.)
   const todas = escogidas.length === 0;
 
   function cambiar(dominio: string, marcada: boolean) {
-    if (!marcas) return;
-    const actuales = todas ? marcas.map((m) => m.dominio) : escogidas;
-    const nuevas = marcada ? [...actuales, dominio] : actuales.filter((d) => d !== dominio);
-    // Sin ninguna marcada no habría nada que mostrar: se deja la última.
-    if (nuevas.length === 0) return;
-    // Con todas marcadas se guarda "sin filtro", como antes.
-    guardarMarcas(nuevas.length >= marcas.length ? [] : nuevas);
+    guardarMarcas(marcada ? [...escogidas, dominio] : escogidas.filter((d) => d !== dominio));
   }
 
   const texto = oscuro ? "text-white" : "text-noche";
@@ -57,7 +54,7 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
     <div>
       <p className={`text-xs ${suave}`}>
         {todas
-          ? "Ahora ves todas las marcas. Quita las que no te gustan y en Promociones (Solo promociones y Ver todo) solo te mostramos las demás. En la búsqueda siguen apareciendo todas."
+          ? "Ahora ves todas las marcas. Marca las que te gustan y en Promociones (Solo promociones y Ver todo) solo te mostramos esas. En la búsqueda siguen apareciendo todas."
           : `En Promociones solo ves ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}. En la búsqueda siguen apareciendo todas.`}
       </p>
       <div className="mt-2 flex items-center gap-2">
@@ -79,14 +76,27 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
             onClick={() => guardarMarcas([])}
             className={`shrink-0 text-xs font-medium underline underline-offset-2 ${oscuro ? "text-rosa-300" : "text-rosa-600"}`}
           >
-            Marcar todas
+            Desmarcar todas
           </button>
         )}
       </div>
       <ul className="mt-2 max-h-72 space-y-0.5 overflow-y-auto pr-1">
         {marcas === null && <li className={`py-2 text-sm ${suave}`}>Cargando marcas...</li>}
+        {marcas !== null && !filtro && (
+          <li>
+            <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm font-semibold ${texto} ${oscuro ? "hover:bg-white/10" : "hover:bg-rosa-50"}`}>
+              <input
+                type="checkbox"
+                checked={todas}
+                onChange={() => guardarMarcas([])}
+                className="h-4 w-4 shrink-0 rounded border-rosa-300 text-rosa-500 focus:ring-rosa-400"
+              />
+              Todas las marcas
+            </label>
+          </li>
+        )}
         {visibles.map((m) => {
-          const marcada = todas || escogidas.includes(m.dominio);
+          const marcada = escogidas.includes(m.dominio);
           return (
             <li key={m.dominio}>
               <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm ${texto} ${oscuro ? "hover:bg-white/10" : "hover:bg-rosa-50"}`}>

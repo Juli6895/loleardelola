@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase";
-import { consultarPago } from "./bold";
+import { consultarPago, type Voucher } from "./bold";
 import { DIAS_DE_PLAN, PAQUETES_BUSQUEDAS, esPaquete, type TipoPlan } from "./planes";
 import { registrar, type ContextoEvento } from "./eventos";
 
@@ -32,7 +32,17 @@ export type ResultadoConfirmar =
 // cual y la orden no se volvía a revisar nunca.
 const FALLIDOS = ["REJECTED", "FAILED", "VOIDED"];
 
-export async function confirmarOrden(orden: string, ctx: ContextoEvento = {}): Promise<ResultadoConfirmar> {
+/**
+ * `avisoVerificado`: lo que dice un aviso de Bold con la firma ya
+ * comprobada (app/api/bold/webhook). Con eso no hace falta preguntarle a
+ * Bold: en los primeros minutos su consulta todavía puede responder que
+ * no encuentra la venta.
+ */
+export async function confirmarOrden(
+  orden: string,
+  ctx: ContextoEvento = {},
+  avisoVerificado?: Voucher
+): Promise<ResultadoConfirmar> {
   const sb = supabaseAdmin();
   const { data: pago } = await sb
     .from("pagos")
@@ -51,7 +61,7 @@ export async function confirmarOrden(orden: string, ctx: ContextoEvento = {}): P
   }
   if (pago.estado !== "pendiente") return { ok: false, estado: pago.estado };
 
-  const voucher = await consultarPago(orden);
+  const voucher = avisoVerificado ?? (await consultarPago(orden));
   if (!voucher) {
     return {
       ok: false,

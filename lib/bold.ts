@@ -160,3 +160,22 @@ export async function consultarPago(orden: string): Promise<Voucher | null> {
     clearTimeout(corte);
   }
 }
+
+/**
+ * ¿El aviso (webhook) lo mandó de verdad Bold? Bold firma cada aviso con
+ * HMAC-SHA256 del cuerpo en base64, usando la llave secreta del botón de
+ * pagos (en modo de pruebas, con una llave vacía), y manda la firma en
+ * el encabezado x-bold-signature. Ver developers.bold.co/webhook.
+ */
+export function avisoFirmadoPorBold(cuerpoCrudo: string, firma: string | null): boolean {
+  const k = llaves();
+  if (!k || !firma) return false;
+  const clave = k.pruebas ? "" : k.secreta;
+  const esperada = crypto
+    .createHmac("sha256", clave)
+    .update(Buffer.from(cuerpoCrudo, "utf8").toString("base64"))
+    .digest("hex");
+  const a = Buffer.from(esperada, "utf8");
+  const b = Buffer.from(firma.trim().toLowerCase(), "utf8");
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}

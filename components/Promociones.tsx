@@ -97,6 +97,13 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
     };
   }, [clave, marcas, filtros, acceso?.permitido]);
 
+  // Los nombres de las marcas, para decir cuáles de las escogidas no
+  // tienen promociones hoy (si no, parece que el filtro no las tomó).
+  const [nombres, setNombres] = useState<Map<string, string>>(new Map());
+  useEffect(() => {
+    cargarMarcas().then((ms) => setNombres(new Map(ms.map((m) => [m.dominio, m.nombre]))));
+  }, []);
+
   if (acceso && !acceso.permitido) return <Bloqueo plan={acceso.plan} />;
   const vacio = datos && datos.relacionadas.length === 0 && datos.marcas.length === 0;
   // Sin promos de ninguna tienda no se muestra nada; si es por un filtro
@@ -153,6 +160,11 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
       {vista === "promos" && misMarcas.length > 0 && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
           {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo promociones de tus marcas (${misMarcas.length}). `}
+          {datos && !vacio && (() => {
+            const conPromos = new Set(datos.marcas.map((g) => g.dominio));
+            const sinHoy = misMarcas.filter((d) => !conPromos.has(d)).map((d) => nombres.get(d) ?? d);
+            return sinHoy.length > 0 ? `Hoy no hay promociones de ${sinHoy.join(", ")}. ` : null;
+          })()}
           <button
             type="button"
             onClick={() => guardarMarcas([])}

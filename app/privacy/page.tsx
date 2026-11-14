@@ -60,7 +60,9 @@ export default function PrivacyPage() {
                   Al crear tu cuenta
                 </td>
                 <td className="py-2.5 text-noche/70">
-                  Identificar tu cuenta y mandarte el código para entrar. No
+                  Identificar tu cuenta, mandarte el código para entrar y, con la
+                  membresía, avisarte si baja de precio una prenda a la que le diste
+                  corazón (cuando la notificación no llega a tu celular). No
                   usamos contraseña: el código se guarda cifrado, nunca en
                   texto plano.
                 </td>
@@ -204,7 +206,7 @@ export default function PrivacyPage() {
             <strong>Cloudinary</strong> almacena las fotos que subes a la app.
           </li>
           <li>
-            <strong>Resend</strong> envía el correo con tu código para entrar.
+            <strong>Resend</strong> envía el correo con tu código para entrar y los avisos de rebaja por correo.
           </li>
           <li>
             <strong>Bold</strong> procesa el pago de tu membresía. Ve tus

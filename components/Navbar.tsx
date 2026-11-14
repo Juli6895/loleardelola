@@ -210,6 +210,25 @@ export default function Navbar() {
               )}
             </div>
           ))}
+          {/* Las marcas también aquí, a la mano: es la misma lista del panel de
+              Filtros y de Promociones (lib/marcas-favoritas.ts), así que lo que
+              se marque en un lado se ve igual en los otros. */}
+          <button
+            type="button"
+            onClick={() => setMarcasAbiertas((v) => !v)}
+            aria-expanded={marcasAbiertas}
+            className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm font-medium transition ${
+              dentro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"
+            }`}
+          >
+            {etiquetaMarcas}
+            <span aria-hidden className="text-xs">{marcasAbiertas ? "▲" : "▼"}</span>
+          </button>
+          {marcasAbiertas && (
+            <div className="px-3 pb-2">
+              <SelectorMarcas oscuro={dentro} />
+            </div>
+          )}
           {LINKS_DESPUES_DE_MARCAS.map((l) => (
             <Link
               key={l.href}

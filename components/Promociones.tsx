@@ -6,7 +6,7 @@ import type { ProductoTienda } from "@/lib/use-catalogo";
 import { anotar, anotarClicComercio } from "@/lib/use-evento";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
-import { guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import { cuantasMarcas, esNinguna, guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas, { cargarMarcas, type Marca } from "@/components/SelectorMarcas";
 import SugerirComercio from "@/components/SugerirComercio";
 import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
@@ -159,7 +159,11 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
 
       {vista === "promos" && misMarcas.length > 0 && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-          {vacio ? "Tus marcas no tienen promociones hoy. " : `Solo promociones de tus marcas (${misMarcas.length}). `}
+          {esNinguna(misMarcas)
+            ? "No tienes ninguna marca marcada: marca las que quieras en Filtros. "
+            : vacio
+              ? "Tus marcas no tienen promociones hoy. "
+              : `Solo promociones de tus marcas (${cuantasMarcas(misMarcas)}). `}
           {datos && !vacio && (() => {
             const conPromos = new Set(datos.marcas.map((g) => g.dominio));
             const sinHoy = misMarcas.filter((d) => !conPromos.has(d)).map((d) => nombres.get(d) ?? d);
@@ -373,8 +377,10 @@ function VerTodo({ misMarcas, filtros, onEscoger }: { misMarcas: string[]; filtr
   return (
     <div className="space-y-6">
       <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-        {misMarcas.length > 0
-          ? `Todas las prendas de tus marcas favoritas (${misMarcas.length}). `
+        {esNinguna(misMarcas)
+          ? "No tienes ninguna marca marcada. "
+          : misMarcas.length > 0
+          ? `Todas las prendas de tus marcas favoritas (${cuantasMarcas(misMarcas)}). `
           : "Estás viendo todas las marcas. "}
         <button type="button" onClick={onEscoger} className="font-medium text-rosa-600 underline-offset-2 hover:underline">
           {misMarcas.length > 0 ? "Cambiar mis marcas" : "Escoger mis marcas favoritas"}

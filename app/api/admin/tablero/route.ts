@@ -408,7 +408,7 @@ export async function GET(req: Request) {
     .not("marcas_favoritas", "is", null);
   const likes = (corazones ?? []).filter((c) => !idsPrueba.has(c.user_id));
   const favoritas = ((conFavoritas ?? []) as Array<{ id: string; marcas_favoritas: string[] | null }>).filter(
-    (u) => !idsPrueba.has(u.id) && (u.marcas_favoritas?.length ?? 0) > 0
+    (u) => !idsPrueba.has(u.id) && (u.marcas_favoritas ?? []).some((d) => d !== "ninguna")
   );
   // "Mi talla" de las promociones (users.tallas_favoritas, de la
   // migración de tallas; sin ella, vacío).
@@ -455,7 +455,7 @@ export async function GET(req: Request) {
   }
   for (const u of favoritas) {
     const edad = edadDe.get(u.id) ?? SIN_EDAD;
-    for (const d of u.marcas_favoritas ?? []) {
+    for (const d of (u.marcas_favoritas ?? []).filter((x) => x !== "ninguna")) {
       sumar(favoritasPorMarca, d, u.id);
       sumar(enEdad(favoritasPorEdad, edad), d, u.id);
     }

@@ -18,6 +18,17 @@ import { anotar } from "./use-evento";
 // =====================================================================
 
 const CLAVE = "loleardelola:marcas";
+
+/**
+ * Lo que se guarda cuando desmarcó todas: no ver ninguna marca hasta que
+ * marque alguna. (La lista vacía es lo contrario: todas.) No tiene punto,
+ * así que nunca choca con el dominio de una tienda, y en el servidor
+ * simplemente no coincide con ninguna promo.
+ */
+export const NINGUNA = "ninguna";
+export const esNinguna = (marcas: string[]) => marcas.length === 1 && marcas[0] === NINGUNA;
+/** Cuántas escogió: 0 si son todas o si desmarcó todas. */
+export const cuantasMarcas = (marcas: string[]) => (esNinguna(marcas) ? 0 : marcas.length);
 const EVENTO = "loleardelola:marcas-cambiaron";
 
 function leer(): string[] {
@@ -41,7 +52,7 @@ function guardarLocal(dominios: string[]): void {
 export function guardarMarcas(dominios: string[]): void {
   const unicas = Array.from(new Set(dominios));
   guardarLocal(unicas);
-  anotar("filtro_aplicado", { filtro: "marcas", cantidad: unicas.length });
+  anotar("filtro_aplicado", { filtro: "marcas", cantidad: cuantasMarcas(unicas) });
   fetchConDispositivo("/api/marcas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

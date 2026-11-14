@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 import { esAdmin } from "@/lib/admin-correos";
-import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import { cuantasMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
 import BotonFiltrosPromos from "@/components/BotonFiltrosPromos";
 
@@ -39,7 +39,7 @@ export default function Navbar() {
   // computador (ver components/SelectorMarcas.tsx).
   const [marcasAbiertas, setMarcasAbiertas] = useState(false);
   const misMarcas = useMarcasFavoritas();
-  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas favoritas (${misMarcas.length})` : "Mis marcas favoritas";
+  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas favoritas (${cuantasMarcas(misMarcas)})` : "Mis marcas favoritas";
   const { usuario, recargar } = useUsuario();
   const router = useRouter();
   const dentro = !!usuario?.conSesion;

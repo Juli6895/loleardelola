@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { guardarMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import { NINGUNA, esNinguna, guardarMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SugerirComercio from "@/components/SugerirComercio";
 
 export type Marca = { dominio: string; nombre: string };
@@ -20,9 +20,11 @@ export function cargarMarcas(): Promise<Marca[]> {
 }
 
 /**
- * "Mis marcas", en el menú: todas las marcas con una casilla. De las que
- * marque son las únicas promociones que le salen (ver
- * lib/marcas-favoritas.ts). Sin ninguna marcada, salen todas.
+ * "Mis marcas", en el menú: todas las marcas con una casilla. Las
+ * casillas marcadas son exactamente las marcas que salen en Promociones
+ * (ver lib/marcas-favoritas.ts): con "Todas las marcas" quedan todas
+ * marcadas, y con "Desmarcar todas" ninguna, para marcar solo las que
+ * quiera.
  */
 export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean }) {
   const [marcas, setMarcas] = useState<Marca[] | null>(null);
@@ -36,15 +38,20 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
   const sinTildes = (t: string) => t.toLowerCase().normalize("NFD").replace(/\p{Diacritic}/gu, "");
   const visibles = (marcas ?? []).filter((m) => sinTildes(m.nombre).includes(sinTildes(filtro)));
 
-  // Sin ninguna escogida se ven todas: eso lo dice la casilla "Todas las
-  // marcas", marcada. Cada marca se marca para escogerla: marcar dos o
-  // tres deja ver solo esas. (En noviembre de 2026 las casillas salían
-  // todas marcadas cuando no había filtro, y al tocar una marca para
-  // escogerla se desmarcaba: se veían todas MENOS esa.)
+  // Lo marcado es lo que se ve. Guardado: [] = todas (lo de siempre),
+  // [NINGUNA] = ninguna, o la lista de las escogidas.
   const todas = escogidas.length === 0;
+  const ninguna = esNinguna(escogidas);
+  const marcadas = new Set(todas ? (marcas ?? []).map((m) => m.dominio) : ninguna ? [] : escogidas);
 
   function cambiar(dominio: string, marcada: boolean) {
-    guardarMarcas(marcada ? [...escogidas, dominio] : escogidas.filter((d) => d !== dominio));
+    if (!marcas) return;
+    const nuevas = new Set(marcadas);
+    if (marcada) nuevas.add(dominio);
+    else nuevas.delete(dominio);
+    if (nuevas.size === 0) guardarMarcas([NINGUNA]);
+    else if (nuevas.size >= marcas.length) guardarMarcas([]);
+    else guardarMarcas(Array.from(nuevas));
   }
 
   const texto = oscuro ? "text-white" : "text-noche";
@@ -54,8 +61,10 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
     <div>
       <p className={`text-xs ${suave}`}>
         {todas
-          ? "Ahora ves todas las marcas. Marca las que te gustan y en Promociones (Solo promociones y Ver todo) solo te mostramos esas. En la búsqueda siguen apareciendo todas."
-          : `En Promociones solo ves ${escogidas.length === 1 ? "1 marca" : `${escogidas.length} marcas`}. En la búsqueda siguen apareciendo todas.`}
+          ? "Ves todas las marcas. Para ver solo algunas, toca Desmarcar todas y marca las que te gustan. En la búsqueda siguen apareciendo todas."
+          : ninguna
+            ? "No tienes ninguna marca marcada: marca las que te gustan y en Promociones (Solo promociones y Ver todo) solo te mostramos esas."
+            : `En Promociones solo ves ${marcadas.size === 1 ? "1 marca" : `${marcadas.size} marcas`}. En la búsqueda siguen apareciendo todas.`}
       </p>
       <div className="mt-2 flex items-center gap-2">
         <input
@@ -70,10 +79,10 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
               : "border-rosa-200 bg-rosa-50/40 text-noche focus:border-rosa-400 focus:bg-white"
           }`}
         />
-        {!todas && (
+        {!ninguna && (
           <button
             type="button"
-            onClick={() => guardarMarcas([])}
+            onClick={() => guardarMarcas([NINGUNA])}
             className={`shrink-0 text-xs font-medium underline underline-offset-2 ${oscuro ? "text-rosa-300" : "text-rosa-600"}`}
           >
             Desmarcar todas
@@ -88,7 +97,7 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
               <input
                 type="checkbox"
                 checked={todas}
-                onChange={() => guardarMarcas([])}
+                onChange={(e) => guardarMarcas(e.target.checked ? [] : [NINGUNA])}
                 className="h-4 w-4 shrink-0 rounded border-rosa-300 text-rosa-500 focus:ring-rosa-400"
               />
               Todas las marcas
@@ -96,7 +105,7 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
           </li>
         )}
         {visibles.map((m) => {
-          const marcada = escogidas.includes(m.dominio);
+          const marcada = marcadas.has(m.dominio);
           return (
             <li key={m.dominio}>
               <label className={`flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-sm ${texto} ${oscuro ? "hover:bg-white/10" : "hover:bg-rosa-50"}`}>

@@ -104,7 +104,7 @@ export async function activarNotificaciones(): Promise<string | null> {
 
   const permiso = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
   if (permiso !== "granted") {
-    return "Sin permiso de notificaciones no te podemos avisar. Actívalo en la configuración del navegador para LoleardLola.";
+    return "Para que también te llegue al celular, activa las notificaciones de LoleardLola en la configuración del navegador.";
   }
 
   let sub: PushSubscription;

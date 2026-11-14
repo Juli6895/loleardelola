@@ -60,12 +60,11 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
         return;
       }
 
-      const problema = await activarNotificaciones();
-      if (problema) {
-        anotar("aviso_error", { paso: "notificaciones", motivo: problema.slice(0, 160) });
-        toast.error(problema, { duration: 8000 });
-        return;
-      }
+      // Primero se guarda el me gusta: el corazón queda rojo aunque el
+      // celular no deje mandar notificaciones. Antes se pedía el permiso
+      // primero y, si estaba bloqueado, no se guardaba nada (noviembre de
+      // 2026: ningún corazón llegó a guardarse). Sin notificaciones el
+      // aviso igual llega, por correo (ver app/api/revisar-precios).
       const res = await fetchConDispositivo("/api/seguimientos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -77,6 +76,13 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
         throw new Error(json.error ?? "No pudimos guardar el aviso.");
       }
       marcarSeguida(prenda.url, true);
+
+      const problema = await activarNotificaciones();
+      if (problema) {
+        anotar("aviso_error", { paso: "notificaciones", motivo: problema.slice(0, 160) });
+        toast(`Listo: si baja de precio te avisamos por correo. ${problema}`, { duration: 9000 });
+        return;
+      }
       toast.success("Listo: te avisamos si baja de precio");
     } catch (err: any) {
       anotar("aviso_error", { paso: "otro", motivo: String(err?.name ?? "") + ": " + String(err?.message ?? "").slice(0, 160) });
@@ -94,10 +100,11 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
       aria-label={seguida ? "Quitar el me gusta y dejar de avisarme si baja" : "Me gusta: avísame si baja de precio"}
       title={seguida ? "Te gusta: te avisamos si baja. Toca para quitarlo." : "Me gusta: avísame si baja"}
       className={`absolute right-1.5 top-1.5 z-10 flex h-8 w-8 items-center justify-center rounded-full shadow-sm transition ${
-        seguida ? "bg-rosa-500 text-white" : "bg-white/90 text-noche/60 hover:bg-white hover:text-rosa-600"
+        // Con me gusta: el corazón relleno en rojo (pedido de Juliana).
+        seguida ? "bg-white text-red-500" : "bg-white/90 text-noche/60 hover:bg-white hover:text-red-500"
       } ${ocupado ? "opacity-60" : ""} ${estado.puede ? "" : "opacity-80"}`}
     >
-      <svg viewBox="0 0 24 24" fill={seguida ? "currentColor" : "none"} className="h-4 w-4" aria-hidden>
+      <svg viewBox="0 0 24 24" fill={seguida ? "currentColor" : "none"} className={seguida ? "h-5 w-5" : "h-4 w-4"} aria-hidden>
         <path
           d="M12 20s-7.5-4.6-9.2-9.3C1.7 7.4 3.9 4.5 7 4.5c2 0 3.4 1.2 5 3 1.6-1.8 3-3 5-3 3.1 0 5.3 2.9 4.2 6.2C19.5 15.4 12 20 12 20Z"
           stroke="currentColor"

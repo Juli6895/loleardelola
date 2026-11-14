@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { precioActual } from "@/lib/precios";
 import { notificar } from "@/lib/push";
+import { enviarAvisoRebaja } from "@/lib/email";
 import { esAdmin } from "@/lib/admin-correos";
 import { registrar } from "@/lib/eventos";
 
@@ -14,6 +15,10 @@ import { registrar } from "@/lib/eventos";
 //
 // Se compara contra el precio que ELLA vio, no contra el "antes" que
 // muestra la tienda: hay tiendas con "antes" en casi todo el catálogo.
+//
+// Si la notificación no le llegó a ningún celular ni navegador (no dio
+// permiso, se dio de baja, el navegador no las recibe), se le manda el
+// mismo aviso por correo: así siempre le llega.
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
@@ -48,6 +53,10 @@ export async function GET(req: Request) {
     const u = Array.isArray(s.users) ? s.users[0] : s.users;
     return (u?.premium_until && new Date(u.premium_until) > ahora) || esAdmin(u?.email);
   });
+  const correoDe = (s: any): string | null => {
+    const u = Array.isArray(s.users) ? s.users[0] : s.users;
+    return u?.email ?? null;
+  };
 
   let revisadas = 0;
   let avisos = 0;
@@ -66,14 +75,17 @@ export async function GET(req: Request) {
 
         if (bajo) {
           const porcentaje = Math.round((1 - hoy.precioCop / s.precio_inicial) * 100);
-          const llegaron = await notificar(s.user_id, {
+          const aviso = {
             titulo: `¡Bajó ${porcentaje}%! ${s.titulo}`,
             cuerpo: `En ${s.tienda}: ahora ${pesos(hoy.precioCop)} (la viste en ${pesos(s.precio_inicial)}).`,
             url: s.url,
             imagen: s.imagen,
-          });
-          if (llegaron > 0) avisos++;
-          registrar("aviso_rebaja_enviado", { userId: s.user_id }, { porcentaje, llegaron });
+          };
+          const llegaron = await notificar(s.user_id, aviso);
+          const correo = correoDe(s);
+          const porCorreo = llegaron === 0 && correo ? (await enviarAvisoRebaja(correo, aviso)).enviado : false;
+          if (llegaron > 0 || porCorreo) avisos++;
+          registrar("aviso_rebaja_enviado", { userId: s.user_id }, { porcentaje, llegaron, porCorreo });
         }
 
         await sb

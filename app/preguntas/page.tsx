@@ -295,7 +295,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
           <p>
             Tócalo en una prenda de tienda que te guste y, si baja de precio 10% o más, te llega una
             notificación en tu app (no es un mensaje de texto ni de WhatsApp). Es parte de la membresía. La primera vez el celular te pregunta si
-            LoleardLola puede enviarte notificaciones: dale Permitir. Las prendas que sigues están en Mis
+            LoleardLola puede enviarte notificaciones: dale Permitir. Si no le das permiso, el aviso te llega al
+            correo de tu cuenta. Las prendas que sigues están en Mis
             outfits.
           </p>
         ),

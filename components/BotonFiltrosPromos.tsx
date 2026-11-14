@@ -38,7 +38,8 @@ export default function BotonFiltrosPromos({
 
   function tocar() {
     alTocar?.();
-    if (pathname === "/" || pathname === "/promociones") abrirFiltros();
+    // Solo /promociones tiene el panel: el inicio ya no muestra las promos.
+    if (pathname === "/promociones") abrirFiltros();
     else router.push("/promociones?filtros=1");
   }
 

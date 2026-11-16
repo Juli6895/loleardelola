@@ -1,7 +1,8 @@
-import { tiendasParaPromos, tipoNormalizado } from "./catalogo-tiendas";
+import { tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
 import {
   filaShopify,
   filaVtex,
+  filaWoo,
   pagina,
   tramoVtex,
   type Fila,
@@ -40,6 +41,13 @@ async function paginaShopify(t: Tienda, n: number): Promise<ProductoShopify[] | 
   // /products.json ya viene de lo más reciente a lo más viejo. (El de
   // /collections/all viene por orden alfabético y no hace caso a sort_by.)
   return pagina(`https://${t.host}/products.json?limit=${POR_PAGINA}&page=${n}`, sacar);
+}
+
+async function paginaWoo(t: Tienda, n: number): Promise<ProductoWoo[] | null> {
+  return pagina(
+    `https://${t.host}/wp-json/wc/store/v1/products?orderby=date&order=desc&per_page=${POR_PAGINA}&page=${n}`,
+    (d) => (Array.isArray(d) ? (d as ProductoWoo[]) : [])
+  );
 }
 
 async function paginaVtex(t: Tienda, n: number): Promise<ProductoVtex[] | null> {
@@ -94,11 +102,17 @@ export async function prendasDeLaMarca(
 
   let n = desde;
   for (let leidas = 0; leidas < PAGINAS_MAX && salida.size < MINIMO; leidas++, n++) {
-    const productos = t.plataforma === "shopify" ? await paginaShopify(t, n) : await paginaVtex(t, n);
+    const productos =
+      t.plataforma === "shopify" ? await paginaShopify(t, n) : t.plataforma === "woo" ? await paginaWoo(t, n) : await paginaVtex(t, n);
     // La tienda no respondió: se muestra lo que alcanzó a llegar.
     if (!productos) return { prendas: Array.from(salida.values()), siguiente: null };
     for (const p of productos) {
-      const f = t.plataforma === "shopify" ? filaShopify(t, p as ProductoShopify, null) : filaVtex(t, p as ProductoVtex, null);
+      const f =
+        t.plataforma === "shopify"
+          ? filaShopify(t, p as ProductoShopify, null)
+          : t.plataforma === "woo"
+            ? filaWoo(t, p as ProductoWoo, null)
+            : filaVtex(t, p as ProductoVtex, null);
       const promo = f && aPromo(f, buscados, conTalla);
       // VTEX repite prendas entre páginas.
       if (promo && !salida.has(promo.url.split("?")[0])) salida.set(promo.url.split("?")[0], promo);

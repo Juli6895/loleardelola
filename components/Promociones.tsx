@@ -8,6 +8,8 @@ import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
 import { cuantasMarcas, esNinguna, guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas, { cargarMarcas, type Marca } from "@/components/SelectorMarcas";
+import BanderaColombia from "@/components/BanderaColombia";
+import { esColombiana } from "@/lib/marcas-colombianas";
 import SugerirComercio from "@/components/SugerirComercio";
 import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
 import {
@@ -279,7 +281,10 @@ function Marca({ grupo, tipos, filtros }: { grupo: Grupo; tipos: string; filtros
   return (
     <div>
       <p className="flex items-baseline gap-2 text-sm">
-        <span className="font-semibold text-noche">{grupo.tienda}</span>
+        <span className="inline-flex items-center gap-1.5 font-semibold text-noche">
+          {grupo.tienda}
+          {esColombiana(grupo.dominio) && <BanderaColombia />}
+        </span>
         <span className="text-noche/40">
           {grupo.total} {grupo.total === 1 ? "promo" : "promos"}
         </span>
@@ -464,7 +469,10 @@ function MarcaTodo({ marca, filtros, deUna }: { marca: Marca; filtros: string; d
 
   return (
     <div ref={ref}>
-      <p className="text-sm font-semibold text-noche">{marca.nombre}</p>
+      <p className="flex items-center gap-1.5 text-sm font-semibold text-noche">
+        {marca.nombre}
+        {esColombiana(marca.dominio) && <BanderaColombia />}
+      </p>
       <div className={`mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4 ${abierta ? "lg:grid-cols-5" : ""}`}>
         {visibles
           ? visibles.map((p) => <Tarjeta key={p.url} p={p} />)

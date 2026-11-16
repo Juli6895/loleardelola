@@ -1,6 +1,14 @@
 import { supabaseAdmin } from "./supabase";
 import { registrar } from "./eventos";
-import { clasificarPrenda, precioDeVariantes, tiendasParaPromos, type VarianteShopify } from "./catalogo-tiendas";
+import {
+  clasificarPrenda,
+  precioDeVariantes,
+  precioWoo,
+  sinEntidades,
+  tiendasParaPromos,
+  type ProductoWoo,
+  type VarianteShopify,
+} from "./catalogo-tiendas";
 
 // =====================================================================
 // Revisión diaria de promociones
@@ -227,6 +235,66 @@ async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_A_LA_VEZ
   return { filas, completa: true };
 }
 
+// ---------------------------------------------------------- WooCommerce
+/** Igual que filaShopify, para una prenda de WooCommerce. */
+export function filaWoo(t: Tienda, p: ProductoWoo, minimo: number | null): Fila | null {
+  if (!p.name || !p.permalink || !p.is_in_stock) return null;
+  const { precio, antes } = precioWoo(p);
+  if (!(precio > 0)) return null;
+  if (minimo !== null && (!antes || porcentaje(precio, antes) <= minimo)) return null;
+  const titulo = sinEntidades(p.name);
+  const tipo = clasificarPrenda({
+    dominio: t.dominio,
+    titulo,
+    clase: (p.categories ?? []).map((c) => c.name ?? "").join(" "),
+    tags: (p.tags ?? []).map((x) => x.name ?? ""),
+    descripcion: p.description ?? "",
+  });
+  const imagen = p.images?.[0]?.src ?? null;
+  if (!tipo || !imagen) return null;
+  // La API no dice el precio ni si hay de cada talla: todas al mismo precio.
+  const atributo = p.attributes?.find((a) => ES_OPCION_DE_TALLA.test(a.name ?? ""));
+  const tallas = atributo
+    ? juntarTallas((atributo.terms ?? []).map((x) => ({ talla: normalizarTalla(x.name), precio, antes, q: "" })))
+    : null;
+  return {
+    url: p.permalink,
+    dominio: t.dominio,
+    tienda: t.nombre,
+    titulo,
+    imagen,
+    tipo,
+    precio_cop: precio,
+    precio_antes_cop: antes,
+    descuento: antes ? 1 - precio / antes : 0,
+    tallas,
+  };
+}
+
+const POR_PAGINA_WOO = 100;
+
+async function promosWoo(t: Tienda, hasta: number): Promise<Lectura> {
+  const filas: Fila[] = [];
+  for (let n = 1; n <= 50; n++) {
+    if (Date.now() > hasta) return { filas, completa: false };
+    // on_sale: solo lo rebajado, así se leen muchas menos páginas.
+    const productos = await pagina(
+      `https://${t.host}/wp-json/wc/store/v1/products?on_sale=true&per_page=${POR_PAGINA_WOO}&page=${n}`,
+      (d) => (Array.isArray(d) ? (d as ProductoWoo[]) : [])
+    );
+    if (productos === null) {
+      if (n === 1) throw new Error(`no respondió (${ultimoError.get(t.host) ?? "sin detalle"})`);
+      return { filas, completa: false };
+    }
+    for (const p of productos) {
+      const fila = filaWoo(t, p, MINIMO_PORCENTAJE);
+      if (fila) filas.push(fila);
+    }
+    if (productos.length < POR_PAGINA_WOO) return { filas, completa: true };
+  }
+  return { filas, completa: true };
+}
+
 // ------------------------------------------------------------------- VTEX
 export type ProductoVtex = {
   productName?: string;
@@ -385,7 +453,11 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
   return Promise.all(
     tiendas.map(async (t): Promise<ResumenTienda> => {
       const leer = (aLaVez?: number) =>
-        t.plataforma === "shopify" ? promosShopify(t, hasta, aLaVez) : promosVtex(t, hasta);
+        t.plataforma === "shopify"
+          ? promosShopify(t, hasta, aLaVez)
+          : t.plataforma === "woo"
+            ? promosWoo(t, hasta)
+            : promosVtex(t, hasta);
       try {
         let lectura: Lectura;
         try {
@@ -416,5 +488,5 @@ export async function leerPromosDeTienda(dominio: string): Promise<Lectura | nul
   const t = tiendasParaPromos().find((x) => x.dominio === dominio);
   if (!t) return null;
   const hasta = Date.now() + TIEMPO_MS;
-  return t.plataforma === "shopify" ? promosShopify(t, hasta) : promosVtex(t, hasta);
+  return t.plataforma === "shopify" ? promosShopify(t, hasta) : t.plataforma === "woo" ? promosWoo(t, hasta) : promosVtex(t, hasta);
 }

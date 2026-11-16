@@ -101,7 +101,6 @@ tennis_sa | Tennis | top,bottom,vestido,abrigo,accesorio | Medellín | tennis.co
 geffrance | GEF | top,bottom,vestido,abrigo,calzado,accesorio | Medellín | gef.co
 mercedescampuzano | Mercedes Campuzano | top,bottom,vestido,abrigo,calzado,accesorio | Medellín | mercedescampuzano.com
 aguabenditasw | Agua Bendita | top,bottom,vestido,abrigo,accesorio | Medellín | aguabendita.com.co
-ondademar | Onda de Mar | top,bottom,vestido,abrigo,accesorio | Medellín | ondademar.co
 maaji | Maaji | vestido,bottom | Medellín | maaji.com.co
 stopjeans_ | Stop Jeans | top,bottom,vestido,abrigo,accesorio | Medellín | stopjeans.com.co
 raggedstores | Ragged | top,bottom,vestido,abrigo | Antioquia | ragged.com.co

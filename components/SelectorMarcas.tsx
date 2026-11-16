@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { NINGUNA, esNinguna, guardarMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SugerirComercio from "@/components/SugerirComercio";
+import BanderaColombia from "@/components/BanderaColombia";
+import { esColombiana } from "@/lib/marcas-colombianas";
 
 export type Marca = { dominio: string; nombre: string };
 
@@ -115,7 +117,10 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
                   onChange={(e) => cambiar(m.dominio, e.target.checked)}
                   className="h-4 w-4 shrink-0 rounded border-rosa-300 text-rosa-500 focus:ring-rosa-400"
                 />
-                {m.nombre}
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {m.nombre}
+                  {esColombiana(m.dominio) && <BanderaColombia />}
+                </span>
               </label>
             </li>
           );
@@ -124,6 +129,9 @@ export default function SelectorMarcas({ oscuro = false }: { oscuro?: boolean })
           <li className={`px-2 py-1.5 text-sm ${suave}`}>No tenemos esa marca todavía.</li>
         )}
       </ul>
+      <p className={`mt-2 flex items-center gap-1.5 text-[11px] ${suave}`}>
+        <BanderaColombia /> Marca colombiana
+      </p>
       <div className={`mt-2 border-t pt-2 ${oscuro ? "border-white/10" : "border-rosa-100"}`}>
         <SugerirComercio forma="linea" origen="mis_marcas" oscuro={oscuro} />
       </div>

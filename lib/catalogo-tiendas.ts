@@ -66,7 +66,50 @@ type TiendaVtex = {
   host?: string;
   soloTipos?: string[];
 };
-type Tienda = TiendaShopify | TiendaVtex;
+// WooCommerce (WordPress): su API pública de la tienda,
+// /wp-json/wc/store/v1/products. No tiene buscador por similitud como
+// Shopify y VTEX: sale en promociones, "Ver todo" y los avisos, pero no
+// en la búsqueda por foto.
+type TiendaWoo = {
+  plataforma: "woo";
+  dominio: string;
+  nombre: string;
+  host?: string;
+  soloTipos?: string[];
+};
+type Tienda = TiendaShopify | TiendaVtex | TiendaWoo;
+export type Plataforma = Tienda["plataforma"];
+
+/** Una prenda de WooCommerce, como la entrega su API de la tienda. */
+export type ProductoWoo = {
+  name?: string;
+  permalink?: string;
+  is_in_stock?: boolean;
+  prices?: { price?: string; regular_price?: string; currency_minor_unit?: number };
+  images?: Array<{ src?: string }>;
+  categories?: Array<{ name?: string }>;
+  tags?: Array<{ name?: string }>;
+  attributes?: Array<{ name?: string; terms?: Array<{ name?: string }> }>;
+  description?: string;
+};
+
+/** Precio y "antes" en pesos (la API los da en la unidad mínima). */
+export function precioWoo(p: ProductoWoo): { precio: number; antes: number | null } {
+  const div = 10 ** (p.prices?.currency_minor_unit ?? 0);
+  const precio = Math.round(Number(p.prices?.price) / div);
+  const regular = Math.round(Number(p.prices?.regular_price) / div);
+  return { precio, antes: regular > precio ? regular : null };
+}
+
+/** WordPress manda los nombres con entidades (&#8211;, &amp;). */
+export function sinEntidades(t: string): string {
+  return t
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#0?39;|&apos;/g, "'")
+    .trim();
+}
 
 const SOLO_ROPA_BASICA = ["pantalon", "camisa", "blusa", "camiseta", "vestido", "falda"];
 
@@ -115,7 +158,6 @@ const TIENDAS: Tienda[] = [
   // prendas, a pedido de Juliana. Hush Puppies, Clemont y Mussi se
   // quitaron de la lista.
   { plataforma: "shopify", dominio: "aguabendita.com.co", nombre: "Agua Bendita", soloTipos: SOLO_ROPA_BASICA },
-  { plataforma: "shopify", dominio: "ondademar.co", nombre: "Onda de Mar" },
   { plataforma: "shopify", dominio: "maaji.com.co", nombre: "Maaji", soloTipos: SOLO_ROPA_BASICA },
   { plataforma: "shopify", dominio: "stopjeans.com.co", nombre: "Stop Jeans" },
   { plataforma: "shopify", dominio: "camiloalvarez.co", nombre: "Camilo Álvarez" },
@@ -157,6 +199,13 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "mhorayma.com", nombre: "Mhorayma" },
   { plataforma: "shopify", dominio: "molgoa.com", nombre: "Molgoa" },
   { plataforma: "shopify", dominio: "vidamia.co", nombre: "Vida Mía" },
+  // Pepita Pérez (Bucaramanga): WooCommerce, ver TiendaWoo.
+  { plataforma: "woo", dominio: "pepitaperez.co", nombre: "Pepita Pérez" },
+  // H&M Colombia: VTEX en co.hm.com. Mezcla hombre y niños: los descarta
+  // ES_DE_HOMBRE_O_NINO por la categoría ("/HOMBRE/...", "/NIÑOS/...").
+  // Onda de Mar se quitó (noviembre de 2026). Zara y Mango no se pueden:
+  // bloquean el acceso automático (verificación anti-robots y 429).
+  { plataforma: "vtex", dominio: "co.hm.com", nombre: "H&M" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.
@@ -826,7 +875,9 @@ export async function buscarEnCatalogos(
     tiendas.flatMap((t) =>
       t.plataforma === "shopify"
         ? consultas.shopify.map((q) => buscarShopify(t, q))
-        : consultas.vtex.map((q) => buscarVtex(t, q))
+        : t.plataforma === "vtex"
+          ? consultas.vtex.map((q) => buscarVtex(t, q))
+          : []
     )
   );
 
@@ -968,7 +1019,7 @@ export async function buscarPromos(tipos: string[], maximo = 12, porTiendaMax = 
 }
 
 /** La tienda de la lista a la que pertenece una URL, si es de alguna. */
-export function tiendaDeUrl(url: string): { plataforma: "shopify" | "vtex"; dominio: string; nombre: string } | null {
+export function tiendaDeUrl(url: string): { plataforma: Plataforma; dominio: string; nombre: string } | null {
   let host: string;
   try {
     host = new URL(url).hostname.replace(/^www\./, "");
@@ -980,7 +1031,7 @@ export function tiendaDeUrl(url: string): { plataforma: "shopify" | "vtex"; domi
 }
 
 /** Las tiendas de las que se lee el catálogo (para el tablero). */
-export function tiendasConCatalogo(): Array<{ dominio: string; nombre: string; plataforma: "shopify" | "vtex" }> {
+export function tiendasConCatalogo(): Array<{ dominio: string; nombre: string; plataforma: Plataforma }> {
   return TIENDAS.map((t) => ({ dominio: t.dominio, nombre: t.nombre, plataforma: t.plataforma }));
 }
 
@@ -989,7 +1040,7 @@ export function tiendasConCatalogo(): Array<{ dominio: string; nombre: string; p
 // =====================================================================
 
 /** Las tiendas de la lista, con el host al que hay que preguntarle. */
-export function tiendasParaPromos(): Array<{ plataforma: "shopify" | "vtex"; dominio: string; nombre: string; host: string }> {
+export function tiendasParaPromos(): Array<{ plataforma: Plataforma; dominio: string; nombre: string; host: string }> {
   return TIENDAS.map((t) => ({ plataforma: t.plataforma, dominio: t.dominio, nombre: t.nombre, host: t.host ?? t.dominio }));
 }
 

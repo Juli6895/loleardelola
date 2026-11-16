@@ -112,7 +112,10 @@ REGLAS:
    - tipo: el tipo de prenda solo, sin color ni estilo (ej: "top corset", "jean", "collar")
    - color: el color principal de ESA prenda (ej: "negro")
    - detalle: textura/estampado/acabado (ej: "pedrería", "rayas", "cuero", "satinado")
-   - corte: la silueta, SIN el largo (ej: "entallado", "línea A", "recto", "oversize", "wide leg", "ajustado")
+   - corte: la silueta, SIN el largo (ej: "entallado", "línea A", "recto", "oversize", "wide leg", "ajustado"). Es lo que más decide si dos prendas se parecen: míralo con cuidado y usa la palabra más precisa.
+     · Pantalones y jeans: la pierna ("wide leg", "palazzo", "culotte", "recto", "skinny", "acampanado" o "flare", "mom", "jogger", "cargo") y SIEMPRE el tiro si se ve la cintura ("tiro alto", "tiro medio", "tiro bajo"). Ej: "wide leg tiro alto".
+     · Vestidos y faldas: "línea A" (se abre desde la cintura), "ajustado" (pegado al cuerpo, tipo tubo o lápiz), "recto" (cae sin marcar), "plisado", "globo", "cruzado" o "camisero". En faldas, también el tiro si se ve.
+     · Prendas de arriba: el ajuste ("oversize", "holgado", "ajustado", "entallado", "cropped" si es corta y deja ver el abdomen).
    - largo: qué tan larga es (ej: "mini", "midi", "maxi", "a la rodilla", "cropped", "tobillero")
    - escote: escote o cuello (ej: "en V", "halter", "strapless", "barco", "redondo", "cuadrado", "corazón")
    - manga: tipo de manga (ej: "sin mangas", "tirantes finos", "manga corta", "manga 3/4", "manga larga", "abullonada", "farol")
@@ -195,7 +198,7 @@ const REPORT_TOOL: Anthropic.Tool = {
             },
             color: { type: "string", description: "Color principal en español, una palabra si se puede." },
             detalle: { type: "string", description: "Textura/estampado/acabado. Ej: 'pedrería', 'rayas', 'cuero', 'satinado'." },
-            corte: { type: "string", description: "Silueta SIN el largo. Ej: 'entallado', 'línea A', 'recto', 'oversize', 'wide leg'." },
+            corte: { type: "string", description: "Silueta SIN el largo, con la palabra más precisa. En pantalones y faldas incluye el tiro si se ve. Ej: 'wide leg tiro alto', 'línea A', 'ajustado', 'recto', 'oversize', 'skinny', 'acampanado'." },
             largo: { type: "string", description: "Largo de la prenda. Ej: 'mini', 'midi', 'maxi', 'a la rodilla', 'cropped'." },
             escote: { type: "string", description: "Escote o cuello. Ej: 'en V', 'halter', 'strapless', 'barco', 'redondo', 'corazón'." },
             manga: { type: "string", description: "Tipo de manga. Ej: 'sin mangas', 'tirantes finos', 'manga corta', 'manga 3/4', 'manga larga', 'abullonada'." },

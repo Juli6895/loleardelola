@@ -1,4 +1,5 @@
 import { detallesEn, patronesDe } from "./detalles-distintivos";
+import { consultaDeForma, formaPedida, puntosDeForma } from "./forma-prendas";
 
 // =====================================================================
 // Búsqueda dentro del catálogo propio de las tiendas
@@ -813,7 +814,8 @@ function frasesDe(rasgo: string): string[] {
 function consultasPara(
   tipo: string,
   color: string | null,
-  estampado: string | null
+  estampado: string | null,
+  forma: string | null = null
 ): { shopify: string[]; vtex: string[] } {
   const tipos = tiposDe(tipo);
   // El estampado va en su propia consulta: si solo se pregunta "falda",
@@ -821,14 +823,20 @@ function consultasPara(
   // pueden no estar entre ellas.
   const conEstampado = estampado ? tipos.map((t) => `${t} ${estampado}`) : [];
   if (!color) {
-    return { shopify: [...tipos, ...conEstampado], vtex: [...tipos, ...conEstampado] };
+    // La forma también, por lo mismo: "pantalón" solo no trae los wide leg.
+    const conForma = forma ? [`${tipos[0]} ${forma}`] : [];
+    return { shopify: [...tipos, ...conEstampado, ...conForma], vtex: [...tipos, ...conEstampado, ...conForma] };
   }
   const c = colorParaBuscar(color);
   const recortado = /[oa]$/.test(c) && c.length > 3 ? c.slice(0, -1) : c;
   const formas = /o$/.test(c) ? [c, c.slice(0, -1) + "a"] : [c];
   return {
-    shopify: [...tipos.map((t) => `${t} ${recortado}`), ...conEstampado],
-    vtex: [...tipos.flatMap((t) => formas.map((f) => `${t} ${f}`)), ...conEstampado],
+    shopify: [...tipos.map((t) => `${t} ${recortado}`), ...conEstampado, ...(forma ? [`${tipos[0]} ${forma} ${recortado}`] : [])],
+    vtex: [
+      ...tipos.flatMap((t) => formas.map((f) => `${t} ${f}`)),
+      ...conEstampado,
+      ...(forma ? [`${tipos[0]} ${forma} ${formas[0]}`] : []),
+    ],
   };
 }
 
@@ -874,7 +882,10 @@ export async function buscarEnCatalogos(
     color = null;
   }
 
-  const consultas = consultasPara(tipo, color, obligatorios[0] ?? (esEstampada ? "estampado" : null));
+  // La forma pedida (corte, largo, manga, escote...), en las palabras de
+  // las tiendas: ver lib/forma-prendas.ts.
+  const forma = formaPedida(tipo, c.rasgos);
+  const consultas = consultasPara(tipo, color, obligatorios[0] ?? (esEstampada ? "estampado" : null), consultaDeForma(forma));
   const tiendas = (marcas.length > 0 ? TIENDAS.filter((t) => marcas.includes(t.dominio)) : TIENDAS).filter((t) =>
     tipoPermitido(t.dominio, tipo)
   );
@@ -925,7 +936,7 @@ export async function buscarEnCatalogos(
 
       if (color && !esDelColor(p, color, esEstampada, estampados.flatMap(patronesDe))) continue;
 
-      let punto = enTitulo ? 2 : 1;
+      let punto = (enTitulo ? 2 : 1) + puntosDeForma(forma, p.titulo_n, p.meta_n);
       for (const frases of rasgos) {
         // De cada rasgo cuenta solo su mejor coincidencia, para que una
         // prenda no sume tres veces por decir "midi" en tres campos.

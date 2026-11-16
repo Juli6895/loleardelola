@@ -451,6 +451,13 @@ export const TIPOS_BUSCABLES = [
   "bolso", "cinturón", "aretes", "collar", "pulsera",
 ];
 
+// Lo que NO sale en Promociones ni en "Ver todo" (noviembre de 2026, a
+// pedido de Juliana): calzado y accesorios. Siguen en TIPOS_BUSCABLES
+// porque el manual y las combinaciones los sugieren para un outfit.
+export const FUERA_DE_PROMOCIONES = new Set([
+  "tenis", "sandalia", "zapato", "bota", "bolso", "aretes", "collar", "pulsera",
+]);
+
 // Cómo más titulan las tiendas el mismo tipo. Gracies dice "Sweater".
 const SINONIMOS_DE_TIPO: Record<string, string[]> = {
   sueter: ["sweater", "saco"],
@@ -1080,7 +1087,7 @@ export function clasificarPrenda(d: {
     tipos.find((t) => patronesDeTipo(t).inicio.test(titulo_n)) ??
     tipos.find((t) => patronesDeTipo(t).palabra.test(clase_n)) ??
     null;
-  return tipo && tipoPermitido(d.dominio, tipo) ? tipo : null;
+  return tipo && tipoPermitido(d.dominio, tipo) && !FUERA_DE_PROMOCIONES.has(tipo) ? tipo : null;
 }
 
 /** ¿Esta tienda muestra este tipo de prenda? (ver soloTipos) */

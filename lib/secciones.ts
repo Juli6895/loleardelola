@@ -28,7 +28,7 @@ export const SECCIONES: Seccion[] = [
   {
     href: "/buscar",
     nombre: "Buscar",
-    texto: "Sube la foto de un outfit que te guste y te decimos en qué tiendas podrías comprarlo.",
+    texto: "Pega un pin de Pinterest o sube la foto de un outfit: buscamos cada prenda en tiendas de Colombia, con foto y precio.",
   },
   {
     href: "/mis-outfits",

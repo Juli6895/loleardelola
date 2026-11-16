@@ -657,13 +657,14 @@ function PanelFiltros({ onCerrar, children }: { onCerrar: () => void; children: 
   );
 }
 
-// Cómo se ve cada tipo en los botones (en plural).
+// Cómo se ve cada tipo en los botones (en plural). Es también la lista de
+// opciones de "Ver todo" (facetasDeTodo): sin calzado ni accesorios, que
+// ya no salen en Promociones (FUERA_DE_PROMOCIONES en catalogo-tiendas).
 const NOMBRE_TIPO: Record<string, string> = {
   blusa: "Blusas", camisa: "Camisas", camiseta: "Camisetas", top: "Tops", body: "Bodys", buzo: "Buzos",
   sueter: "Suéteres", cardigan: "Cárdigans", chaqueta: "Chaquetas", blazer: "Blazers", abrigo: "Abrigos",
   chaleco: "Chalecos", pantalon: "Pantalones", jean: "Jeans", falda: "Faldas", short: "Shorts",
-  vestido: "Vestidos", enterizo: "Enterizos", tenis: "Tenis", sandalia: "Sandalias", zapato: "Zapatos",
-  bota: "Botas", bolso: "Bolsos", cinturon: "Cinturones", aretes: "Aretes", collar: "Collares", pulsera: "Pulseras",
+  vestido: "Vestidos", enterizo: "Enterizos", cinturon: "Cinturones",
 };
 
 function Boton({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {

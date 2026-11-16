@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "./supabase";
-import { buscarPromos, tiendasParaPromos, tipoNormalizado, type ProductoTienda } from "./catalogo-tiendas";
+import { buscarPromos, tiendasParaPromos, tipoNormalizado, tipoPermitido, type ProductoTienda } from "./catalogo-tiendas";
 import type { TallaPromo } from "./promos-diarias";
 
 // =====================================================================
@@ -50,6 +50,8 @@ async function desdeLaBase(): Promise<Promo[]> {
     for (const f of (data ?? []) as any[]) {
       // Una tienda que se quitó de la lista deja de salir de una vez.
       if (!vigentes.has(f.dominio)) continue;
+      // Las tiendas con solo algunos tipos de prenda (soloTipos).
+      if (!tipoPermitido(f.dominio, f.tipo)) continue;
       promos.push({
         url: f.url,
         dominio: f.dominio,

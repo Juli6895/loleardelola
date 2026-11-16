@@ -55,14 +55,20 @@ type TiendaShopify = {
   dominio: string;
   nombre: string;
   host?: string;
+  // Solo estos tipos de prenda (sin tildes, de TIPOS_BUSCABLES). Sin esto,
+  // todos los que la app muestra.
+  soloTipos?: string[];
 };
 type TiendaVtex = {
   plataforma: "vtex";
   dominio: string;
   nombre: string;
   host?: string;
+  soloTipos?: string[];
 };
 type Tienda = TiendaShopify | TiendaVtex;
+
+const SOLO_ROPA_BASICA = ["pantalon", "camisa", "blusa", "camiseta", "vestido", "falda"];
 
 // Verificadas una por una: responden con catálogo de verdad.
 const TIENDAS: Tienda[] = [
@@ -103,19 +109,19 @@ const TIENDAS: Tienda[] = [
   // Las de vestidos de baño (Agua Bendita, Onda de Mar, Maaji) entran
   // porque también venden ropa; sus vestidos de baño los saca
   // ES_DE_BANO_O_INTERIOR.
-  { plataforma: "shopify", dominio: "leonisa.co", nombre: "Leonisa" },
+  { plataforma: "shopify", dominio: "leonisa.co", nombre: "Leonisa", soloTipos: SOLO_ROPA_BASICA },
   { plataforma: "shopify", dominio: "gef.co", nombre: "GEF" },
-  { plataforma: "shopify", dominio: "hushpuppies.com.co", nombre: "Hush Puppies" },
-  { plataforma: "shopify", dominio: "aguabendita.com.co", nombre: "Agua Bendita" },
+  // Noviembre de 2026: de Agua Bendita, Leonisa y Maaji solo estas
+  // prendas, a pedido de Juliana. Hush Puppies, Clemont y Mussi se
+  // quitaron de la lista.
+  { plataforma: "shopify", dominio: "aguabendita.com.co", nombre: "Agua Bendita", soloTipos: SOLO_ROPA_BASICA },
   { plataforma: "shopify", dominio: "ondademar.co", nombre: "Onda de Mar" },
-  { plataforma: "shopify", dominio: "maaji.com.co", nombre: "Maaji" },
+  { plataforma: "shopify", dominio: "maaji.com.co", nombre: "Maaji", soloTipos: SOLO_ROPA_BASICA },
   { plataforma: "shopify", dominio: "stopjeans.com.co", nombre: "Stop Jeans" },
-  { plataforma: "shopify", dominio: "clemont.co", nombre: "Clemont" },
   { plataforma: "shopify", dominio: "camiloalvarez.co", nombre: "Camilo Álvarez" },
   { plataforma: "shopify", dominio: "rayuelaclothing.com", nombre: "Rayuela" },
   { plataforma: "shopify", dominio: "sixxta.com", nombre: "Sixxta" },
   { plataforma: "shopify", dominio: "casaprecis.com", nombre: "Casa Precis" },
-  { plataforma: "shopify", dominio: "mussi.com.co", host: "www.mussi.com.co", nombre: "Mussi" },
   { plataforma: "shopify", dominio: "naos.com.co", nombre: "NAOS" },
   { plataforma: "shopify", dominio: "benditaseas.co", nombre: "Bendita Seas" },
   { plataforma: "vtex", dominio: "studiof.com.co", host: "www.studiof.com.co", nombre: "Studio F" },
@@ -813,7 +819,9 @@ export async function buscarEnCatalogos(
   }
 
   const consultas = consultasPara(tipo, color, obligatorios[0] ?? (esEstampada ? "estampado" : null));
-  const tiendas = marcas.length > 0 ? TIENDAS.filter((t) => marcas.includes(t.dominio)) : TIENDAS;
+  const tiendas = (marcas.length > 0 ? TIENDAS.filter((t) => marcas.includes(t.dominio)) : TIENDAS).filter((t) =>
+    tipoPermitido(t.dominio, tipo)
+  );
   const lotes = await Promise.all(
     tiendas.flatMap((t) =>
       t.plataforma === "shopify"
@@ -1017,7 +1025,15 @@ export function clasificarPrenda(d: {
   const tipos = TIPOS_BUSCABLES.map(tipoNormalizado);
   // Primero por cómo empieza el título ("Vestido corto..."), que es lo
   // más confiable; si no, por la clasificación de la tienda.
-  for (const tipo of tipos) if (patronesDeTipo(tipo).inicio.test(titulo_n)) return tipo;
-  for (const tipo of tipos) if (patronesDeTipo(tipo).palabra.test(clase_n)) return tipo;
-  return null;
+  const tipo =
+    tipos.find((t) => patronesDeTipo(t).inicio.test(titulo_n)) ??
+    tipos.find((t) => patronesDeTipo(t).palabra.test(clase_n)) ??
+    null;
+  return tipo && tipoPermitido(d.dominio, tipo) ? tipo : null;
+}
+
+/** ¿Esta tienda muestra este tipo de prenda? (ver soloTipos) */
+export function tipoPermitido(dominio: string, tipo: string | null): boolean {
+  const solo = TIENDAS.find((t) => t.dominio === dominio)?.soloTipos;
+  return !solo || (!!tipo && solo.includes(tipoNormalizado(tipo)));
 }

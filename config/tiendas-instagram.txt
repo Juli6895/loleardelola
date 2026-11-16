@@ -105,14 +105,12 @@ ondademar | Onda de Mar | top,bottom,vestido,abrigo,accesorio | Medellín | onda
 maaji | Maaji | vestido,bottom | Medellín | maaji.com.co
 stopjeans_ | Stop Jeans | top,bottom,vestido,abrigo,accesorio | Medellín | stopjeans.com.co
 raggedstores | Ragged | top,bottom,vestido,abrigo | Antioquia | ragged.com.co
-clemont.co | Clemont | top,bottom,abrigo | Medellín | clemont.co
 camiloalvarez_____________ | Camilo Álvarez | top,bottom,vestido,abrigo | Medellín | camiloalvarez.co
 rayuela_clothing | Rayuela | top,bottom,vestido | Medellín | rayuelaclothing.com
 frutafresca | Fruta Fresca | top,bottom,vestido,abrigo,calzado,accesorio | Medellín | frutafresca.com.co
 studiofcolombia | Studio F | top,bottom,vestido,abrigo,calzado,accesorio | Cali | studiof.com.co
 moda_ela | ELA | top,bottom,vestido,abrigo,calzado,accesorio | Cali | ela.com.co
 sixxta | Sixxta | top,bottom,vestido,abrigo,accesorio | Bucaramanga | sixxta.com
-mussizapatos | Mussi | calzado,accesorio | Cúcuta | mussi.com.co
 casaprecis | Casa Precis | top,bottom,vestido,abrigo,calzado,accesorio | Bogotá | casaprecis.com
 naosofficial_ | NAOS | top,bottom,vestido,abrigo | | naos.com.co
 benditaseasmarca | Bendita Seas | top,bottom,vestido,abrigo,calzado | | benditaseas.co
@@ -120,7 +118,6 @@ nafnafcol | Naf Naf | top,bottom,vestido,abrigo,calzado,accesorio | | nafnaf.com
 americanino | Americanino | top,bottom,vestido,abrigo,calzado | | americanino.com
 chevignon_ch | Chevignon | top,bottom,vestido,abrigo,calzado,accesorio | | chevignon.com.co
 girbaudcolombia | Girbaud | top,bottom,vestido,abrigo,calzado | | girbaud.com.co
-hushpuppiesco | Hush Puppies | calzado,accesorio | | hushpuppies.com.co
 # Malva: tienda de varias marcas colombianas. El @ es el que enlaza su
 # página (co.malvaonline.com).
 malva | Malva | top,bottom,vestido,abrigo,calzado,accesorio | Cartagena | co.malvaonline.com

@@ -98,12 +98,18 @@ export async function pedirJson(url: string, intento = 1): Promise<unknown> {
       signal: AbortSignal.timeout(15_000),
       headers: { "user-agent": "LoleardLola/1.0 (+https://www.loleardlola.com)", accept: "application/json" },
     });
-    if (!res.ok) throw new Error(`http ${res.status}`);
+    if (!res.ok) {
+      // "Demasiadas solicitudes": Shopify frena a los servidores (como el
+      // de Vercel) que piden muchas páginas seguidas. Se espera lo que
+      // pide, hasta 8 segundos.
+      const espera = res.status === 429 ? Math.min(Number(res.headers.get("retry-after")) || 3, 8) * 1000 : 0;
+      throw Object.assign(new Error(`http ${res.status}`), { espera });
+    }
     return await res.json();
   } catch (e) {
     // Studio F a veces responde 500 en una página y a la siguiente no.
     if (intento < 3) {
-      await new Promise((listo) => setTimeout(listo, 700 * intento));
+      await new Promise((listo) => setTimeout(listo, (e as { espera?: number }).espera || 700 * intento));
       return pedirJson(url, intento + 1);
     }
     throw e;
@@ -115,11 +121,16 @@ export async function pedirJson(url: string, intento = 1): Promise<unknown> {
 const PAGINAS_A_LA_VEZ = 4;
 
 /** La página, o null si no respondió ni reintentando. */
+// El último error de cada tienda, para que el tablero diga el motivo
+// real ("http 429") y no solo "no respondió".
+const ultimoError = new Map<string, string>();
+
 export async function pagina<T>(url: string, sacar: (x: unknown) => T[]): Promise<T[] | null> {
   try {
     return sacar(await pedirJson(url));
   } catch (e) {
     console.warn(`[promos-diarias] ${url}:`, (e as Error).message);
+    ultimoError.set(new URL(url).host, (e as Error).message);
     return null;
   }
 }
@@ -201,7 +212,7 @@ async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_A_LA_VEZ
       )
     );
     // Si la primera página no responde, la tienda falló del todo.
-    if (primera === 1 && leidas[0] === null) throw new Error("no respondió");
+    if (primera === 1 && leidas[0] === null) throw new Error(`no respondió (${ultimoError.get(t.host) ?? "sin detalle"})`);
     const paginas = leidas.map((x) => x ?? []);
     for (const p of paginas.flat()) {
       const fila = filaShopify(t, p, MINIMO_PORCENTAJE);

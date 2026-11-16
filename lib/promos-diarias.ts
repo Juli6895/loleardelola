@@ -1,4 +1,5 @@
 import { supabaseAdmin } from "./supabase";
+import { registrar } from "./eventos";
 import { clasificarPrenda, precioDeVariantes, tiendasParaPromos, type VarianteShopify } from "./catalogo-tiendas";
 
 // =====================================================================
@@ -190,12 +191,12 @@ export function filaShopify(t: Tienda, p: ProductoShopify, minimo: number | null
   };
 }
 
-async function promosShopify(t: Tienda, hasta: number): Promise<Lectura> {
+async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_A_LA_VEZ): Promise<Lectura> {
   const filas: Fila[] = [];
-  for (let primera = 1; primera <= 80; primera += PAGINAS_A_LA_VEZ) {
+  for (let primera = 1; primera <= 80; primera += aLaVez) {
     if (Date.now() > hasta) return { filas, completa: false };
     const leidas = await Promise.all(
-      Array.from({ length: PAGINAS_A_LA_VEZ }, (_, i) =>
+      Array.from({ length: aLaVez }, (_, i) =>
         pagina(`https://${t.host}/products.json?limit=250&page=${primera + i}`, (d) => (d as { products?: ProductoShopify[] }).products ?? [])
       )
     );
@@ -372,13 +373,28 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
   const tiendas = tiendasParaPromos().filter((_, i) => i % LOTES === lote);
   return Promise.all(
     tiendas.map(async (t): Promise<ResumenTienda> => {
+      const leer = (aLaVez?: number) =>
+        t.plataforma === "shopify" ? promosShopify(t, hasta, aLaVez) : promosVtex(t, hasta);
       try {
-        const lectura = t.plataforma === "shopify" ? await promosShopify(t, hasta) : await promosVtex(t, hasta);
+        let lectura: Lectura;
+        try {
+          lectura = await leer();
+        } catch (primero) {
+          // Una tienda que no respondió (o que frena varias páginas a la
+          // vez) se intenta otra vez, de a una página, si queda tiempo.
+          // Casa Precis tenía promos pero nunca quedaba guardada.
+          if (Date.now() > hasta - 10_000) throw primero;
+          await new Promise((listo) => setTimeout(listo, 2000));
+          lectura = await leer(1);
+        }
         await guardar(t.dominio, lectura, inicio);
         return { tienda: t.nombre, promos: lectura.filas.length, ok: true, completa: lectura.completa };
       } catch (e) {
         console.error(`[promos-diarias] ${t.nombre}:`, e);
-        return { tienda: t.nombre, promos: 0, ok: false, error: String((e as Error).message ?? e).slice(0, 120) };
+        const error = String((e as Error).message ?? e).slice(0, 120);
+        // Queda en Errores del tablero: qué tienda y por qué no se pudo.
+        await registrar("promos_tienda_error", {}, { tienda: t.nombre, motivo: `${t.nombre}: ${error}` });
+        return { tienda: t.nombre, promos: 0, ok: false, error };
       }
     })
   );

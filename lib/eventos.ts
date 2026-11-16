@@ -134,6 +134,10 @@ export const EVENTOS = [
   "personalidad_error",
   "outfit_error",
 
+  // La revisión nocturna de promociones no pudo leer una tienda
+  // (props.tienda, props.motivo). Sale en Errores del tablero.
+  "promos_tienda_error",
+
   // Lo que costó cada llamada a la IA (ver lib/costos.ts).
   "consumo_ia",
 

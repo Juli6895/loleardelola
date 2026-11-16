@@ -65,6 +65,7 @@ const LUGAR_ERROR: Record<string, string> = {
   outfit_foto_error: "Mi clóset · foto del outfit",
   figura_error: "Mi perfil · ilustración",
   prenda_error: "Mi clóset · subir prenda",
+  promos_tienda_error: "Revisión de promociones",
   perfil_error: "Mi perfil · guardar",
   personalidad_error: "Mi perfil · estilo",
   outfit_error: "Mis outfits · guardar",

@@ -150,6 +150,7 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "melaomimila.com", nombre: "Melao Mimila" },
   { plataforma: "shopify", dominio: "mhorayma.com", nombre: "Mhorayma" },
   { plataforma: "shopify", dominio: "molgoa.com", nombre: "Molgoa" },
+  { plataforma: "shopify", dominio: "vidamia.co", nombre: "Vida Mía" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.

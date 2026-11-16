@@ -131,6 +131,25 @@ const TIENDAS: Tienda[] = [
   { plataforma: "vtex", dominio: "mercedescampuzano.com", host: "www.mercedescampuzano.com", nombre: "Mercedes Campuzano" },
   { plataforma: "vtex", dominio: "ragged.com.co", host: "www.ragged.com.co", nombre: "Ragged" },
   { plataforma: "vtex", dominio: "frutafresca.com.co", host: "www.frutafresca.com.co", nombre: "Fruta Fresca" },
+
+  // Noviembre de 2026, a pedido de Juliana. Todas Shopify, colombianas
+  // (país CO y precios en pesos en su propia tienda), probadas una por
+  // una. elvestidordemanuela.co es la misma tienda que elvestidor.co
+  // (las mismas prendas): va una sola vez. Mompossina es casi toda de
+  // vestidos de baño, que la app no muestra (ES_DE_BANO_O_INTERIOR).
+  { plataforma: "shopify", dominio: "etnicacolombia.com", nombre: "Étnica" },
+  { plataforma: "shopify", dominio: "maracolombia.com", nombre: "Mara Colombia" },
+  { plataforma: "shopify", dominio: "nittabonita.com", nombre: "Nitta Bonita" },
+  { plataforma: "shopify", dominio: "elvestidor.co", nombre: "El Vestidor de Manuela" },
+  { plataforma: "shopify", dominio: "centricaropa.co", nombre: "Céntrica" },
+  { plataforma: "shopify", dominio: "mompossina.com", nombre: "Mompossina" },
+  { plataforma: "shopify", dominio: "juanashop.co", nombre: "Juana Shop" },
+  { plataforma: "shopify", dominio: "lakapitalindomable.com.co", nombre: "La Kapital Indomable" },
+  { plataforma: "shopify", dominio: "superlindas.co", nombre: "Superlindas" },
+  { plataforma: "shopify", dominio: "elentari.co", nombre: "Eléntari" },
+  { plataforma: "shopify", dominio: "melaomimila.com", nombre: "Melao Mimila" },
+  { plataforma: "shopify", dominio: "mhorayma.com", nombre: "Mhorayma" },
+  { plataforma: "shopify", dominio: "molgoa.com", nombre: "Molgoa" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.

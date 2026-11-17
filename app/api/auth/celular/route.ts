@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { usuarioActual } from "@/lib/sesion";
+import { cerrarSesion, usuarioActual } from "@/lib/sesion";
+import { esCelularBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
 import { contextoDe, registrar } from "@/lib/eventos";
 
 // POST /api/auth/celular  { celular }
@@ -18,6 +19,13 @@ export async function POST(req: Request) {
       { error: "Escribe tu celular de 10 dígitos, por ejemplo 300 123 4567." },
       { status: 400 }
     );
+  }
+  // Un celular bloqueado (lib/correos-bloqueados.ts): la persona entró
+  // con otro correo, pero es la misma. Se le cierra la sesión.
+  if (esCelularBloqueado(celular)) {
+    registrar("ingreso_error", contextoDe(req, usuario.id), { motivo: "celular bloqueado" });
+    await cerrarSesion();
+    return NextResponse.json({ error: MENSAJE_CORREO_BLOQUEADO }, { status: 403 });
   }
   const { error } = await supabaseAdmin().from("users").update({ celular }).eq("id", usuario.id);
   if (error) {

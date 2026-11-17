@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { normalizarCorreo, verificarCodigo, usuarioActual } from "@/lib/sesion";
 import { contextoDe, registrar } from "@/lib/eventos";
 import { supabaseAdmin } from "@/lib/supabase";
-import { esCorreoBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
+import { esCorreoBloqueado, esNavegadorBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
 
 // POST /api/auth/verificar  { email, codigo }
 // Valida el código y deja la sesión abierta (cookie).
@@ -19,7 +19,7 @@ export async function POST(req: Request) {
       );
     }
 
-    if (esCorreoBloqueado(correo)) {
+    if (esCorreoBloqueado(correo) || esNavegadorBloqueado(req)) {
       registrar("ingreso_error", contextoDe(req), { motivo: "correo bloqueado" });
       return NextResponse.json({ error: MENSAJE_CORREO_BLOQUEADO }, { status: 403 });
     }

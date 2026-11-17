@@ -2,11 +2,9 @@
 
 import { Toaster } from "react-hot-toast";
 
-// Providers globales. Sin SessionProvider por ahora: el login con
-// Pinterest quedó para una fase siguiente, y mantenerlo hacía una
-// petición a /api/auth/session en cada carga de página sin necesidad.
-// El código de NextAuth (lib/auth.ts, app/api/auth) se conserva para
-// cuando se retome.
+// Providers globales. Se entra con el código al correo (lib/sesion.ts);
+// el login con Pinterest de la primera versión se quitó en noviembre de
+// 2026 (pegar el link de un pin en Buscar sigue funcionando).
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
     <>

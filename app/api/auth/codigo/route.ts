@@ -3,7 +3,7 @@ import { crearCodigo, normalizarCorreo } from "@/lib/sesion";
 import { enviarCodigo } from "@/lib/email";
 import { contextoDe, registrar } from "@/lib/eventos";
 import { esCorreoDesechable } from "@/lib/correos-desechables";
-import { esCorreoBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
+import { esCorreoBloqueado, esNavegadorBloqueado, MENSAJE_CORREO_BLOQUEADO } from "@/lib/correos-bloqueados";
 
 // POST /api/auth/codigo  { email }
 // Manda un código de 6 dígitos al correo.
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
     }
     // Cuentas eliminadas que no pueden volver (lib/correos-bloqueados.ts):
     // no se les manda ni el código.
-    if (esCorreoBloqueado(correo)) {
+    if (esCorreoBloqueado(correo) || esNavegadorBloqueado(req)) {
       registrar("ingreso_error", contextoDe(req), { motivo: "correo bloqueado" });
       return NextResponse.json({ error: MENSAJE_CORREO_BLOQUEADO }, { status: 403 });
     }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
-import { armarBoton } from "@/lib/bold";
+import { armarBoton, llaveDeCobroCorrecta } from "@/lib/bold";
 import { esPaquete, precioDe, type Producto } from "@/lib/planes";
 import { esAdmin } from "@/lib/admin-correos";
 import { contextoDe, registrar } from "@/lib/eventos";
@@ -31,6 +31,16 @@ export async function POST(req: Request) {
     return NextResponse.json(
       { error: "Los paquetes de búsquedas son para quienes tienen la membresía." },
       { status: 402 }
+    );
+  }
+
+  // Mejor no cobrar que cobrarle a la clienta hacia la cuenta equivocada.
+  // BotonPago anota este mensaje en Errores del tablero (pago_error).
+  if (!llaveDeCobroCorrecta()) {
+    console.error("[checkout] cobro bloqueado: la llave de Bold no es la de LoleardLola");
+    return NextResponse.json(
+      { error: "No podemos abrir el pago en este momento. Escríbenos a hola@loleardlola.com (código: LLAVE-BOLD)." },
+      { status: 503 }
     );
   }
 

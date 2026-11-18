@@ -36,6 +36,26 @@ export function llaves() {
   return { identidad, secreta, pruebas: process.env.BOLD_MODO !== "produccion" };
 }
 
+// Las llaves deciden a qué cuenta llega el dinero: el código no tiene
+// ningún número de cuenta. Hasta el 18 de noviembre de 2026 la página
+// cobró con las llaves de otro comercio y las ventas se fueron allá sin
+// que nada avisara. Estos son los últimos caracteres de la llave de
+// identidad de producción de LoleardLola (esa llave es pública: viaja al
+// navegador con cada pago). Si se cambia de comercio a propósito, hay
+// que cambiar también este valor.
+const FINAL_LLAVE_LOLEARDLOLA = "n45o";
+
+/**
+ * ¿Se puede abrir un cobro con la llave configurada? En modo real solo
+ * con la de LoleardLola. Se revisa únicamente al cobrar: confirmar un
+ * pago que ya se hizo debe seguir funcionando pase lo que pase.
+ */
+export function llaveDeCobroCorrecta(): boolean {
+  const k = llaves();
+  if (!k) return true; // Sin llaves ya responde "no está configurado".
+  return k.pruebas || k.identidad.endsWith(FINAL_LLAVE_LOLEARDLOLA);
+}
+
 /** Identificador único de la venta. Máximo 60 caracteres según Bold. */
 export function nuevaOrden(userId: string): string {
   // Se mezcla el id de la usuaria con algo aleatorio: así la orden se

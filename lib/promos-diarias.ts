@@ -127,6 +127,12 @@ export async function pedirJson(url: string, intento = 1): Promise<unknown> {
 // Páginas que se piden a la vez por tienda: Malva tiene miles de
 // productos y de a una no alcanzaba en el minuto de la función.
 const PAGINAS_A_LA_VEZ = 4;
+// Shopify frena por dirección de internet a quien pide muchas páginas
+// seguidas (error 429), aunque sean de tiendas distintas: de a dos, con
+// una pausa entre tandas.
+const PAGINAS_SHOPIFY_A_LA_VEZ = 2;
+const PAUSA_SHOPIFY_MS = 400;
+const esperar = (ms: number) => new Promise((listo) => setTimeout(listo, ms));
 
 /** La página, o null si no respondió ni reintentando. */
 // El último error de cada tienda, para que el tablero diga el motivo
@@ -210,10 +216,13 @@ export function filaShopify(t: Tienda, p: ProductoShopify, minimo: number | null
   };
 }
 
-async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_A_LA_VEZ): Promise<Lectura> {
+async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_SHOPIFY_A_LA_VEZ): Promise<Lectura> {
   const filas: Fila[] = [];
+  let incompleta = false;
+  let tandasFallidas = 0;
   for (let primera = 1; primera <= 80; primera += aLaVez) {
     if (Date.now() > hasta) return { filas, completa: false };
+    if (primera > 1) await esperar(PAUSA_SHOPIFY_MS);
     const leidas = await Promise.all(
       Array.from({ length: aLaVez }, (_, i) =>
         pagina(`https://${t.host}/products.json?limit=250&page=${primera + i}`, (d) => (d as { products?: ProductoShopify[] }).products ?? [])
@@ -221,18 +230,23 @@ async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_A_LA_VEZ
     );
     // Si la primera página no responde, la tienda falló del todo.
     if (primera === 1 && leidas[0] === null) throw new Error(`no respondió (${ultimoError.get(t.host) ?? "sin detalle"})`);
-    const paginas = leidas.map((x) => x ?? []);
+    const paginas = leidas.filter((x): x is ProductoShopify[] => x !== null);
     for (const p of paginas.flat()) {
       const fila = filaShopify(t, p, MINIMO_PORCENTAJE);
       if (fila) filas.push(fila);
     }
-    // Una página que no respondió: lo leído se guarda, pero sin borrar
-    // nada (no se sabe qué había en ella).
-    if (leidas.some((x) => x === null)) return { filas, completa: false };
     // Una página incompleta es la última.
-    if (paginas.some((productos) => productos.length < 250)) return { filas, completa: true };
+    if (paginas.some((productos) => productos.length < 250)) return { filas, completa: !incompleta };
+    // Una página que no respondió: se sigue con las demás (antes se
+    // cortaba ahí y las rebajas de las páginas siguientes no llegaban),
+    // pero sin borrar nada al final: no se sabe qué había en ella.
+    if (paginas.length < leidas.length) {
+      incompleta = true;
+      if (++tandasFallidas >= 3) return { filas, completa: false };
+      await esperar(5000);
+    }
   }
-  return { filas, completa: true };
+  return { filas, completa: !incompleta };
 }
 
 // ---------------------------------------------------------- WooCommerce
@@ -458,6 +472,7 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
           : t.plataforma === "woo"
             ? promosWoo(t, hasta)
             : promosVtex(t, hasta);
+      ultimoError.delete(t.host);
       try {
         let lectura: Lectura;
         try {
@@ -471,6 +486,11 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
           lectura = await leer(1);
         }
         await guardar(t.dominio, lectura, inicio);
+        // Se leyó solo una parte porque la tienda frenó: queda en Errores.
+        const frenada = ultimoError.get(t.host);
+        if (!lectura.completa && frenada) {
+          await registrar("promos_tienda_error", {}, { tienda: t.nombre, motivo: `${t.nombre}: lectura incompleta (${frenada})` });
+        }
         return { tienda: t.nombre, promos: lectura.filas.length, ok: true, completa: lectura.completa };
       } catch (e) {
         console.error(`[promos-diarias] ${t.nombre}:`, e);

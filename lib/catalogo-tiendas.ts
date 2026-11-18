@@ -1096,9 +1096,58 @@ export function clasificarPrenda(d: {
   // más confiable; si no, por la clasificación de la tienda.
   const tipo =
     tipos.find((t) => patronesDeTipo(t).inicio.test(titulo_n)) ??
+    tipoPorOtroNombre(titulo_n) ??
     tipos.find((t) => patronesDeTipo(t).palabra.test(clase_n)) ??
+    tipoDespuesDelNombre(titulo_n, tipos) ??
     null;
   return tipo && tipoPermitido(d.dominio, tipo) && !FUERA_DE_PROMOCIONES.has(tipo) ? tipo : null;
+}
+
+// Prendas que las tiendas titulan con otra palabra. Solo sirve para
+// reconocerlas en Promociones y "Ver todo": no se le pregunta esto al
+// buscador de cada tienda. Sin esto se quedaban por fuera prendas nuevas
+// (noviembre de 2026: "Set Destino", "Bermuda Verano", "Overall Huevito").
+const OTROS_NOMBRES: Array<[RegExp, string]> = [
+  [/^(sets?|conjuntos?|coordinados?)\b/, "conjunto"],
+  [/^bermudas?\b/, "short"],
+  [/^(sobrecamisas?|camiseras?)\b/, "camisa"],
+  [/^(overalls?|jumpsuits?|monos?|bragas?)\b/, "enterizo"],
+  [/^(tank tops?|crop tops?|corsets?|corses?|bustiers?)\b/, "top"],
+  [/^(baby tees?|polos?|t-?shirts?)\b/, "camiseta"],
+  [/^(leggings?|joggers?|palazzos?|culottes?)\b/, "pantalon"],
+  [/^(kimonos?|ruanas?)\b/, "cardigan"],
+  [/^tejidos?\b/, "sueter"],
+];
+// Un "set" de aretes o de regalo no es ropa.
+const SET_QUE_NO_ES_ROPA = /\b(aretes?|collar(es)?|anillos?|pulseras?|joyas?|regalos?|medias?|velas?|toallas?|bolsos?|cosmetic\w*)\b/;
+
+function tipoPorOtroNombre(titulo: string): string | null {
+  for (const [patron, tipo] of OTROS_NOMBRES) {
+    if (!patron.test(titulo)) continue;
+    return tipo === "conjunto" && SET_QUE_NO_ES_ROPA.test(titulo) ? null : tipo;
+  }
+  return null;
+}
+
+const NO_ES_ROPA_AL_INICIO =
+  /^(anillos?|gorras?|gorros?|boinas?|bucket|medias?|calcetines|fundas?|cases?|correas?|morral(es)?|billeteras?|cartucheras?|rinoneras?|mochilas?|bonos?|toallas?|charms?|chockers?|ear cuffs?|llaveros?|perfumes?|aromas?|velas?)\b/;
+
+/**
+ * Títulos que empiezan con el nombre de la prenda y después dicen qué es:
+ * "Costa Jean Concha", "Maxi Jean Rayas", "Ola Top Soleado". Se mira solo
+ * la segunda y la tercera palabra, y nunca calzado ni accesorios.
+ */
+function tipoDespuesDelNombre(titulo: string, tipos: string[]): string | null {
+  if (NO_ES_ROPA_AL_INICIO.test(titulo)) return null;
+  const palabras = titulo.trim().split(/\s+/);
+  for (const resto of [palabras.slice(1).join(" "), palabras.slice(2).join(" ")]) {
+    if (!resto) continue;
+    const tipo = tipos.find((t) => !FUERA_DE_PROMOCIONES.has(t) && t !== "cinturon" && patronesDeTipo(t).inicio.test(resto));
+    if (tipo) return tipo;
+    const otro = tipoPorOtroNombre(resto);
+    if (otro && otro !== "conjunto") return otro;
+  }
+  return null;
 }
 
 /** ¿Esta tienda muestra este tipo de prenda? (ver soloTipos) */

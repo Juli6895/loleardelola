@@ -664,7 +664,7 @@ const NOMBRE_TIPO: Record<string, string> = {
   blusa: "Blusas", camisa: "Camisas", camiseta: "Camisetas", top: "Tops", body: "Bodys", buzo: "Buzos",
   sueter: "Suéteres", cardigan: "Cárdigans", chaqueta: "Chaquetas", blazer: "Blazers", abrigo: "Abrigos",
   chaleco: "Chalecos", pantalon: "Pantalones", jean: "Jeans", falda: "Faldas", short: "Shorts",
-  vestido: "Vestidos", enterizo: "Enterizos", cinturon: "Cinturones",
+  vestido: "Vestidos", enterizo: "Enterizos", conjunto: "Conjuntos", cinturon: "Cinturones",
 };
 
 function Boton({ activo, onClick, children }: { activo: boolean; onClick: () => void; children: React.ReactNode }) {

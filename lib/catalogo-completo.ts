@@ -22,7 +22,7 @@ import type { Promo } from "./promos-guardadas";
 //
 // Se lee en vivo, de a una página de la tienda, cuando la usuaria llega
 // a esa marca: guardar el catálogo entero de todas las tiendas cada día
-// sería mucho más pesado que las promos. La respuesta queda media hora
+// sería mucho más pesado que las promos. La respuesta queda 10 minutos
 // en la caché de Vercel (ver app/api/promos/todo).
 // =====================================================================
 
@@ -34,7 +34,8 @@ const PAGINAS_MAX = 4;
 // VTEX no deja pedir más allá de este punto de la lista.
 const VTEX_MAXIMO = 2500;
 
-export type PaginaMarca = { prendas: Promo[]; siguiente: number | null };
+// `fallo`: la tienda no respondió. Esa respuesta no se guarda en caché.
+export type PaginaMarca = { prendas: Promo[]; siguiente: number | null; fallo?: boolean };
 
 async function paginaShopify(t: Tienda, n: number): Promise<ProductoShopify[] | null> {
   const sacar = (d: unknown) => (d as { products?: ProductoShopify[] }).products ?? [];
@@ -105,7 +106,7 @@ export async function prendasDeLaMarca(
     const productos =
       t.plataforma === "shopify" ? await paginaShopify(t, n) : t.plataforma === "woo" ? await paginaWoo(t, n) : await paginaVtex(t, n);
     // La tienda no respondió: se muestra lo que alcanzó a llegar.
-    if (!productos) return { prendas: Array.from(salida.values()), siguiente: null };
+    if (!productos) return { prendas: Array.from(salida.values()), siguiente: null, fallo: true };
     for (const p of productos) {
       const f =
         t.plataforma === "shopify"

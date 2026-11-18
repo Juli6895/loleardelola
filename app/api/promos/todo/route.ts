@@ -7,10 +7,12 @@ import { prendasDeLaMarca } from "@/lib/catalogo-completo";
 //   más viejo, con talla disponible. `siguiente` es la página de la
 //   tienda para "Cargar más" (null: no hay más). Ver lib/catalogo-completo.ts.
 //
-// La respuesta es la misma para todas: queda media hora en la caché de Vercel.
+// La respuesta es la misma para todas: queda 10 minutos en la caché de
+// Vercel, para que lo nuevo de cada tienda se vea pronto. Si la tienda no
+// respondió no se guarda: antes el vacío quedaba hasta hora y media.
 export const maxDuration = 60;
 
-const CACHE = "public, s-maxage=1800, stale-while-revalidate=3600";
+const CACHE = "public, s-maxage=600, stale-while-revalidate=1800";
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;
@@ -26,9 +28,10 @@ export async function GET(req: Request) {
 
   try {
     const r = await prendasDeLaMarca(marca, desde, lista("prendas"), lista("tallas"));
-    return NextResponse.json(r, { headers: { "Cache-Control": CACHE } });
+    const { fallo, ...cuerpo } = r;
+    return NextResponse.json(cuerpo, { headers: { "Cache-Control": fallo ? "no-store" : CACHE } });
   } catch (e) {
     console.error("[api/promos/todo] falló:", e);
-    return NextResponse.json({ prendas: [], siguiente: null });
+    return NextResponse.json({ prendas: [], siguiente: null }, { headers: { "Cache-Control": "no-store" } });
   }
 }

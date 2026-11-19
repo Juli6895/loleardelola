@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { comoSeLlama, useUsuario } from "@/lib/use-usuario";
 import { esAdmin } from "@/lib/admin-correos";
-import { cuantasMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import { useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import SelectorMarcas from "@/components/SelectorMarcas";
 import BotonFiltrosPromos from "@/components/BotonFiltrosPromos";
 
@@ -39,7 +39,7 @@ export default function Navbar() {
   // computador (ver components/SelectorMarcas.tsx).
   const [marcasAbiertas, setMarcasAbiertas] = useState(false);
   const misMarcas = useMarcasFavoritas();
-  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas favoritas (${cuantasMarcas(misMarcas)})` : "Mis marcas favoritas";
+  const etiquetaMarcas = misMarcas.length > 0 ? `Mis marcas favoritas (${misMarcas.length})` : "Mis marcas favoritas";
   const { usuario, recargar } = useUsuario();
   const router = useRouter();
   const dentro = !!usuario?.conSesion;
@@ -210,9 +210,8 @@ export default function Navbar() {
               )}
             </div>
           ))}
-          {/* Las marcas también aquí, a la mano: es la misma lista del panel de
-              Filtros y de Promociones (lib/marcas-favoritas.ts), así que lo que
-              se marque en un lado se ve igual en los otros. */}
+          {/* Las marcas favoritas también aquí, a la mano (lib/marcas-favoritas.ts):
+              con el corazón, y en Promociones salen primero. */}
           <button
             type="button"
             onClick={() => setMarcasAbiertas((v) => !v)}

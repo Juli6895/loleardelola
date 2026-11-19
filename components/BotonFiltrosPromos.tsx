@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter } from "next/navigation";
-import { cuantasMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
+import { cuantasEnFiltro, useFiltroMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import { useTallasFavoritas } from "@/lib/tallas-favoritas";
 import { abrirFiltros, useAccesoPromos, usePrendasFiltro } from "@/lib/filtros-promos";
 
@@ -26,9 +26,10 @@ export default function BotonFiltrosPromos({
   const pathname = usePathname();
   const router = useRouter();
   const acceso = useAccesoPromos();
-  // Cada marca, talla y tipo de prenda cuenta uno: el mismo número que
-  // ve en el panel y en "Mis marcas favoritas".
-  const cuantos = cuantasMarcas(useMarcasFavoritas()) + useTallasFavoritas().length + usePrendasFiltro().length;
+  // Cada marca del filtro, talla y tipo de prenda cuenta uno. Las
+  // favoritas no cuentan: no filtran, solo ordenan.
+  const favoritas = useMarcasFavoritas();
+  const cuantos = cuantasEnFiltro(useFiltroMarcas(), favoritas) + useTallasFavoritas().length + usePrendasFiltro().length;
   const bloqueado = acceso !== null && !acceso.permitido;
   const ayuda = bloqueado
     ? acceso!.plan === "anonimo"

@@ -6,8 +6,16 @@ import type { ProductoTienda } from "@/lib/use-catalogo";
 import { anotar, anotarClicComercio } from "@/lib/use-evento";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
-import { cuantasMarcas, esNinguna, guardarMarcas, marcasParaUrl, useMarcasFavoritas } from "@/lib/marcas-favoritas";
-import SelectorMarcas, { cargarMarcas, type Marca } from "@/components/SelectorMarcas";
+import {
+  favoritasPrimero,
+  guardarFiltroMarcas,
+  marcasDelFiltro,
+  marcasParaUrl,
+  useFiltroMarcas,
+  useMarcasFavoritas,
+  type FiltroMarcas,
+} from "@/lib/marcas-favoritas";
+import { cargarMarcas, FiltroDeMarcas, type Marca } from "@/components/SelectorMarcas";
 import BanderaColombia from "@/components/BanderaColombia";
 import { esColombiana } from "@/lib/marcas-colombianas";
 import SugerirComercio from "@/components/SugerirComercio";
@@ -58,16 +66,19 @@ const MARCAS_OTRAS = 8;
 
 export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   const clave = tipos.join("|");
-  // "Mis marcas" del menú: si escogió algunas, solo esas.
-  const misMarcas = useMarcasFavoritas();
-  const marcas = marcasParaUrl(misMarcas);
+  // Las favoritas (corazón, en el menú) solo ordenan: salen primero. Qué
+  // marcas se ven lo decide el filtro de marcas del panel.
+  const favoritas = useMarcasFavoritas();
+  const filtroMarcas = useFiltroMarcas();
+  const marcasVisibles = marcasDelFiltro(filtroMarcas, favoritas);
+  const marcas = marcasParaUrl(marcasVisibles);
   // Filtros: el tipo de prenda es de esta visita; la talla se guarda
   // para la próxima ("Mi talla", ver lib/tallas-favoritas.ts). El panel
   // lo abre el botón de rayitas de la barra (lib/filtros-promos.ts).
   const prendas = usePrendasFiltro();
   const misTallas = useTallasFavoritas();
   const filtros = `&prendas=${encodeURIComponent(prendas.join(","))}&tallas=${encodeURIComponent(misTallas.join(","))}`;
-  const conFiltros = misMarcas.length > 0 || prendas.length > 0 || misTallas.length > 0;
+  const conFiltros = marcasVisibles !== null || prendas.length > 0 || misTallas.length > 0;
   const acceso = useAccesoPromos();
   const vista = useVistaPromos();
   const [panelAbierto, setPanelAbierto] = useState(false);
@@ -116,7 +127,9 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   // Las de arriba no se repiten en la vista previa de abajo.
   const yaArriba = new Set(datos?.relacionadas.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
   const sinPromos = !!vacio;
-  const otras = datos?.marcas.map((g) => ({ ...g, promos: g.promos.filter((p) => !yaArriba.has(p.url)) })) ?? null;
+  const primero = (grupos: Grupo[]) => favoritasPrimero(grupos, favoritas, (g) => g.dominio);
+  const otras = datos ? primero(datos.marcas.map((g) => ({ ...g, promos: g.promos.filter((p) => !yaArriba.has(p.url)) }))) : null;
+  const relacionadas = datos ? primero(datos.relacionadas) : null;
 
   return (
     <section aria-labelledby="promos-titulo" className="space-y-6">
@@ -146,12 +159,20 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
             onPrendas={guardarPrendas}
             tallas={misTallas}
           />
-          <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-noche/50">Mis marcas favoritas</p>
-          <SelectorMarcas />
+          <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-noche/50">Marcas</p>
+          <FiltroDeMarcas filtro={filtroMarcas} favoritas={favoritas} onCambiar={guardarFiltroMarcas} />
         </PanelFiltros>
       )}
 
-      {vista === "todo" && <VerTodo misMarcas={misMarcas} filtros={filtros} onEscoger={() => setPanelAbierto(true)} />}
+      {vista === "todo" && (
+        <VerTodo
+          marcasVisibles={marcasVisibles}
+          favoritas={favoritas}
+          filtroMarcas={filtroMarcas}
+          filtros={filtros}
+          onEscoger={() => setPanelAbierto(true)}
+        />
+      )}
 
       {vista === "promos" && vacio && (prendas.length > 0 || misTallas.length > 0) && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
@@ -159,30 +180,26 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         </p>
       )}
 
-      {vista === "promos" && misMarcas.length > 0 && (
+      {vista === "promos" && marcasVisibles !== null && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-          {esNinguna(misMarcas)
-            ? "No tienes ninguna marca marcada: marca las que quieras en Filtros. "
-            : vacio
-              ? "Tus marcas no tienen promociones hoy. "
-              : `Solo promociones de tus marcas (${cuantasMarcas(misMarcas)}). `}
-          {datos && !vacio && (() => {
+          {avisoFiltro(filtroMarcas, marcasVisibles, !!vacio, "promociones")}
+          {datos && !vacio && marcasVisibles.length > 0 && (() => {
             const conPromos = new Set(datos.marcas.map((g) => g.dominio));
-            const sinHoy = misMarcas.filter((d) => !conPromos.has(d)).map((d) => nombres.get(d) ?? d);
+            const sinHoy = marcasVisibles.filter((d) => !conPromos.has(d)).map((d) => nombres.get(d) ?? d);
             return sinHoy.length > 0 ? `Hoy no hay promociones de ${sinHoy.join(", ")}. ` : null;
           })()}
           <button
             type="button"
-            onClick={() => guardarMarcas([])}
+            onClick={() => guardarFiltroMarcas({ modo: "todas" })}
             className="font-medium text-rosa-600 underline-offset-2 hover:underline"
           >
-            Ver las de todas las marcas
+            Ver todas las marcas
           </button>
         </p>
       )}
 
       {vista === "promos" && !sinPromos && clave && (datos === null || datos.relacionadas.length > 0) && (
-        <Parte titulo="De lo que buscaste" grupos={datos?.relacionadas ?? null} tipos={clave} filtros={filtros} marcasALaVista={MARCAS_RELACIONADAS} />
+        <Parte titulo="De lo que buscaste" grupos={relacionadas} tipos={clave} filtros={filtros} marcasALaVista={MARCAS_RELACIONADAS} />
       )}
       {vista === "promos" && !sinPromos && (
       <Parte
@@ -197,6 +214,18 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
       <SugerirComercio origen="promociones" />
     </section>
   );
+}
+
+/** Qué dice el aviso cuando el filtro deja ver solo algunas marcas. */
+function avisoFiltro(filtro: FiltroMarcas, visibles: string[], vacio: boolean, que: "promociones" | "prendas"): string {
+  if (visibles.length === 0) {
+    return filtro.modo === "favoritas"
+      ? "Todavía no tienes marcas favoritas: márcalas con el corazón en Mis marcas favoritas del menú. "
+      : "Desactivaste todas las marcas: escoge alguna en Filtros. ";
+  }
+  const cuales = filtro.modo === "favoritas" ? "tus favoritas" : "las marcas que escogiste";
+  if (vacio) return `${cuales === "tus favoritas" ? "Tus favoritas no tienen" : "Las marcas que escogiste no tienen"} ${que} hoy. `;
+  return `Solo ${que} de ${cuales} (${visibles.length}). `;
 }
 
 /** Cuánto le queda de prueba gratis, con el enlace a la membresía. */
@@ -369,26 +398,46 @@ function facetasDeTodo(f: Facetas | null): Facetas {
 const VISTA_PREVIA_TODO = 8;
 
 /**
- * "Ver todo": las marcas favoritas o, si no ha escogido, todas. Cada
- * marca trae sus prendas cuando la usuaria llega a ella (ver MarcaTodo).
+ * "Ver todo": las marcas que deja ver el filtro, con las favoritas
+ * primero. Cada marca trae sus prendas cuando la usuaria llega a ella
+ * (ver MarcaTodo); las favoritas, de una.
  */
-function VerTodo({ misMarcas, filtros, onEscoger }: { misMarcas: string[]; filtros: string; onEscoger: () => void }) {
+function VerTodo({
+  marcasVisibles,
+  favoritas,
+  filtroMarcas,
+  filtros,
+  onEscoger,
+}: {
+  marcasVisibles: string[] | null;
+  favoritas: string[];
+  filtroMarcas: FiltroMarcas;
+  filtros: string;
+  onEscoger: () => void;
+}) {
   const [marcas, setMarcas] = useState<Marca[] | null>(null);
   useEffect(() => {
     cargarMarcas().then(setMarcas);
   }, []);
-  const lista = marcas && (misMarcas.length > 0 ? marcas.filter((m) => misMarcas.includes(m.dominio)) : marcas);
+  const fav = new Set(favoritas);
+  const lista =
+    marcas &&
+    favoritasPrimero(
+      marcasVisibles === null ? marcas : marcas.filter((m) => marcasVisibles.includes(m.dominio)),
+      favoritas,
+      (m) => m.dominio
+    );
 
   return (
     <div className="space-y-6">
       <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-        {esNinguna(misMarcas)
-          ? "No tienes ninguna marca marcada. "
-          : misMarcas.length > 0
-          ? `Todas las prendas de tus marcas favoritas (${cuantasMarcas(misMarcas)}). `
-          : "Estás viendo todas las marcas. "}
+        {marcasVisibles !== null
+          ? avisoFiltro(filtroMarcas, marcasVisibles, false, "prendas")
+          : favoritas.length > 0
+            ? "Todas las marcas, con tus favoritas primero. "
+            : "Estás viendo todas las marcas. "}
         <button type="button" onClick={onEscoger} className="font-medium text-rosa-600 underline-offset-2 hover:underline">
-          {misMarcas.length > 0 ? "Cambiar mis marcas" : "Escoger mis marcas favoritas"}
+          Filtrar marcas
         </button>
       </p>
       {lista === null
@@ -399,7 +448,9 @@ function VerTodo({ misMarcas, filtros, onEscoger }: { misMarcas: string[]; filtr
               ))}
             </div>
           ))
-        : lista.map((m) => <MarcaTodo key={m.dominio + filtros} marca={m} filtros={filtros} deUna={misMarcas.length > 0} />)}
+        : lista.map((m) => (
+            <MarcaTodo key={m.dominio + filtros} marca={m} filtros={filtros} deUna={fav.has(m.dominio) || marcasVisibles !== null} />
+          ))}
     </div>
   );
 }

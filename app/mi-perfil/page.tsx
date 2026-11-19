@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import CabeceraCuenta from "@/components/CabeceraCuenta";
 import SubNavCuenta from "@/components/SubNavCuenta";
+import EncabezadoSeccion from "@/components/EncabezadoSeccion";
 import GenerarManual from "@/components/GenerarManual";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SILUETAS } from "@/lib/image-consulting/morfologia";
@@ -203,15 +204,7 @@ export default function MiPerfilPage() {
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <SubNavCuenta />
-      <header className="text-center">
-        <h1 className="font-display text-4xl text-noche sm:text-5xl">
-          Mi perfil de silueta
-        </h1>
-        <p className="mt-3 text-noche/60">
-          Ingresa tus medidas y te decimos qué prendas te favorecen más —
-          esto también va a ser la base de tu Avatar más adelante.
-        </p>
-      </header>
+      <EncabezadoSeccion titulo="Mi perfil" destacado="de estilo" frase="Tus medidas, tu color y lo que quieres proyectar." />
 
       {/* Quién eres, tu nombre, y qué destraba la membresía. */}
       <CabeceraCuenta />
@@ -322,18 +315,12 @@ export default function MiPerfilPage() {
         </div>
 
         <p className="mt-3 text-xs text-noche/40">
-          Mide sobre tu ropa interior, en la parte más ancha del busto,
-          la más angosta de la cintura, y la más ancha de la cadera. El peso
-          no cambia tu silueta (esa sale de las proporciones) — lo usamos
-          para recomendarte tallas más adelante.
+          Mide sobre tu ropa interior: busto y cadera en lo más ancho, cintura en lo más angosto.
         </p>
 
         <div className="mt-6 border-t border-rosa-100 pt-5">
           <h2 className="font-display text-xl text-noche">Tu color</h2>
-          <p className="mt-1 text-xs text-noche/50">
-            Con esto te decimos cómo combinar los colores para que te
-            favorezcan.
-          </p>
+          <p className="mt-1 text-xs text-noche/50">Para saber qué colores te favorecen.</p>
 
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -423,22 +410,14 @@ export default function MiPerfilPage() {
               </select>
             </div>
           </div>
-          <p className="mt-3 text-xs text-noche/40">
-            Con tu tono de piel y tu color de cabello calculamos tu nivel de
-            contraste, que es lo que define cómo te favorece combinar los
-            colores entre sí. Pedimos tu rango de edad, no tu fecha de
-            nacimiento, y solo para que el manual sugiera prendas acordes.
-          </p>
+          <p className="mt-3 text-xs text-noche/40">Pedimos tu rango de edad, no tu fecha de nacimiento.</p>
         </div>
 
         <div className="mt-6 border-t border-rosa-100 pt-5">
           <h2 className="font-display text-xl text-noche">
             Qué quieres proyectar
           </h2>
-          <p className="mt-1 text-xs text-noche/50">
-            Lo demás describe cómo eres. Esto describe lo que buscas — y es
-            lo que manda cuando tu figura y tu gusto piden cosas distintas.
-          </p>
+          <p className="mt-1 text-xs text-noche/50">Lo que buscas transmitir con tu ropa.</p>
           <div className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {(Object.keys(PROYECCIONES) as Array<keyof typeof PROYECCIONES>).map(
               (k) => {
@@ -610,10 +589,7 @@ export default function MiPerfilPage() {
         <h2 className="font-display text-2xl text-noche">
           ¿Cuál es tu personalidad de estilo?
         </h2>
-        <p className="mt-1 text-sm text-noche/60">
-          Dinos con quién te identificas, o sube una foto tuya o de una
-          referencia de estilo que te inspire — nosotros la analizamos.
-        </p>
+        <p className="mt-1 text-sm text-noche/60">Escribe con quién te identificas o sube una foto.</p>
 
         <form
           onSubmit={(e) => {

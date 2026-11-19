@@ -6,6 +6,7 @@ import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
+import EncabezadoSeccion from "@/components/EncabezadoSeccion";
 import { CUPOS_MEMBRESIA } from "@/lib/planes";
 import { esAdmin } from "@/lib/admin-correos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
@@ -36,19 +37,7 @@ export default function MiClosetPage() {
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       <SubNavCuenta />
-      <header className="text-center">
-        <h1 className="font-display text-4xl text-noche sm:text-5xl">
-          Mi clóset
-        </h1>
-        <p className="mt-3 text-noche/60">
-          Sube las prendas que ya tienes — nosotros las clasificamos y las
-          dejamos listas para combinar.
-        </p>
-        <p className="mt-2 text-xs text-noche/40">
-          Por ahora tu clóset se guarda en este dispositivo. Si borras los
-          datos del navegador o entras desde otro celular, no lo vas a ver.
-        </p>
-      </header>
+      <EncabezadoSeccion titulo="Mi" destacado="clóset" frase="Sube tus prendas: las clasificamos y te armamos combinaciones." />
 
       <div className="mx-auto max-w-2xl">
         {/* En el tope no se muestra el botón de subir: el servidor la

@@ -140,8 +140,8 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
           </h2>
           <p className="mt-1 text-sm text-noche/60">
             {vista === "promos"
-              ? "Más del 10% de descuento, solo en tallas disponibles. Precios de cada tienda, revisados cada día."
-              : "Todo lo que tienen tus marcas, con o sin descuento, de lo más nuevo a lo más viejo. Dale corazón a lo que te guste: si baja de precio, te llega una notificación en tu app."}
+              ? "Más del 10% de descuento, en tallas disponibles."
+              : "Todo lo de las tiendas, de lo más nuevo a lo más viejo."}
           </p>
           <SelectorVista vista={vista} />
         </div>

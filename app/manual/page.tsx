@@ -67,6 +67,8 @@ export default function ManualPage() {
 function Contenido() {
   useAnotarUnaVez("manual_visto");
   const [estado, setEstado] = useState<Estado | null>(null);
+  // Se ve un paso a la vez: antes la asesoría completa medía seis pantallas.
+  const [paso, setPaso] = useState(1);
   const [perfil, setPerfil] = useState<PerfilSilueta | null>(null);
   const [generando, setGenerando] = useState(false);
   const [descargando, setDescargando] = useState(false);
@@ -204,7 +206,7 @@ function Contenido() {
         <div className="rounded-2xl border border-rosa-300 bg-rosa-50/70 p-5 text-center">
           <p className="text-sm text-noche/70">
             {estado.formatoViejo
-              ? "Tu manual tiene una versión nueva, armada como una asesoría completa: tu morfología, tu colorimetría, tu estilo, tus prendas favoritas y tu fondo de armario. Actualizarlo no gasta de tus manuales del mes."
+              ? "Hay una versión nueva de tu manual. Actualizarlo no gasta de tus manuales."
               : "Cambiaste algo de tu perfil desde que armamos este manual."}
           </p>
           <button
@@ -217,8 +219,14 @@ function Contenido() {
         </div>
       )}
 
-      <LineaDeTiempo />
+      <PasosDelManual
+        paso={paso}
+        onPaso={setPaso}
+        disponibles={[true, manual.outfits.length > 0, !!manual.version, basicos.length > 0]}
+      />
 
+      {paso === 1 && (
+      <>
       {/* Paso 1: morfología, colorimetría y estilo */}
       <Lamina id="paso-1" paso={1} titulo="Morfología">
         {silueta && (
@@ -232,7 +240,7 @@ function Contenido() {
         />
         {textos["Cómo te viste tu figura"] && (
           <div className="mt-6">
-            <Markdown texto={textos["Cómo te viste tu figura"]} />
+            <Resumible texto={textos["Cómo te viste tu figura"]} />
           </div>
         )}
         {silueta && (
@@ -253,7 +261,7 @@ function Contenido() {
         />
         {textos["Tus colores"] && (
           <div className="mt-6">
-            <Markdown texto={textos["Tus colores"]} />
+            <Resumible texto={textos["Tus colores"]} />
           </div>
         )}
       </Lamina>
@@ -266,29 +274,32 @@ function Contenido() {
         )}
         {textos["Tu sello"] && (
           <div className="mt-6">
-            <Markdown texto={textos["Tu sello"]} />
+            <Resumible texto={textos["Tu sello"]} />
           </div>
         )}
         {textos["Cuando chocan"] && (
           <div className="mt-6 rounded-xl bg-rosa-50/70 p-5">
             <h3 className="font-display text-xl text-noche">Cuando tus pilares chocan</h3>
             <div className="mt-2">
-              <Markdown texto={textos["Cuando chocan"]} />
+              <Resumible texto={textos["Cuando chocan"]} />
             </div>
           </div>
         )}
         {/* Manual viejo sin secciones reconocibles: se muestra completo. */}
         {Object.keys(textos).length === 0 && <Markdown texto={manual.texto} />}
       </Lamina>
+      </>
+      )}
 
-      {/* Paso 2 */}
-      <SeccionOutfits outfits={manual.outfits} />
+      {paso === 2 && <SeccionOutfits outfits={manual.outfits} />}
+      {paso === 3 && <SeccionFavoritas favoritas={manual.favoritas} viejo={!manual.version} />}
+      {paso === 4 && <SeccionFondoDeArmario basicos={basicos} />}
 
-      {/* Paso 3 */}
-      <SeccionFavoritas favoritas={manual.favoritas} viejo={!manual.version} />
-
-      {/* Paso 4 */}
-      <SeccionFondoDeArmario basicos={basicos} />
+      <SiguientePaso
+        paso={paso}
+        onPaso={setPaso}
+        disponibles={[true, manual.outfits.length > 0, !!manual.version, basicos.length > 0]}
+      />
 
       <div className="text-center">
         <button
@@ -354,7 +365,11 @@ function Portada({
           Asesoría {nombre || "de estilo"}
         </h1>
         <p className="mt-3 text-noche/60">¡Te enseñaré a conocerte y verte mejor de lo que ya eres!</p>
-        {partida && <p className="mt-5 text-sm leading-relaxed text-noche/75">{negritas(partida)}</p>}
+        {partida && (
+          <div className="mt-5">
+            <Resumible texto={partida} lineas={3} />
+          </div>
+        )}
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             onClick={onDescargar}
@@ -389,25 +404,117 @@ function Portada({
   );
 }
 
-/** "¿Qué haremos?": los cuatro pasos de la asesoría, en orden. */
-function LineaDeTiempo() {
+// Los cuatro pasos, cortos para que quepan como pestañas.
+const PASOS_CORTOS = ["Figura, color y estilo", "Outfits", "Tus prendas", "Básicos"];
+
+const ICONOS_PASO: React.ReactNode[] = [
+  <path key="1" d="M12 4a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5Zm-4 16 1.5-8h5L16 20M9.5 12 7 15m7.5-3L17 15" />,
+  <path key="2" d="M9 4h6l1 4-2 1v11H10V9L8 8l1-4Z" />,
+  <path key="3" d="M4 8.5 9 5h6l5 3.5-2.5 3-1.5-1V19H8v-8.5l-1.5 1L4 8.5Z" />,
+  <path key="4" d="M5 7h14M5 12h14M5 17h9" />,
+];
+
+/** Los pasos de la asesoría como pestañas: se ve uno a la vez. */
+function PasosDelManual({
+  paso,
+  onPaso,
+  disponibles,
+}: {
+  paso: number;
+  onPaso: (p: number) => void;
+  disponibles: boolean[];
+}) {
   return (
-    <section className="rounded-2xl border border-rosa-100 bg-white p-7 shadow-sm sm:p-10">
-      <h2 className="font-display text-3xl text-noche">¿Qué haremos?</h2>
-      <p className="mt-1 text-sm text-noche/60">Así va tu asesoría, paso a paso.</p>
-      <ol className="relative mt-6 grid grid-cols-1 gap-5 sm:grid-cols-4 sm:gap-4">
-        <span className="absolute left-[7px] top-2 h-[calc(100%-16px)] w-px bg-rosa-200 sm:left-0 sm:right-0 sm:top-[7px] sm:h-px sm:w-full" aria-hidden />
-        {PASOS.map((paso, i) => (
-          <li key={paso} className="relative flex gap-3 sm:block">
-            <span className="relative mt-0.5 block h-[15px] w-[15px] shrink-0 rounded-full border-2 border-white bg-rosa-500 ring-1 ring-rosa-300" />
-            <a href={`#paso-${i + 1}`} className="group sm:mt-3 sm:block">
-              <span className="block text-sm font-semibold text-rosa-600">{i + 1}.</span>
-              <span className="block text-sm text-noche/75 group-hover:text-noche">{paso}</span>
-            </a>
-          </li>
-        ))}
-      </ol>
-    </section>
+    <nav aria-label="Pasos del manual" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {PASOS_CORTOS.map((nombre, i) => {
+        if (!disponibles[i]) return null;
+        const activo = paso === i + 1;
+        return (
+          <button
+            key={nombre}
+            type="button"
+            onClick={() => onPaso(i + 1)}
+            aria-pressed={activo}
+            className={`flex items-center gap-2.5 rounded-2xl border px-3 py-3 text-left transition ${
+              activo ? "border-noche bg-noche text-white shadow-sm" : "border-rosa-100 bg-white text-noche hover:border-rosa-300"
+            }`}
+          >
+            <span
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${
+                activo ? "bg-white/15 text-white" : "bg-rosa-50 text-rosa-500"
+              }`}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden>
+                {ICONOS_PASO[i]}
+              </svg>
+            </span>
+            <span className="min-w-0">
+              <span className={`block text-[11px] font-semibold uppercase tracking-wide ${activo ? "text-white/60" : "text-rosa-500"}`}>
+                Paso {i + 1}
+              </span>
+              <span className="block text-sm font-medium leading-tight">{nombre}</span>
+            </span>
+          </button>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** Al final de cada paso, el botón para pasar al siguiente. */
+function SiguientePaso({
+  paso,
+  onPaso,
+  disponibles,
+}: {
+  paso: number;
+  onPaso: (p: number) => void;
+  disponibles: boolean[];
+}) {
+  const siguiente = disponibles.findIndex((d, i) => d && i + 1 > paso) + 1;
+  if (siguiente <= 0) return null;
+  return (
+    <div className="text-center">
+      <button
+        type="button"
+        onClick={() => {
+          onPaso(siguiente);
+          document.querySelector('[aria-label="Pasos del manual"]')?.scrollIntoView({ behavior: "smooth", block: "start" });
+        }}
+        className="rounded-full bg-noche px-6 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
+      >
+        Siguiente: {PASOS_CORTOS[siguiente - 1]} →
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Un texto largo del manual, resumido: se ven las primeras líneas y el
+ * resto con "Leer más".
+ */
+function Resumible({ texto, lineas = 4 }: { texto: string; lineas?: number }) {
+  const [abierto, setAbierto] = useState(false);
+  const largo = texto.length > 260 || texto.split(/\n{2,}/).length > 1;
+  if (!largo) return <Markdown texto={texto} />;
+  const recorte = { display: "-webkit-box", WebkitBoxOrient: "vertical" as const, WebkitLineClamp: lineas, overflow: "hidden" };
+  return (
+    <div>
+      {abierto ? (
+        <Markdown texto={texto} />
+      ) : (
+        <div style={recorte}>
+          <Markdown texto={texto.split(/\n{2,}/)[0]} />
+        </div>
+      )}
+      <button
+        type="button"
+        onClick={() => setAbierto((v) => !v)}
+        className="mt-2 text-sm font-medium text-rosa-600 underline-offset-2 hover:underline"
+      >
+        {abierto ? "Leer menos" : "Leer más"}
+      </button>
+    </div>
   );
 }
 
@@ -592,15 +699,12 @@ function SeccionOutfits({ outfits }: { outfits: OutfitListo[] }) {
 
   return (
     <Lamina id="paso-2" paso={2} titulo="Outfits para momentos específicos">
-      <p className="-mt-2 text-sm text-noche/60">
-        Las fotos son de las tiendas de nuestra lista: el corte y el color son la guía; la prenda
-        exacta puede variar.
-      </p>
+      <p className="-mt-2 text-sm text-noche/60">El corte y el color son la guía; la prenda exacta puede variar.</p>
       <div className="mt-6 space-y-8">
         {outfits.map((o, i) => (
           <div key={i}>
             <p className="text-xs font-semibold uppercase tracking-wide text-rosa-500">{o.titulo}</p>
-            {o.descripcion && <p className="mt-1 text-sm text-noche/70">{o.descripcion}</p>}
+            {o.descripcion && <p className="mt-1 line-clamp-2 text-sm text-noche/70" title={o.descripcion}>{o.descripcion}</p>}
             <PaletaDeColores prendas={o.prendas} />
             {/* Una foto por prenda: con dos, el outfit se leía como dos
                 pantalones y dos aretes, no como un look. */}
@@ -635,7 +739,9 @@ function SeccionFavoritas({ favoritas, viejo }: { favoritas?: FavoritaManual[]; 
                 />
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-noche">{f.label}</p>
-                  <p className="mt-1 text-sm leading-relaxed text-noche/70">{f.comoCombinar}</p>
+                  <div className="mt-1">
+                    <Resumible texto={f.comoCombinar} lineas={3} />
+                  </div>
                   {f.conQue.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1.5">
                       {f.conQue.map((c) => (
@@ -669,10 +775,7 @@ function SeccionFondoDeArmario({ basicos }: { basicos: PrendaClaveLista[] }) {
 
   return (
     <Lamina id="paso-4" paso={4} titulo="Fondo de armario">
-      <p className="-mt-2 text-sm text-noche/60">
-        Los básicos que sostienen todo lo demás, en el corte y el color que te funcionan. En orden de
-        prioridad.
-      </p>
+      <p className="-mt-2 text-sm text-noche/60">En el corte y el color que te funcionan, en orden de prioridad.</p>
       <div className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-[1fr_1fr]">
         <div className="grid grid-cols-3 gap-2 self-start">
           <FotosDePrenda fotos={basicos.map((p) => p.fotos[0])} soloFoto />

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import SubNavCuenta from "@/components/SubNavCuenta";
+import EncabezadoSeccion from "@/components/EncabezadoSeccion";
 import toast from "react-hot-toast";
 import OutfitCard from "@/components/OutfitCard";
 import { fetchConDispositivo } from "@/lib/device-id";
@@ -60,14 +61,7 @@ export default function MisOutfitsPage() {
 
   return (
     <div className="space-y-12">
-      <header className="flex flex-col gap-1">
-        <p className="text-sm uppercase tracking-widest text-rosa-500">
-          Tu perfil
-        </p>
-        <h1 className="font-display text-4xl text-noche sm:text-5xl">
-          Mis outfits 💕
-        </h1>
-      </header>
+      <EncabezadoSeccion titulo="Mis" destacado="outfits" frase="Los looks que guardaste y las prendas que te gustan." />
 
       <MisAvisos />
 
@@ -75,9 +69,6 @@ export default function MisOutfitsPage() {
         <h2 className="font-display text-2xl text-noche">
           Tus outfits guardados
         </h2>
-        <p className="mt-1 text-sm text-noche/60">
-          Todos los looks que has analizado y guardado.
-        </p>
 
         {outfits === null ? (
           <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

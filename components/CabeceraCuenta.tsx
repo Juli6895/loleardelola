@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { comoSeLlama, tieneMembresia, useUsuario } from "@/lib/use-usuario";
-import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS } from "@/lib/planes";
 
 // El enlace al tablero solo aparece para administración. No es una
 // medida de seguridad —el permiso se revisa en el servidor, ver
@@ -26,12 +26,12 @@ const LO_DE_LA_MEMBRESIA = [
     detalle: "Tus cuatro pilares cruzados en un documento: figura, color, sello y lo que quieres proyectar, con tres outfits armados para ti.",
   },
   {
-    titulo: "Clóset más grande",
-    detalle: `Hoy puedes subir ${TOPES.gratis.prendasCloset} prendas. Con membresía, ${TOPES_MES_MEMBRESIA.prendasCloset} nuevas y ${TOPES_MES_MEMBRESIA.combinaciones} combinaciones cada mes.`,
+    titulo: "Tu clóset y combinaciones",
+    detalle: `Con la mensual, ${CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y ${CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones. Con la anual, ${CUPOS_MEMBRESIA.anual.prendasCloset} de cada una.`,
   },
   {
-    titulo: "Más búsquedas y combinaciones",
-    detalle: `${TOPES_MES_MEMBRESIA.busquedas} búsquedas al mes, outfits guardados sin tope y avisos cuando baja el precio de lo que te gustó.`,
+    titulo: "Búsquedas de outfits y avisos",
+    detalle: `${CUPOS_MEMBRESIA.mensual.busquedas} búsquedas con la mensual o ${CUPOS_MEMBRESIA.anual.busquedas} con la anual, y avisos cuando baja el precio de lo que te gustó.`,
   },
 ];
 
@@ -203,9 +203,7 @@ export default function CabeceraCuenta() {
 
           {topes && (
             <p className="mt-5 border-t border-rosa-50 pt-4 text-xs text-noche/40">
-              Ahora mismo tienes {topes.busquedas} {topes.busquedas === 1 ? "búsqueda" : "búsquedas"}, {topes.outfits}{" "}
-              {topes.outfits === 1 ? "outfit guardado" : "outfits guardados"} y {topes.prendasCloset}{" "}
-              {topes.prendasCloset === 1 ? "prenda" : "prendas"} en tu clóset.
+              Con tu cuenta gratis guardas hasta {topes.outfits} outfits y ves las promociones por {DIAS_PRUEBA_PROMOS.gratis} días.
             </p>
           )}
         </div>

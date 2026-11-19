@@ -35,7 +35,7 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
         (t) => (
           <span className="text-sm">
             {sinSesion
-              ? "Para recibir avisos de rebaja, entra con tu correo."
+              ? "Para dar me gusta a tus prendas, entra con tu correo."
               : "Los avisos de rebaja son parte de la membresía."}{" "}
             <Link
               href={sinSesion ? "/entrar" : "/membresia"}
@@ -76,6 +76,12 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
         throw new Error(json.error ?? "No pudimos guardar el aviso.");
       }
       marcarSeguida(prenda.url, true);
+
+      // Con cuenta gratis queda el me gusta, pero sin aviso de rebaja.
+      if (json.avisos === false) {
+        toast("Te gusta. Con la membresía te avisamos si baja de precio.", { duration: 6000 });
+        return;
+      }
 
       const problema = await activarNotificaciones();
       if (problema) {

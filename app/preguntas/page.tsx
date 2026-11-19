@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
 import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
-import { DIAS_PRUEBA_PROMOS, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PAQUETE_VIGENTE, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
 // app instalada, que es la misma página). Los precios y los límites
@@ -81,21 +81,15 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día. Para buscar
-                outfits, guardarlos y usar tu clóset necesitas tu cuenta gratis.
+                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día.
               </li>
               <li>
-                <strong>Con cuenta gratis:</strong> {TOPES.gratis.busquedas} {TOPES.gratis.busquedas === 1 ? "búsqueda" : "búsquedas"} de outfit,{" "}
-                {TOPES.gratis.outfits} {TOPES.gratis.outfits === 1 ? "outfit guardado" : "outfits guardados"}, {TOPES.gratis.prendasCloset}{" "}
-                {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} en tu clóset,{" "}
-                {TOPES.gratis.combinacionesClosetGratis}{" "}
-                {TOPES.gratis.combinacionesClosetGratis === 1 ? "combinación" : "combinaciones"}, y las promociones por {DIAS_PRUEBA_PROMOS.gratis} días
-                desde que creas la cuenta.
+                <strong>Con cuenta gratis:</strong> {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta y las
+                promociones por {DIAS_PRUEBA_PROMOS.gratis} días desde que creas la cuenta. Esta prueba es una por aparato.
               </li>
             </ul>
             <p className="mt-2">
-              Para usarla sin esos límites, ver las promociones siempre, el manual de estilo y los avisos de
-              rebaja está la{" "}
+              Para buscar outfits, usar tu clóset, tener tu manual de estilo y recibir avisos de rebaja está la{" "}
               <Link href="/membresia" className="font-medium text-rosa-600 underline">
                 membresía
               </Link>
@@ -139,20 +133,24 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               Con el precio de lanzamiento cuesta <strong>{pesos(PRECIOS.mensual)} al mes</strong> o{" "}
               <strong>{pesos(PRECIOS.anual)} al año</strong> (sale a {pesos(Math.round(PRECIOS.anual / 12))}{" "}
               al mes). El precio normal será de {pesos(PRECIOS_NORMALES.mensual)} al mes y{" "}
-              {pesos(PRECIOS_NORMALES.anual)} al año. Cada mes incluye:
+              {pesos(PRECIOS_NORMALES.anual)} al año. Incluye:
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>{TOPES_MES_MEMBRESIA.busquedas} búsquedas de outfit.</li>
               <li>
-                {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas en tu clóset y{" "}
-                {TOPES_MES_MEMBRESIA.combinaciones} combinaciones.
+                <strong>Mensual (31 días):</strong> {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas, {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas nuevas,{" "}
+                {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones, {CUPOS_MEMBRESIA.mensual.outfits} outfits guardados y {CUPOS_MEMBRESIA.mensual.meGusta} me gusta con aviso de rebaja.
               </li>
-              <li>Outfits guardados sin tope.</li>
-              <li>Tu manual de estilo completo, para descargar ({TOPES_MES_MEMBRESIA.manuales} nuevo al mes).</li>
-              <li>Las promociones de todas las tiendas, siempre.</li>
-              <li>Notificación en tu app cuando baja de precio lo que te gustó.</li>
+              <li>
+                <strong>Anual:</strong> {CUPOS_MEMBRESIA.anual.busquedas} búsquedas, {CUPOS_MEMBRESIA.anual.prendasCloset} prendas nuevas y{" "}
+                {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año, con outfits guardados y me gusta sin tope.
+              </li>
+              <li>
+                En las dos: {CUPOS_MEMBRESIA.mensual.manuales} manual de estilo, {CUPOS_MEMBRESIA.mensual.personalidadFoto} análisis de personalidad por foto y{" "}
+                {CUPOS_MEMBRESIA.mensual.personalidadReferencia} por referencia.
+              </li>
+              <li>Las promociones de todas las tiendas mientras tengas la membresía.</li>
             </ul>
-            <p className="mt-2">Los límites se renuevan el 1 de cada mes.</p>
+            <p className="mt-2">Los cupos son por cada membresía que pagas.</p>
           </>
         ),
       },
@@ -202,20 +200,20 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
-        p: "¿Qué pasa si se me acaban las búsquedas del mes?",
+        p: "¿Qué pasa si se me acaban las búsquedas?",
         r: (
           <p>
             Puedes comprar un paquete de{" "}
             <strong>
-              {PAQUETES_BUSQUEDAS.paquete30.busquedas} búsquedas adicionales por{" "}
-              {pesos(PAQUETES_BUSQUEDAS.paquete30.precio)}
+              {PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE].busquedas} búsquedas adicionales por{" "}
+              {pesos(PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE].precio)}
             </strong>{" "}
             en{" "}
             <Link href="/membresia#paquetes" className="font-medium text-rosa-600 underline">
               Membresía
             </Link>
-            . Se usan cuando ya gastaste las de tu mes y no se vencen: lo que no uses queda para los meses
-            siguientes. Los paquetes son para quienes tienen la membresía.
+            . Se usan cuando ya gastaste las de tu membresía y se vencen en la misma fecha que ella. Los paquetes son
+            para quienes tienen la membresía.
           </p>
         ),
       },
@@ -267,11 +265,8 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
           <p>
             Sube fotos de las prendas que ya tienes. Las clasificamos solas y, con "Buscar combinaciones", te
             armamos un outfit alrededor de esa prenda según lo que quieres proyectar, con prendas de tiendas
-            que le suman. Necesitas tu cuenta gratis: con ella subes {TOPES.gratis.prendasCloset}{" "}
-            {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} y pruebas{" "}
-            {TOPES.gratis.combinacionesClosetGratis === 1 ? "una combinación" : `${TOPES.gratis.combinacionesClosetGratis} combinaciones`};
-            con la membresía, {TOPES_MES_MEMBRESIA.prendasCloset} prendas y {TOPES_MES_MEMBRESIA.combinaciones} combinaciones al
-            mes.
+            que le suman. Es parte de la membresía: {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones con la
+            mensual, o {CUPOS_MEMBRESIA.anual.prendasCloset} y {CUPOS_MEMBRESIA.anual.combinaciones} con la anual.
           </p>
         ),
       },

@@ -2,13 +2,21 @@ import { supabaseAdmin } from "./supabase";
 import { usuarioActual, type UsuarioActual } from "./sesion";
 import { esAdmin } from "./admin-correos";
 import { contextoDe, registrar } from "./eventos";
+import { otrasCuentasDelAparato } from "./aparato";
 import {
+  CUPOS_MEMBRESIA,
+  ME_GUSTA_ANTERIOR,
+  mensajeCupo,
   mensajeDeTope,
   mensajeTopeMensual,
+  PAQUETES_BUSQUEDAS,
+  periodoActual,
   puedeUsar,
   TOPES,
   TOPES_MES_MEMBRESIA,
+  type PeriodoMembresia,
   type Recurso,
+  type UsoMembresia,
   type UsoMensual,
 } from "./planes";
 
@@ -19,10 +27,9 @@ import {
 // manda es esto. Sin la verificación acá, bastaría con llamar la API a
 // mano para saltarse cualquier tope.
 //
-// Sin membresía, las búsquedas y los outfits se cuentan desde siempre,
-// no por mes: "más de 10 búsquedas" es en total. Con membresía los usos
-// de la IA tienen tope MENSUAL (ver TOPES_MES_MEMBRESIA): cada uno se
-// paga, y una membresía ilimitada no da utilidad.
+// Sin membresía, lo usado se cuenta desde siempre. Con membresía, cada
+// pago abre sus cupos (CUPOS_MEMBRESIA). Quien pagó antes del cambio
+// conserva sus condiciones hasta que se le venza lo pagado.
 // =====================================================================
 
 const TABLA: Record<Recurso, string> = {
@@ -61,6 +68,35 @@ async function contar(userId: string, recurso: Recurso): Promise<number> {
 }
 
 // ---------------------------------------------------------------------
+// Una prueba gratis por aparato (ver lib/aparato.ts)
+// ---------------------------------------------------------------------
+const MENSAJE_PRUEBA_USADA =
+  "La prueba gratis ya se usó en este aparato. Con la membresía tienes mucho más cada mes.";
+
+// Las prendas y los outfits se pueden borrar: el evento queda aunque la
+// fila ya no exista.
+const EVENTO_DE_USO: Partial<Record<Recurso, string>> = {
+  prendasCloset: "prenda_subida",
+  outfits: "outfit_guardado",
+};
+
+async function usadasEnCuentas(ids: string[], recurso: Recurso): Promise<number> {
+  const sb = supabaseAdmin();
+  const { count } = await sb
+    .from(TABLA[recurso])
+    .select("id", { count: "exact", head: true })
+    .in("user_id", ids);
+  const evento = EVENTO_DE_USO[recurso];
+  if (!evento) return count ?? 0;
+  const { count: veces } = await sb
+    .from("eventos")
+    .select("id", { count: "exact", head: true })
+    .eq("nombre", evento)
+    .in("user_id", ids);
+  return Math.max(count ?? 0, veces ?? 0);
+}
+
+// ---------------------------------------------------------------------
 // Topes mensuales de la membresía
 // ---------------------------------------------------------------------
 /** El 1 del mes en curso y el del siguiente, a medianoche en Colombia (UTC-5). */
@@ -90,24 +126,109 @@ async function usadasDesde(userId: string, uso: UsoMensual, desde: Date | null):
     .select("id", { count: "exact", head: true })
     .eq("user_id", userId);
   if (origen.evento) q = q.eq("nombre", origen.evento);
+  // Guardar un outfit también deja una fila en searches: esa no es una
+  // búsqueda nueva y no debe gastar cupo.
+  if (uso === "busquedas") q = q.is("outfit_id", null);
   if (desde) q = q.gte("created_at", desde.toISOString());
   const { count } = await q;
   return count ?? 0;
 }
 
-/**
- * ¿Le queda de este uso en el mes? Solo aplica a la membresía; la cuenta
- * de administración no tiene tope, para poder probar.
- */
-export async function revisarUsoMensual(
+// ---------------------------------------------------------------------
+// Cupos de cada membresía pagada
+// ---------------------------------------------------------------------
+/** La membresía que está corriendo, según sus pagos acreditados. */
+export async function periodoDe(userId: string): Promise<PeriodoMembresia | null> {
+  const { data } = await supabaseAdmin()
+    .from("pagos")
+    .select("plan, acreditado_at")
+    .eq("user_id", userId)
+    .eq("estado", "acreditado")
+    .in("plan", ["mensual", "anual"]);
+  return periodoActual(data ?? []);
+}
+
+async function eventosDesde(userId: string, nombre: string, desde: Date, fuente?: string): Promise<number> {
+  let q = supabaseAdmin()
+    .from("eventos")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("nombre", nombre)
+    .gte("created_at", desde.toISOString());
+  if (fuente) q = q.eq("props->>fuente", fuente);
+  const { count } = await q;
+  return count ?? 0;
+}
+
+async function usadasEnPeriodo(userId: string, uso: UsoMembresia, periodo: PeriodoMembresia): Promise<number> {
+  switch (uso) {
+    case "outfits":
+      return contar(userId, "outfits");
+    case "meGusta": {
+      const { count } = await supabaseAdmin()
+        .from("seguimientos")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("activo", true);
+      return count ?? 0;
+    }
+    case "personalidadFoto":
+      return eventosDesde(userId, "personalidad_calculada", periodo.inicio, "foto");
+    case "personalidadReferencia":
+      return eventosDesde(userId, "personalidad_calculada", periodo.inicio, "referencia");
+    case "prendasCloset":
+      // Borrar una prenda no devuelve el cupo: el análisis ya se pagó.
+      return Math.max(
+        await usadasDesde(userId, uso, periodo.inicio),
+        await eventosDesde(userId, "prenda_subida", periodo.inicio)
+      );
+    default:
+      return usadasDesde(userId, uso, periodo.inicio);
+  }
+}
+
+/** Las condiciones de quien pagó antes de los cupos nuevos. */
+async function revisarCondicionAnterior(
   usuario: UsuarioActual,
-  uso: UsoMensual
-): Promise<{ permitido: true } | { permitido: false; mensaje: string }> {
-  if (esAdmin(usuario.email)) return { permitido: true };
+  uso: UsoMembresia
+): Promise<{ permitido: true } | { permitido: false; mensaje: string; tope: number }> {
+  if (uso === "meGusta") {
+    const { count } = await supabaseAdmin()
+      .from("seguimientos")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", usuario.id)
+      .eq("activo", true);
+    if ((count ?? 0) < ME_GUSTA_ANTERIOR) return { permitido: true };
+    return {
+      permitido: false,
+      mensaje: `Ya sigues ${ME_GUSTA_ANTERIOR} prendas. Deja de seguir alguna en Mis outfits para agregar otra.`,
+      tope: ME_GUSTA_ANTERIOR,
+    };
+  }
+  if (!(uso in TOPES_MES_MEMBRESIA)) return { permitido: true };
+  const mensual = uso as UsoMensual;
   const { inicio, renueva } = mesEnCurso();
-  const usadas = await usadasDesde(usuario.id, uso, inicio);
-  if (usadas < TOPES_MES_MEMBRESIA[uso]) return { permitido: true };
-  return { permitido: false, mensaje: mensajeTopeMensual(uso, renueva) };
+  const usadas = await usadasDesde(usuario.id, mensual, inicio);
+  const tope = TOPES_MES_MEMBRESIA[mensual];
+  if (usadas < tope) return { permitido: true };
+  return { permitido: false, mensaje: mensajeTopeMensual(mensual, renueva), tope };
+}
+
+/**
+ * ¿Le queda de este uso en su membresía? La cuenta de administración no
+ * tiene tope, para poder probar.
+ */
+export async function revisarCupo(
+  usuario: UsuarioActual,
+  uso: UsoMembresia
+): Promise<{ permitido: true } | { permitido: false; mensaje: string; tope: number }> {
+  if (esAdmin(usuario.email)) return { permitido: true };
+  const periodo = await periodoDe(usuario.id);
+  if (!periodo || periodo.anterior) return revisarCondicionAnterior(usuario, uso);
+  const tope = CUPOS_MEMBRESIA[periodo.plan][uso];
+  if (tope === null) return { permitido: true };
+  if ((await usadasEnPeriodo(usuario.id, uso, periodo)) < tope) return { permitido: true };
+  return { permitido: false, mensaje: mensajeCupo(uso, tope, periodo.fin), tope };
 }
 
 /** ¿Puede hacer una más de este recurso? */
@@ -127,23 +248,39 @@ export async function revisarTope(
     };
   }
 
-  // Con membresía, búsquedas y prendas tienen tope mensual (los outfits
-  // guardados no cuestan nada, siguen sin tope).
-  if (usuario.plan === "membresia" && (recurso === "busquedas" || recurso === "prendasCloset")) {
-    const mensual = await revisarUsoMensual(usuario, recurso);
-    if (mensual.permitido) return { permitido: true, usuario, usadas: 0, tope: null };
-    // Se le acabaron las del mes: si compró un paquete, sale de ahí.
+  // La cuenta de administración no tiene tope, para poder probar.
+  if (esAdmin(usuario.email)) return { permitido: true, usuario, usadas: 0, tope: null };
+
+  if (usuario.plan === "membresia") {
+    const cupo = await revisarCupo(usuario, recurso);
+    if (cupo.permitido) return { permitido: true, usuario, usadas: 0, tope: null };
+    // Se le acabaron las de su membresía: si compró un paquete, sale de ahí.
     if (recurso === "busquedas" && (await busquedasExtra(usuario.id)) > 0) {
       return { permitido: true, usuario, usadas: 0, tope: null, usaExtra: true };
     }
     registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan });
-    return { permitido: false, usuario, mensaje: mensual.mensaje, destrabaCon: null, usadas: 0, tope: TOPES_MES_MEMBRESIA[recurso] };
+    return { permitido: false, usuario, mensaje: cupo.mensaje, destrabaCon: null, usadas: 0, tope: cupo.tope };
   }
 
   const usadas = await contar(usuario.id, recurso);
   const veredicto = puedeUsar(usuario.plan, recurso, usadas);
 
   if (veredicto.permitido) {
+    // Le queda en esta cuenta, pero la prueba gratis es una por aparato.
+    if (usuario.plan === "gratis" && veredicto.tope !== null) {
+      const otras = await otrasCuentasDelAparato(req, usuario.id);
+      if (otras.length > 0 && usadas + (await usadasEnCuentas(otras, recurso)) >= veredicto.tope) {
+        registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan, motivo: "aparato" });
+        return {
+          permitido: false,
+          usuario,
+          mensaje: MENSAJE_PRUEBA_USADA,
+          destrabaCon: "membresia",
+          usadas,
+          tope: veredicto.tope,
+        };
+      }
+    }
     return { permitido: true, usuario, usadas, tope: veredicto.tope };
   }
 
@@ -170,18 +307,34 @@ export async function revisarTope(
  * ver TOPES.combinacionesClosetGratis (0 sin cuenta, 1 con cuenta gratis).
  */
 export async function puedeVerCombinaciones(
+  req: Request,
   usuario: UsuarioActual,
   _itemId: string
 ): Promise<{ permitido: true } | { permitido: false; mensaje: string; destrabaCon: "gratis" | "membresia" | null }> {
+  if (esAdmin(usuario.email)) return { permitido: true };
   if (usuario.plan === "membresia") {
-    const mensual = await revisarUsoMensual(usuario, "combinaciones");
-    return mensual.permitido ? mensual : { ...mensual, destrabaCon: null };
+    const cupo = await revisarCupo(usuario, "combinaciones");
+    return cupo.permitido ? cupo : { permitido: false, mensaje: cupo.mensaje, destrabaCon: null };
   }
   const tope = TOPES[usuario.plan].combinacionesClosetGratis;
   if (tope === null) return { permitido: true };
+  if (tope === 0) {
+    return { permitido: false, mensaje: "Buscar combinaciones es parte de la membresía.", destrabaCon: "membresia" };
+  }
 
   const usadas = await usadasDesde(usuario.id, "combinaciones", null);
-  if (usadas < tope) return { permitido: true };
+  if (usadas < tope) {
+    if (usuario.plan !== "gratis") return { permitido: true };
+    const otras = await otrasCuentasDelAparato(req, usuario.id);
+    if (otras.length === 0) return { permitido: true };
+    const { count } = await supabaseAdmin()
+      .from("eventos")
+      .select("id", { count: "exact", head: true })
+      .eq("nombre", "combinacion_buscada")
+      .in("user_id", otras);
+    if (usadas + (count ?? 0) < tope) return { permitido: true };
+    return { permitido: false, mensaje: MENSAJE_PRUEBA_USADA, destrabaCon: "membresia" };
+  }
 
   const cuantas = tope === 1 ? "tu combinación gratis" : `tus ${tope} combinaciones gratis`;
   if (usuario.plan === "anonimo" && tope === 0) {
@@ -206,47 +359,56 @@ export async function puedeVerCombinaciones(
 }
 
 /**
- * Las búsquedas de paquete que le quedan. 0 si no ha comprado o si la
- * columna todavía no existe (falta correr la migración de paquetes).
+ * Las búsquedas de paquete que le quedan en la membresía que está
+ * corriendo: lo comprado en ese periodo menos lo gastado. Se vencen con
+ * ella.
  */
-export async function busquedasExtra(userId: string): Promise<number> {
-  const { data, error } = await supabaseAdmin()
-    .from("users")
-    .select("busquedas_extra")
-    .eq("id", userId)
-    .maybeSingle();
-  if (error) return 0;
-  return Number((data as any)?.busquedas_extra) || 0;
+export async function busquedasExtra(userId: string, periodo?: PeriodoMembresia | null): Promise<number> {
+  const vigente = periodo === undefined ? await periodoDe(userId) : periodo;
+  if (!vigente) return 0;
+  const { data } = await supabaseAdmin()
+    .from("pagos")
+    .select("plan")
+    .eq("user_id", userId)
+    .eq("estado", "acreditado")
+    .in("plan", Object.keys(PAQUETES_BUSQUEDAS))
+    .gte("acreditado_at", vigente.inicio.toISOString())
+    .lt("acreditado_at", vigente.fin.toISOString());
+  const compradas = (data ?? []).reduce(
+    (total, p) => total + (PAQUETES_BUSQUEDAS[p.plan as keyof typeof PAQUETES_BUSQUEDAS]?.busquedas ?? 0),
+    0
+  );
+  if (compradas === 0) return 0;
+  const gastadas = await eventosDesde(userId, "busqueda_paquete_usada", vigente.inicio);
+  return Math.max(compradas - gastadas, 0);
 }
 
-/**
- * Descuenta una búsqueda de paquete. Solo resta si el saldo sigue siendo
- * el que se leyó: si dos búsquedas llegan a la vez, la segunda vuelve a
- * leer y resta sobre el valor nuevo, en vez de pisarlo.
- */
+/** Descuenta una búsqueda de paquete. */
 export async function gastarBusquedaExtra(userId: string): Promise<void> {
-  const sb = supabaseAdmin();
-  for (let intento = 0; intento < 3; intento++) {
-    const actual = await busquedasExtra(userId);
-    if (actual <= 0) return;
-    const { data } = await sb
-      .from("users")
-      .update({ busquedas_extra: actual - 1 })
-      .eq("id", userId)
-      .eq("busquedas_extra", actual)
-      .select("id");
-    if (data && data.length > 0) return;
-  }
+  await registrar("busqueda_paquete_usada", { userId });
 }
 
-/** Cuántas búsquedas del mes lleva y cuántas de paquete le quedan. */
+/** Cuántas búsquedas lleva, cuántas tiene y cuántas de paquete le quedan. */
 export async function saldoDeBusquedas(usuario: UsuarioActual) {
-  const { inicio } = mesEnCurso();
-  const [usadas, extra] = await Promise.all([
-    usadasDesde(usuario.id, "busquedas", inicio),
-    busquedasExtra(usuario.id),
-  ]);
-  return { usadasDelMes: usadas, topeDelMes: TOPES_MES_MEMBRESIA.busquedas, extra };
+  const periodo = await periodoDe(usuario.id);
+  const extra = await busquedasExtra(usuario.id, periodo);
+  if (!periodo || periodo.anterior) {
+    const { inicio } = mesEnCurso();
+    return {
+      usadas: await usadasDesde(usuario.id, "busquedas", inicio),
+      tope: TOPES_MES_MEMBRESIA.busquedas as number | null,
+      extra,
+      alMes: true,
+      vence: null as string | null,
+    };
+  }
+  return {
+    usadas: await usadasDesde(usuario.id, "busquedas", periodo.inicio),
+    tope: CUPOS_MEMBRESIA[periodo.plan].busquedas,
+    extra,
+    alMes: false,
+    vence: periodo.fin.toISOString() as string | null,
+  };
 }
 
 /**

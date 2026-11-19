@@ -50,7 +50,7 @@ export default function Servicios() {
       </div>
 
       <p className="mt-5 text-center text-sm text-noche/60">
-        Crea tu cuenta gratis y haz tu primera búsqueda.{" "}
+        Crea tu cuenta gratis y mira las promociones de todas las tiendas.{" "}
         <Link href="/membresia" className="font-medium text-rosa-600 underline-offset-2 hover:underline">
           Ver la membresía
         </Link>

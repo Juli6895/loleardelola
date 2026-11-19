@@ -542,7 +542,7 @@ function Bloqueo({ plan }: { plan: Acceso["plan"] }) {
       <div className="absolute inset-0 flex items-center justify-center bg-white/60 p-6">
         <div className="max-w-md rounded-2xl bg-white p-6 text-center shadow-suave">
           <h2 id="promos-titulo" className="font-display text-2xl text-noche">
-            {sinCuenta ? "Mira las promociones 3 días más" : "Las promociones son de la membresía"}
+            {sinCuenta ? "Mira las promociones 2 días más" : "Las promociones son de la membresía"}
           </h2>
           <p className="mt-2 text-sm text-noche/65">
             {sinCuenta
@@ -558,7 +558,7 @@ function Bloqueo({ plan }: { plan: Acceso["plan"] }) {
           <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-center">
             {sinCuenta && (
               <Link
-                href="/entrar?volver=/&motivo=Crea tu cuenta gratis y ve las promociones 3 días más."
+                href="/entrar?volver=/&motivo=Crea tu cuenta gratis y ve las promociones 2 días más."
                 className="rounded-full bg-noche px-5 py-2.5 text-sm font-medium text-white transition hover:bg-rosa-500"
               >
                 Crear mi cuenta gratis

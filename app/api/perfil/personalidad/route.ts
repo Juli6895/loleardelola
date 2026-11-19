@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { resolverUserId } from "@/lib/sesion";
+import { usuarioActual } from "@/lib/sesion";
+import { esAdmin } from "@/lib/admin-correos";
+import { revisarCupo } from "@/lib/limites";
 import { uploadImage } from "@/lib/cloudinary";
 import { contextoDe, registrar } from "@/lib/eventos";
 import {
@@ -12,12 +14,28 @@ import {
 // Body: { referencia: string } — nombre de celebridad/personaje, o
 //       { imageBase64: string } — foto propia o de inspiración
 export async function POST(req: Request) {
-  const userId = await resolverUserId(req);
-  if (!userId) {
+  const usuario = await usuarioActual(req);
+  if (!usuario) {
     return NextResponse.json({ error: "Falta el id de dispositivo" }, { status: 400 });
+  }
+  const userId = usuario.id;
+
+  // Cada análisis cuesta: es parte de la membresía y tiene su cupo.
+  if (usuario.plan !== "membresia" && !esAdmin(usuario.email)) {
+    return NextResponse.json(
+      { error: "La personalidad de estilo es parte de la membresía.", destrabaCon: "membresia", limite: true },
+      { status: 402 }
+    );
   }
 
   const body = await req.json();
+  const porReferencia = typeof body.referencia === "string" && !!body.referencia.trim();
+  if (porReferencia || body.imageBase64) {
+    const cupo = await revisarCupo(usuario, porReferencia ? "personalidadReferencia" : "personalidadFoto");
+    if (!cupo.permitido) {
+      return NextResponse.json({ error: cupo.mensaje, limite: true }, { status: 429 });
+    }
+  }
 
   try {
     let resultado;
@@ -52,7 +70,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    registrar("personalidad_calculada", contextoDe(req, userId), { fuente: fuente === "foto" ? "foto" : "referencia" });
+    await registrar("personalidad_calculada", contextoDe(req, userId), { fuente: fuente === "foto" ? "foto" : "referencia" });
     return NextResponse.json({ resultado, fuente });
   } catch (e: any) {
     console.error("[/api/perfil/personalidad] error:", e);

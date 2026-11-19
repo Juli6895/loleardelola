@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { DIAS_PRUEBA_PROMOS, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PAQUETE_VIGENTE, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
 import { fetchConDispositivo } from "@/lib/device-id";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
@@ -24,10 +24,10 @@ const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 export default function MembresiaPage() {
   const { usuario } = useUsuario();
   const conMembresia = tieneMembresia(usuario);
-  const paquete = PAQUETES_BUSQUEDAS.paquete30;
+  const paquete = PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE];
 
-  // Cuántas búsquedas le quedan (las del mes y las de paquetes).
-  const [saldo, setSaldo] = useState<{ usadasDelMes: number; topeDelMes: number; extra: number } | null>(null);
+  // Cuántas búsquedas le quedan (las de su membresía y las de paquetes).
+  const [saldo, setSaldo] = useState<{ usadas: number; tope: number | null; extra: number; alMes: boolean } | null>(null);
   useEffect(() => {
     if (!conMembresia) return;
     fetchConDispositivo("/api/membresia/saldo")
@@ -36,63 +36,24 @@ export default function MembresiaPage() {
       .catch(() => setSaldo(null));
   }, [conMembresia]);
 
-  const mes = (n: number) => `${n} al mes`;
   const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
-  const filas: Array<{ que: string; sin: string | number; gratis: string | number; membresia: string }> = [
-    {
-      que: "Búsquedas de outfits",
-      sin: TOPES.anonimo.busquedas || "—",
-      gratis: TOPES.gratis.busquedas ?? "—",
-      membresia: mes(TOPES_MES_MEMBRESIA.busquedas),
-    },
-    {
-      que: "Outfits guardados",
-      sin: TOPES.anonimo.outfits || "—",
-      gratis: TOPES.gratis.outfits ?? "—",
-      membresia: "Sin tope",
-    },
-    {
-      que: "Prendas en tu clóset",
-      sin: TOPES.anonimo.prendasCloset || "—",
-      gratis: TOPES.gratis.prendasCloset ?? "—",
-      membresia: `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
-    },
-    {
-      que: "Buscar combinaciones",
-      sin: TOPES.anonimo.combinacionesClosetGratis || "—",
-      gratis: TOPES.gratis.combinacionesClosetGratis ?? "—",
-      membresia: mes(TOPES_MES_MEMBRESIA.combinaciones),
-    },
-    {
-      que: "Manual de estilo",
-      sin: "—",
-      gratis: "—",
-      membresia: `Sí, ${TOPES_MES_MEMBRESIA.manuales} ${TOPES_MES_MEMBRESIA.manuales === 1 ? "nuevo" : "nuevos"} al mes`,
-    },
-    {
-      que: "Promociones de todas las tiendas",
-      sin: dias(DIAS_PRUEBA_PROMOS.anonimo),
-      gratis: dias(DIAS_PRUEBA_PROMOS.gratis),
-      membresia: "Siempre",
-    },
-    {
-      que: "Mis marcas favoritas (promociones solo de tus marcas)",
-      sin: "Sí",
-      gratis: "Sí",
-      membresia: "Sí",
-    },
-    {
-      que: "Me gusta (corazón): aviso cuando baja el precio",
-      sin: "—",
-      gratis: "—",
-      membresia: "Sí, notificación en tu app",
-    },
-    {
-      que: "Búsquedas adicionales",
-      sin: "—",
-      gratis: "—",
-      membresia: `${paquete.busquedas} por ${pesos(paquete.precio)}`,
-    },
+  const cupo = (n: number | null) => (n === null ? "Sin tope" : n);
+  const nada = (n: number | null) => n || "—";
+  const { mensual, anual } = CUPOS_MEMBRESIA;
+  const adicionales = `${paquete.busquedas} por ${pesos(paquete.precio)}`;
+  const filas: Array<{ que: string; sin: string | number; gratis: string | number; mensual: string | number; anual: string | number }> = [
+    { que: "Búsquedas de outfits", sin: nada(TOPES.anonimo.busquedas), gratis: nada(TOPES.gratis.busquedas), mensual: cupo(mensual.busquedas), anual: cupo(anual.busquedas) },
+    { que: "Outfits guardados", sin: nada(TOPES.anonimo.outfits), gratis: nada(TOPES.gratis.outfits), mensual: cupo(mensual.outfits), anual: cupo(anual.outfits) },
+    { que: "Prendas nuevas en tu clóset", sin: nada(TOPES.anonimo.prendasCloset), gratis: nada(TOPES.gratis.prendasCloset), mensual: cupo(mensual.prendasCloset), anual: cupo(anual.prendasCloset) },
+    { que: "Buscar combinaciones", sin: nada(TOPES.anonimo.combinacionesClosetGratis), gratis: nada(TOPES.gratis.combinacionesClosetGratis), mensual: cupo(mensual.combinaciones), anual: cupo(anual.combinaciones) },
+    { que: "Manual de estilo", sin: "—", gratis: "—", mensual: cupo(mensual.manuales), anual: cupo(anual.manuales) },
+    { que: "Promociones de todas las tiendas", sin: dias(DIAS_PRUEBA_PROMOS.anonimo), gratis: dias(DIAS_PRUEBA_PROMOS.gratis), mensual: "31 días", anual: "Todo el año" },
+    { que: "Mis marcas favoritas (promociones solo de tus marcas)", sin: "Sí", gratis: "Sí", mensual: "Sí", anual: "Sí" },
+    { que: "Me gusta (corazón) en una prenda", sin: "—", gratis: ME_GUSTA_GRATIS, mensual: cupo(mensual.meGusta), anual: cupo(anual.meGusta) },
+    { que: "Aviso cuando baja de precio", sin: "—", gratis: "—", mensual: cupo(mensual.meGusta), anual: cupo(anual.meGusta) },
+    { que: "Personalidad de estilo por foto", sin: "—", gratis: "—", mensual: cupo(mensual.personalidadFoto), anual: cupo(anual.personalidadFoto) },
+    { que: "Personalidad de estilo por referencia", sin: "—", gratis: "—", mensual: cupo(mensual.personalidadReferencia), anual: cupo(anual.personalidadReferencia) },
+    { que: "Búsquedas adicionales", sin: "—", gratis: "—", mensual: adicionales, anual: adicionales },
   ];
 
   return (
@@ -132,14 +93,13 @@ export default function MembresiaPage() {
       )}
 
       <div className="overflow-hidden rounded-2xl border border-rosa-100 bg-white shadow-sm">
-        {/* En el celular las cuatro columnas no caben (la de Membresía
-            quedaba cortada): cada fila se vuelve una tarjeta con los tres
-            planes uno al lado del otro. */}
+        {/* En el celular las columnas no caben: cada fila se vuelve una
+            tarjeta con los cuatro planes. */}
         <ul className="divide-y divide-rosa-100 sm:hidden">
           {filas.map((f) => (
             <li key={f.que} className="px-4 py-4">
               <p className="text-sm font-medium text-noche">{f.que}</p>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-center">
+              <div className="mt-2 grid grid-cols-2 gap-2 text-center">
                 <div className="rounded-lg bg-rosa-50/60 px-1.5 py-2">
                   <p className="text-[10px] uppercase tracking-wide text-noche/45">Sin cuenta</p>
                   <p className="mt-0.5 text-xs tabular-nums text-noche/70">{f.sin}</p>
@@ -149,8 +109,12 @@ export default function MembresiaPage() {
                   <p className="mt-0.5 text-xs tabular-nums text-noche/70">{f.gratis}</p>
                 </div>
                 <div className="rounded-lg border border-rosa-200 bg-white px-1.5 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rosa-500">Membresía</p>
-                  <p className="mt-0.5 text-xs font-medium text-noche">{f.membresia}</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rosa-500">Mensual</p>
+                  <p className="mt-0.5 text-xs font-medium text-noche">{f.mensual}</p>
+                </div>
+                <div className="rounded-lg border border-rosa-200 bg-white px-1.5 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-rosa-500">Anual</p>
+                  <p className="mt-0.5 text-xs font-medium text-noche">{f.anual}</p>
                 </div>
               </div>
             </li>
@@ -167,7 +131,10 @@ export default function MembresiaPage() {
                 Cuenta gratis
               </th>
               <th className="px-3 py-3 text-center font-medium text-rosa-500">
-                Membresía
+                Mensual
+              </th>
+              <th className="px-3 py-3 text-center font-medium text-rosa-500">
+                Anual
               </th>
             </tr>
           </thead>
@@ -182,7 +149,10 @@ export default function MembresiaPage() {
                   {f.gratis}
                 </td>
                 <td className="px-3 py-3 text-center font-medium text-noche">
-                  {f.membresia}
+                  {f.mensual}
+                </td>
+                <td className="px-3 py-3 text-center font-medium text-noche">
+                  {f.anual}
                 </td>
               </tr>
             ))}
@@ -190,7 +160,7 @@ export default function MembresiaPage() {
         </table>
       </div>
       <p className="-mt-5 text-center text-xs text-noche/40">
-        Los límites de la membresía se renuevan el 1 de cada mes.
+        Los cupos son por cada membresía que pagas. Con la anual los usas a tu ritmo durante todo el año.
       </p>
 
       <div>
@@ -251,19 +221,19 @@ export default function MembresiaPage() {
               {paquete.busquedas} búsquedas adicionales por {pesos(paquete.precio)}
             </h2>
             <p className="mt-1 max-w-md text-sm text-noche/60">
-              Se usan cuando ya gastaste las {TOPES_MES_MEMBRESIA.busquedas} búsquedas de tu mes, y no se vencen: lo
-              que no uses queda para los meses siguientes.
+              Se usan cuando ya gastaste las búsquedas de tu membresía, y se vencen en la misma fecha que ella.
             </p>
             {saldo && (
               <p className="mt-2 text-sm font-medium text-noche">
-                Este mes llevas {Math.min(saldo.usadasDelMes, saldo.topeDelMes)} de {saldo.topeDelMes} búsquedas
+                {saldo.alMes ? "Este mes" : "En esta membresía"} llevas{" "}
+                {saldo.tope === null ? saldo.usadas : `${Math.min(saldo.usadas, saldo.tope)} de ${saldo.tope}`} búsquedas
                 {saldo.extra > 0 ? ` · te quedan ${saldo.extra} adicionales` : ""}.
               </p>
             )}
           </div>
           <div className="w-full shrink-0 sm:w-56">
             {conMembresia ? (
-              <BotonPago plan="paquete30" etiqueta={`Comprar ${paquete.busquedas} búsquedas`} />
+              <BotonPago plan={PAQUETE_VIGENTE} etiqueta={`Comprar ${paquete.busquedas} búsquedas`} />
             ) : (
               <p className="rounded-xl bg-rosa-50/70 px-4 py-3 text-center text-xs text-noche/60">
                 Los paquetes son para quienes tienen la membresía.

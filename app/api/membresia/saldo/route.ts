@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { usuarioActual } from "@/lib/sesion";
 import { saldoDeBusquedas } from "@/lib/limites";
 
-// GET /api/membresia/saldo → cuántas búsquedas del mes lleva y cuántas de
+// GET /api/membresia/saldo → cuántas búsquedas de su membresía lleva y cuántas de
 // paquete le quedan. Lo usa la página de la membresía.
 export const dynamic = "force-dynamic";
 

@@ -5,7 +5,7 @@ import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
 import Link from "next/link";
 import { useUsuario } from "@/lib/use-usuario";
-import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA, TOPES } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se hace el análisis de outfit
@@ -61,9 +61,9 @@ export default function BuscarPage() {
         ))}
       </section>
       <p className="text-center text-xs text-noche/50">
-        Además: las promociones de lo que buscaste y la opción de guardar el outfit para verlo después. Con tu cuenta
-        gratis tienes {TOPES.gratis.busquedas} búsqueda para probar; con la membresía, {TOPES_MES_MEMBRESIA.busquedas} al
-        mes. Funciona mejor con fotos claras, de cuerpo entero y con buena luz.
+        Además: las promociones de lo que buscaste y la opción de guardar el outfit para verlo después. Buscar es parte
+        de la membresía: {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas con la mensual o {CUPOS_MEMBRESIA.anual.busquedas} con la
+        anual. Funciona mejor con fotos claras, de cuerpo entero y con buena luz.
       </p>
 
       <SearchBox onResult={setResult} />

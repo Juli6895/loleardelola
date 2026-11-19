@@ -2,11 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { armarBoton, llaveDeCobroCorrecta } from "@/lib/bold";
-import { esPaquete, precioDe, type Producto } from "@/lib/planes";
+import { esPaquete, PAQUETE_VIGENTE, precioDe, type Producto } from "@/lib/planes";
 import { esAdmin } from "@/lib/admin-correos";
 import { contextoDe, registrar } from "@/lib/eventos";
 
-// POST /api/membresia/checkout  { plan: "mensual" | "anual" | "paquete30" }
+// POST /api/membresia/checkout  { plan: "mensual" | "anual" | "paquete20" }
 //
 // Prepara el cobro: guarda la orden como pendiente y devuelve los datos
 // firmados para el botón de Bold. La firma se calcula acá y nunca en el
@@ -23,6 +23,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
+  // Una pantalla vieja puede pedir un paquete que ya no se vende.
+  if (esPaquete(body.plan) && body.plan !== PAQUETE_VIGENTE) {
+    return NextResponse.json({ error: "Ese paquete cambió. Recarga la página para ver el nuevo." }, { status: 409 });
+  }
   const plan: Producto = esPaquete(body.plan) ? body.plan : body.plan === "anual" ? "anual" : "mensual";
 
   // Los paquetes de búsquedas son para quien ya tiene la membresía: son

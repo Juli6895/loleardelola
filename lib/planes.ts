@@ -34,13 +34,15 @@ export const TOPES: Record<Plan, Topes> = {
     manualDeEstilo: false,
     combinacionesClosetGratis: 0,
   },
-  // Con cuenta gratis: una de cada cosa, para probar.
+  // Con cuenta gratis (noviembre de 2026, tabla de Juliana): nada que
+  // use la IA. Guarda hasta 3 outfits, da 3 me gusta y ve las promociones
+  // 2 días. Aplica a todas las cuentas gratis, también a las que ya existían.
   gratis: {
-    busquedas: 1,
-    outfits: 1,
-    prendasCloset: 1,
+    busquedas: 0,
+    outfits: 3,
+    prendasCloset: 0,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 1,
+    combinacionesClosetGratis: 0,
   },
   membresia: {
     busquedas: null,
@@ -81,22 +83,27 @@ export const PRECIOS_NORMALES = {
 // ---------------------------------------------------------------------
 // Paquetes de búsquedas adicionales
 // ---------------------------------------------------------------------
-// Para quien tiene membresía y se le acaban las búsquedas del mes. Se
-// suman a users.busquedas_extra, se gastan solo cuando ya usó las del
-// mes, y no se vencen. El paquete de 25 por $5.000 casi no dejaba nada
-// (~$300) por el fijo de Bold. Juliana eligió un solo paquete: 30
-// búsquedas por $7.900 (cuestan ~$4.110 y dejan ~$2.400).
+// Para quien tiene membresía y se le acaban las búsquedas. Se gastan solo
+// cuando ya usó las de su membresía y se vencen con ella. El saldo sale de
+// los pagos y de los eventos (ver busquedasExtra en lib/limites.ts).
+//
+// Se vende solo PAQUETE_VIGENTE. paquete30 queda para poder acreditar una
+// orden que se haya abierto antes del cambio.
 export const PAQUETES_BUSQUEDAS = {
+  paquete20: { busquedas: 20, precio: 7900 },
   paquete30: { busquedas: 30, precio: 7900 },
 } as const;
 
 export type TipoPaquete = keyof typeof PAQUETES_BUSQUEDAS;
 
+export const PAQUETE_VIGENTE = "paquete20" as const;
+
 // ---------------------------------------------------------------------
 // Límites mensuales de la membresía
 // ---------------------------------------------------------------------
-// La membresía no es ilimitada: cada uso de la IA se paga. Se cuentan
-// desde el día 1 de cada mes (hora de Colombia) y se renuevan solos.
+// Las condiciones de quienes pagaron ANTES de INICIO_CUPOS_NUEVOS: se
+// cuentan desde el día 1 de cada mes (hora de Colombia) y las conservan
+// hasta que se les venza lo que ya pagaron. Lo nuevo es CUPOS_MEMBRESIA.
 export type UsoMensual =
   | "busquedas"
   | "prendasCloset"
@@ -149,19 +156,116 @@ export function precioDe(p: Producto): number {
 
 /**
  * Las promociones de todas las tiendas son el gancho de la membresía:
- * sin cuenta se ven 1 día desde la primera visita, con cuenta gratis 3
+ * sin cuenta se ven 1 día desde la primera visita, con cuenta gratis 2
  * días desde que la crea, y con membresía siempre.
  */
 export const DIAS_PRUEBA_PROMOS: Record<Exclude<Plan, "membresia">, number> = {
   anonimo: 1,
-  gratis: 3,
+  gratis: 2,
 };
 
 /** Cuántos días de membresía da cada plan. */
 export const DIAS_DE_PLAN: Record<TipoPlan, number> = {
-  mensual: 30,
+  mensual: 31,
   anual: 365,
 };
+
+// ---------------------------------------------------------------------
+// Cupos de la membresía (tabla de Juliana, noviembre de 2026)
+// ---------------------------------------------------------------------
+// Aplican a cada pago hecho desde INICIO_CUPOS_NUEVOS. El cupo es por
+// membresía pagada, no por mes del calendario: la anual usa sus 60 a su
+// ritmo durante todo el año. null = sin tope.
+export type UsoMembresia =
+  | UsoMensual
+  | "outfits"
+  | "meGusta"
+  | "personalidadFoto"
+  | "personalidadReferencia";
+
+export const CUPOS_MEMBRESIA: Record<TipoPlan, Record<UsoMembresia, number | null>> = {
+  mensual: {
+    busquedas: 5,
+    outfits: 105,
+    prendasCloset: 5,
+    combinaciones: 5,
+    manuales: 1,
+    meGusta: 100,
+    personalidadFoto: 1,
+    personalidadReferencia: 1,
+  },
+  anual: {
+    busquedas: 60,
+    outfits: null,
+    prendasCloset: 60,
+    combinaciones: 60,
+    manuales: 1,
+    meGusta: null,
+    personalidadFoto: 1,
+    personalidadReferencia: 1,
+  },
+};
+
+export const INICIO_CUPOS_NUEVOS = "2026-11-19T00:00:00.000Z";
+
+export const ME_GUSTA_GRATIS = 3;
+// El máximo que ya tenían quienes pagaron antes del cambio.
+export const ME_GUSTA_ANTERIOR = 30;
+
+export type PagoMembresia = { plan: string; acreditado_at: string | null };
+export type PeriodoMembresia = { plan: TipoPlan; inicio: Date; fin: Date; anterior: boolean };
+
+/**
+ * Qué membresía está corriendo hoy. Pagar antes de que se venza suma días,
+ * así que cada pago empieza cuando termina el anterior.
+ */
+export function periodoActual(pagos: PagoMembresia[], ahora: Date = new Date()): PeriodoMembresia | null {
+  let cursor = 0;
+  let ultimo: PeriodoMembresia | null = null;
+  const ordenados = pagos
+    .filter((p) => (p.plan === "mensual" || p.plan === "anual") && p.acreditado_at)
+    .sort((a, b) => new Date(a.acreditado_at!).getTime() - new Date(b.acreditado_at!).getTime());
+  for (const p of ordenados) {
+    const plan = p.plan as TipoPlan;
+    const pagado = new Date(p.acreditado_at!).getTime();
+    const inicio = Math.max(pagado, cursor);
+    const fin = inicio + DIAS_DE_PLAN[plan] * 86_400_000;
+    cursor = fin;
+    const periodo = {
+      plan,
+      inicio: new Date(inicio),
+      fin: new Date(fin),
+      anterior: pagado < new Date(INICIO_CUPOS_NUEVOS).getTime(),
+    };
+    if (inicio > ahora.getTime()) break;
+    ultimo = periodo;
+    if (ahora.getTime() < fin) break;
+  }
+  return ultimo;
+}
+
+const NOMBRE_CUPO: Record<UsoMembresia, string> = {
+  busquedas: "búsquedas",
+  prendasCloset: "prendas nuevas en tu clóset",
+  combinaciones: "combinaciones",
+  manuales: "manual de estilo",
+  outfits: "outfits guardados",
+  meGusta: "me gusta",
+  personalidadFoto: "análisis de personalidad por foto",
+  personalidadReferencia: "análisis de personalidad por referencia",
+};
+
+/** El mensaje al llegar a un cupo de la membresía. */
+export function mensajeCupo(uso: UsoMembresia, tope: number, fin: Date): string {
+  if (uso === "outfits" || uso === "meGusta") {
+    return `Llegaste a ${tope} ${NOMBRE_CUPO[uso]}. Quita alguno para agregar otro.`;
+  }
+  const fecha = fin.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
+  if (uso === "busquedas") {
+    return `Llegaste a tus ${tope} búsquedas de esta membresía, vigente hasta el ${fecha}. Si quieres seguir, compra un paquete de búsquedas en Membresía.`;
+  }
+  return `Ya usaste ${tope === 1 ? "tu" : `tus ${tope}`} ${NOMBRE_CUPO[uso]} de esta membresía, vigente hasta el ${fecha}.`;
+}
 
 export function planDe(usuario: {
   email?: string | null;

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "./supabase";
 import { getOrCreateUserId } from "./device-user";
 import { planDe, type Plan } from "./planes";
+import { pruebaPromosDelAparato } from "./aparato";
 
 // =====================================================================
 // Sesiones y códigos de ingreso
@@ -90,7 +91,7 @@ export async function crearCodigo(correo: string): Promise<ResultadoEnvio> {
 // Versión del documento de privacidad. Si el texto de app/privacy
 // cambia de fondo, sube este valor — eso hace que a todo el mundo se le
 // vuelva a pedir el consentimiento, aunque ya hubiera aceptado antes.
-export const VERSION_POLITICA = "2026-10-28";
+export const VERSION_POLITICA = "2026-11-18";
 
 export async function verificarCodigo(
   req: Request,
@@ -183,6 +184,9 @@ async function unirIdentidades(req: Request, correo: string): Promise<Identidad 
   if (!porCorreo) {
     if (!idDispositivo) return null;
     const ahora = new Date().toISOString();
+    // La prueba de promociones es una por aparato: si aquí ya hubo otra
+    // cuenta, la nueva sigue contando desde la fecha de esa.
+    const pruebaDelAparato = await pruebaPromosDelAparato(req, idDispositivo);
     const { data: delNavegador } = await sb
       .from("users")
       .select("email, created_at")
@@ -195,7 +199,7 @@ async function unirIdentidades(req: Request, correo: string): Promise<Identidad 
       await sb.from("users").update({ email: correo }).eq("id", idDispositivo);
       // Aparte: si la migración de promos no se ha corrido, estas
       // columnas no existen y el error no debe tumbar el ingreso.
-      await sb.from("users").update({ registrado_at: ahora, promos_prueba_desde: ahora }).eq("id", idDispositivo);
+      await sb.from("users").update({ registrado_at: ahora, promos_prueba_desde: pruebaDelAparato ?? ahora }).eq("id", idDispositivo);
       return { id: idDispositivo, esNuevo: true };
     }
 
@@ -209,7 +213,9 @@ async function unirIdentidades(req: Request, correo: string): Promise<Identidad 
       .select("promos_prueba_desde, registrado_at")
       .eq("id", idDispositivo)
       .maybeSingle();
-    const pruebaDesde = anterior?.promos_prueba_desde ?? anterior?.registrado_at ?? delNavegador.created_at;
+    const delNavegadorDesde = anterior?.promos_prueba_desde ?? anterior?.registrado_at ?? delNavegador.created_at;
+    const pruebaDesde =
+      pruebaDelAparato && new Date(pruebaDelAparato) < new Date(delNavegadorDesde) ? pruebaDelAparato : delNavegadorDesde;
     const nueva = await sb
       .from("users")
       .insert({ email: correo, registrado_at: ahora, promos_prueba_desde: pruebaDesde })

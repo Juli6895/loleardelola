@@ -7,7 +7,7 @@ import type { UsuarioActual } from "./sesion";
 // ¿Puede ver las promociones?
 // =====================================================================
 // Con membresía, siempre. Sin cuenta, 1 día desde la primera visita de
-// ese navegador. Con cuenta gratis, 3 días desde que la creó — o desde
+// ese navegador. Con cuenta gratis, 2 días desde que la creó — o desde
 // la primera cuenta que se creó en ese navegador (promos_prueba_desde),
 // para que no se pueda tener otra prueba creando otro correo.
 // =====================================================================

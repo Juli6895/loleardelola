@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
-import { revisarUsoMensual } from "@/lib/limites";
+import { revisarCupo } from "@/lib/limites";
 import { contextoDe, registrar } from "@/lib/eventos";
 import {
   adjuntarFotos,
@@ -132,13 +132,13 @@ export async function POST(req: Request) {
     return NextResponse.json({ manual: yaGuardado, reusado: true });
   }
 
-  // Cada manual nuevo cuesta: la membresía tiene un tope por mes. Pasar
-  // un manual guardado al formato nuevo no cuenta: no lo pidió ella.
+  // Cada manual nuevo cuesta: la membresía tiene un cupo. Pasar un manual
+  // guardado al formato nuevo no cuenta: no lo pidió ella.
   const formatoViejo = esFormatoViejo(r.guardado.manual_md);
   if (!formatoViejo) {
-    const mensual = await revisarUsoMensual(r.usuario, "manuales");
-    if (!mensual.permitido) {
-      return NextResponse.json({ error: mensual.mensaje, limite: true }, { status: 429 });
+    const cupo = await revisarCupo(r.usuario, "manuales");
+    if (!cupo.permitido) {
+      return NextResponse.json({ error: cupo.mensaje, limite: true }, { status: 429 });
     }
   }
 

@@ -62,6 +62,8 @@ export const EVENTOS = [
   "pago_aprobado",
   "pago_rechazado",
   "pago_error",
+  // Una búsqueda que salió de un paquete adicional.
+  "busqueda_paquete_usada",
 
   // Manual
   "manual_visto",

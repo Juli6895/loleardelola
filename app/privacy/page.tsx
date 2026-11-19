@@ -30,7 +30,7 @@ export default function PrivacyPage() {
           Política de Privacidad
         </h1>
         <p className="mt-2 text-sm text-noche/50">
-          Última actualización: 28 de octubre de 2026
+          Última actualización: 18 de noviembre de 2026
         </p>
 
         <p className="mt-6 text-noche/80">
@@ -163,9 +163,10 @@ export default function PrivacyPage() {
                   Entender dónde la gente tiene dificultades para mejorar la
                   app. No incluye tus medidas, tu correo ni el contenido de
                   tus búsquedas — solo qué acción ocurrió y cuándo. Para no
-                  contar dos veces a la misma persona guardamos un código
-                  revuelto hecho con tu conexión y el modelo de tu celular o
-                  computador: con él no se puede saber tu dirección IP.
+                  contar dos veces a la misma persona y para que la prueba
+                  gratis sea una por aparato, guardamos un código revuelto
+                  hecho con tu conexión y el modelo de tu celular o computador:
+                  con él no se puede saber tu dirección IP.
                 </td>
               </tr>
             </tbody>

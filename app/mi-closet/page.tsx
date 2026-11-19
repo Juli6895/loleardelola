@@ -6,7 +6,8 @@ import ClosetGrid from "@/components/ClosetGrid";
 import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
-import { TOPES, TOPES_MES_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA } from "@/lib/planes";
+import { esAdmin } from "@/lib/admin-correos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 import { useUsuario } from "@/lib/use-usuario";
 
@@ -21,9 +22,6 @@ export default function MiClosetPage() {
   const [items, setItems] = useState<ClosetItem[] | null>(null);
   const { usuario } = useUsuario();
   const conMembresia = usuario?.plan === "membresia";
-  // Ver TOPES en lib/planes.ts: sin cuenta, 0 (hay que crearla).
-  const TOPE_GRATIS = (usuario?.conSesion ? TOPES.gratis.prendasCloset : TOPES.anonimo.prendasCloset) ?? 1;
-  const sinCuentaNiPrendas = !usuario?.conSesion && TOPE_GRATIS === 0;
 
   useEffect(() => {
     fetchConDispositivo("/api/closet")
@@ -32,11 +30,8 @@ export default function MiClosetPage() {
       .catch(() => setItems([]));
   }, []);
 
-  const count = items?.length ?? 0;
-  // Con membresía el tope es de prendas nuevas al mes, no el de las 2
-  // gratis: antes le salía "Ya subiste tus 2 prendas gratis" aunque
-  // hubiera pagado.
-  const atLimit = !conMembresia && count >= TOPE_GRATIS;
+  // Subir prendas es parte de la membresía (ver TOPES en lib/planes.ts).
+  const atLimit = !conMembresia && !esAdmin(usuario?.email);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -63,28 +58,12 @@ export default function MiClosetPage() {
             onAdded={(item) => setItems((prev) => [item, ...(prev ?? [])])}
           />
         )}
-        {sinCuentaNiPrendas ? (
+        {atLimit ? (
           <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
-            <p className="text-sm font-medium text-noche">Para subir tus prendas, crea tu cuenta gratis.</p>
+            <p className="text-sm font-medium text-noche">Subir tus prendas es parte de la membresía.</p>
             <p className="mt-1 text-xs text-noche/60">
-              Con tu cuenta subes {TOPES.gratis.prendasCloset} {TOPES.gratis.prendasCloset === 1 ? "prenda" : "prendas"} y te
-              armamos {TOPES.gratis.combinacionesClosetGratis === 1 ? "una combinación" : `${TOPES.gratis.combinacionesClosetGratis} combinaciones`} con lo que tienes.
-            </p>
-            <a
-              href="/entrar?volver=/mi-closet&motivo=Crea tu cuenta gratis para subir las prendas de tu clóset."
-              className="mt-3 inline-block rounded-full bg-noche px-5 py-2 text-sm font-medium text-white transition hover:bg-rosa-500"
-            >
-              Crear mi cuenta gratis
-            </a>
-          </div>
-        ) : atLimit ? (
-          <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
-            <p className="text-sm font-medium text-noche">
-              {TOPE_GRATIS === 1 ? "Ya subiste tu prenda gratis." : `Ya subiste tus ${TOPE_GRATIS} prendas gratis.`}
-            </p>
-            <p className="mt-1 text-xs text-noche/60">
-              Con la membresía subes las que quieras y armamos tu manual de
-              estilo completo.
+              Con la mensual subes {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y con la anual{" "}
+              {CUPOS_MEMBRESIA.anual.prendasCloset}, y te armamos combinaciones con lo que tienes.
             </p>
             <a
               href="/membresia"
@@ -93,13 +72,10 @@ export default function MiClosetPage() {
               Ver la membresía
             </a>
           </div>
-        ) : conMembresia ? (
-          <p className="mt-2 text-center text-xs text-noche/40">
-            Con tu membresía subes {TOPES_MES_MEMBRESIA.prendasCloset} prendas nuevas cada mes.
-          </p>
         ) : (
           <p className="mt-2 text-center text-xs text-noche/40">
-            {count}/{TOPE_GRATIS} {TOPE_GRATIS === 1 ? "prenda gratis" : "prendas gratis"}.
+            Con la membresía mensual subes {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y con la anual{" "}
+            {CUPOS_MEMBRESIA.anual.prendasCloset}.
           </p>
         )}
       </div>

@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { esAdmin } from "@/lib/admin-correos";
+import { revisarCupo } from "@/lib/limites";
+import { ME_GUSTA_GRATIS } from "@/lib/planes";
 import { tiendaDeUrl } from "@/lib/catalogo-tiendas";
 import { precioActual } from "@/lib/precios";
 import { contextoDe, registrar } from "@/lib/eventos";
@@ -10,19 +12,16 @@ import { contextoDe, registrar } from "@/lib/eventos";
 // POST   /api/seguimientos  { url, titulo, imagen?, precioCop? } → "Avísame si baja"
 // DELETE /api/seguimientos?url=...    → dejar de seguirla
 //
-// Los avisos de rebaja son parte de la membresía (o de la cuenta de
-// administración, para probar). Solo prendas de las tiendas de la
-// lista: son las únicas de las que se puede leer el precio.
-
-const MAXIMO_ACTIVOS = 30;
+// Con cuenta gratis se pueden dar hasta 3 me gusta, sin aviso de rebaja.
+// Los avisos son de la membresía (o de la cuenta de administración, para
+// probar): los filtra app/api/revisar-precios. Solo prendas de las tiendas
+// de la lista: son las únicas de las que se puede leer el precio.
 
 async function cargar(req: Request) {
   const usuario = await usuarioActual(req);
-  if (!usuario?.conSesion) return { error: "Entra con tu correo para usar los avisos de rebaja.", status: 401 as const };
-  if (usuario.plan !== "membresia" && !esAdmin(usuario.email)) {
-    return { error: "Los avisos de rebaja son parte de la membresía.", status: 402 as const };
-  }
-  return { usuario };
+  if (!usuario?.conSesion) return { error: "Entra con tu correo para dar me gusta a tus prendas.", status: 401 as const };
+  const avisos = usuario.plan === "membresia" || esAdmin(usuario.email);
+  return { usuario, avisos };
 }
 
 export async function GET(req: Request) {
@@ -35,7 +34,7 @@ export async function GET(req: Request) {
     .eq("user_id", r.usuario.id)
     .eq("activo", true)
     .order("created_at", { ascending: false });
-  return NextResponse.json({ seguimientos: data ?? [], puede: true });
+  return NextResponse.json({ seguimientos: data ?? [], puede: true, avisos: r.avisos });
 }
 
 export async function POST(req: Request) {
@@ -50,16 +49,21 @@ export async function POST(req: Request) {
   }
 
   const sb = supabaseAdmin();
-  const { count } = await sb
-    .from("seguimientos")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", r.usuario.id)
-    .eq("activo", true);
-  if ((count ?? 0) >= MAXIMO_ACTIVOS) {
-    return NextResponse.json(
-      { error: `Ya sigues ${MAXIMO_ACTIVOS} prendas. Deja de seguir alguna en Mis outfits para agregar otra.` },
-      { status: 429 }
-    );
+  if (r.avisos) {
+    const cupo = await revisarCupo(r.usuario, "meGusta");
+    if (!cupo.permitido) return NextResponse.json({ error: cupo.mensaje }, { status: 429 });
+  } else {
+    const { count } = await sb
+      .from("seguimientos")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", r.usuario.id)
+      .eq("activo", true);
+    if ((count ?? 0) >= ME_GUSTA_GRATIS) {
+      return NextResponse.json(
+        { error: `Con tu cuenta gratis tienes ${ME_GUSTA_GRATIS} me gusta. Con la membresía tienes muchos más y te avisamos si bajan de precio.` },
+        { status: 402 }
+      );
+    }
   }
 
   // El precio de partida lo lee el servidor en la tienda, no el que
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   registrar("seguimiento_creado", contextoDe(req, r.usuario.id), { tienda: tienda.dominio });
-  return NextResponse.json({ ok: true, precioCop: precio });
+  return NextResponse.json({ ok: true, precioCop: precio, avisos: r.avisos });
 }
 
 export async function DELETE(req: Request) {

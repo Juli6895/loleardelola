@@ -41,7 +41,7 @@ export default function Hero() {
           </EnlaceEtiquetado>
         </div>
 
-        <p className="mt-4 text-xs text-noche/50">Crea tu cuenta gratis y haz tu primera búsqueda.</p>
+        <p className="mt-4 text-xs text-noche/50">Crea tu cuenta gratis y mira las promociones de todas las tiendas.</p>
       </div>
     </section>
   );

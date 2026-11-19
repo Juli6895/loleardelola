@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "No encontramos esa prenda." }, { status: 404 });
   }
 
-  const permiso = await puedeVerCombinaciones(usuario, itemId);
+  const permiso = await puedeVerCombinaciones(req, usuario, itemId);
   if (!permiso.permitido) {
     registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso: "combinaciones", plan: usuario.plan });
     return NextResponse.json(

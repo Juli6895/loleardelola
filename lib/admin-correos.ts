@@ -11,7 +11,7 @@ const CORREOS_ADMIN = ["contacto@lakaja.co"];
 
 // Cuentas de prueba: lo que hagan no cuenta en el tablero (ni lo que
 // pase en los navegadores donde entraron con ellas).
-export const CORREOS_PRUEBA = ["contacto@lakaja.co", "julyalvarez9@hotmail.com"];
+export const CORREOS_PRUEBA = ["contacto@lakaja.co", "julyalvarez9@hotmail.com", "correajuliana0190@gmail.com"];
 
 // Navegadores de prueba que no entran con ninguna cuenta: el que usa
 // Claude para revisar la página publicada después de cada cambio, y los

@@ -2,12 +2,14 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
 import {
+  CUPOS_MEMBRESIA,
   DIAS_PRUEBA_PROMOS,
+  ME_GUSTA_GRATIS,
+  PAQUETE_VIGENTE,
   PAQUETES_BUSQUEDAS,
   PRECIOS,
   PRECIOS_NORMALES,
   TOPES,
-  TOPES_MES_MEMBRESIA,
 } from "@/lib/planes";
 
 export const metadata: Metadata = {
@@ -39,41 +41,21 @@ function Lista({ children }: { children: React.ReactNode }) {
 }
 
 export default function TerminosPage() {
-  const paquete = PAQUETES_BUSQUEDAS.paquete30;
-  const filas: Array<[string, string, string, string]> = [
-    [
-      "Búsquedas de outfit",
-      cuantas(TOPES.anonimo.busquedas, "búsqueda", "búsquedas"),
-      cuantas(TOPES.gratis.busquedas, "búsqueda", "búsquedas"),
-      `${TOPES_MES_MEMBRESIA.busquedas} al mes`,
-    ],
-    [
-      "Outfits guardados",
-      cuantas(TOPES.anonimo.outfits, "outfit", "outfits"),
-      cuantas(TOPES.gratis.outfits, "outfit", "outfits"),
-      "Sin tope",
-    ],
-    [
-      "Prendas en tu clóset",
-      cuantas(TOPES.anonimo.prendasCloset, "prenda", "prendas"),
-      cuantas(TOPES.gratis.prendasCloset, "prenda", "prendas"),
-      `${TOPES_MES_MEMBRESIA.prendasCloset} nuevas al mes`,
-    ],
-    [
-      "Combinaciones de tu clóset",
-      cuantas(TOPES.anonimo.combinacionesClosetGratis, "combinación", "combinaciones"),
-      cuantas(TOPES.gratis.combinacionesClosetGratis, "combinación", "combinaciones"),
-      `${TOPES_MES_MEMBRESIA.combinaciones} al mes`,
-    ],
-    ["Manual de estilo", "No incluye", "No incluye", `${TOPES_MES_MEMBRESIA.manuales} al mes`],
-    [
-      "Promociones de todas las tiendas",
-      `${DIAS_PRUEBA_PROMOS.anonimo} día`,
-      `${DIAS_PRUEBA_PROMOS.gratis} días`,
-      "Siempre",
-    ],
-    ["Mis marcas favoritas", "Sí", "Sí", "Sí"],
-    ["Me gusta (corazón) con aviso de rebaja", "No incluye", "No incluye", "Sí"],
+  const paquete = PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE];
+  const { mensual, anual } = CUPOS_MEMBRESIA;
+  const cupo = (n: number | null) => (n === null ? "Sin tope" : String(n));
+  const filas: Array<[string, string, string, string, string]> = [
+    ["Búsquedas de outfit", cuantas(TOPES.anonimo.busquedas, "búsqueda", "búsquedas"), cuantas(TOPES.gratis.busquedas, "búsqueda", "búsquedas"), cupo(mensual.busquedas), cupo(anual.busquedas)],
+    ["Outfits guardados", cuantas(TOPES.anonimo.outfits, "outfit", "outfits"), cuantas(TOPES.gratis.outfits, "outfit", "outfits"), cupo(mensual.outfits), cupo(anual.outfits)],
+    ["Prendas nuevas en tu clóset", cuantas(TOPES.anonimo.prendasCloset, "prenda", "prendas"), cuantas(TOPES.gratis.prendasCloset, "prenda", "prendas"), cupo(mensual.prendasCloset), cupo(anual.prendasCloset)],
+    ["Combinaciones de tu clóset", cuantas(TOPES.anonimo.combinacionesClosetGratis, "combinación", "combinaciones"), cuantas(TOPES.gratis.combinacionesClosetGratis, "combinación", "combinaciones"), cupo(mensual.combinaciones), cupo(anual.combinaciones)],
+    ["Manual de estilo", "No incluye", "No incluye", cupo(mensual.manuales), cupo(anual.manuales)],
+    ["Promociones de todas las tiendas", `${DIAS_PRUEBA_PROMOS.anonimo} día`, `${DIAS_PRUEBA_PROMOS.gratis} días`, "31 días", "Todo el año"],
+    ["Mis marcas favoritas", "Sí", "Sí", "Sí", "Sí"],
+    ["Me gusta (corazón)", "No incluye", String(ME_GUSTA_GRATIS), cupo(mensual.meGusta), cupo(anual.meGusta)],
+    ["Aviso cuando baja de precio", "No incluye", "No incluye", cupo(mensual.meGusta), cupo(anual.meGusta)],
+    ["Personalidad de estilo por foto", "No incluye", "No incluye", cupo(mensual.personalidadFoto), cupo(anual.personalidadFoto)],
+    ["Personalidad de estilo por referencia", "No incluye", "No incluye", cupo(mensual.personalidadReferencia), cupo(anual.personalidadReferencia)],
   ];
 
   return (
@@ -82,7 +64,7 @@ export default function TerminosPage() {
       <div className="rounded-3xl border border-rosa-100 bg-white p-8 shadow-sm sm:p-12">
         <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">Documento legal</p>
         <h1 className="mt-3 font-display text-3xl text-noche sm:text-4xl">Términos y condiciones</h1>
-        <p className="mt-2 text-sm text-noche/50">Última actualización: 28 de octubre de 2026</p>
+        <p className="mt-2 text-sm text-noche/50">Última actualización: 18 de noviembre de 2026</p>
 
         <p className="mt-6 text-noche/80">
           Estas son las reglas para usar LoleardLola, en la página y en la app. Al crear tu cuenta las aceptas,
@@ -136,30 +118,34 @@ export default function TerminosPage() {
 
         <Titulo>3. Planes y límites</Titulo>
         <div className="mt-3 overflow-x-auto">
-          <table className="w-full min-w-[520px] text-sm">
+          <table className="w-full min-w-[620px] text-sm">
             <thead>
               <tr className="border-b border-rosa-100 text-left text-noche/50">
                 <th className="py-2 pr-4 font-medium">Qué</th>
                 <th className="py-2 pr-4 font-medium">Sin cuenta</th>
                 <th className="py-2 pr-4 font-medium">Cuenta gratis</th>
-                <th className="py-2 font-medium">Membresía</th>
+                <th className="py-2 pr-4 font-medium">Mensual</th>
+                <th className="py-2 font-medium">Anual</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-rosa-50">
-              {filas.map(([que, sin, gratis, membresia]) => (
+              {filas.map(([que, sin, gratis, mensual, anual]) => (
                 <tr key={que}>
                   <td className="py-2.5 pr-4 font-medium text-noche">{que}</td>
                   <td className="py-2.5 pr-4 text-noche/70">{sin}</td>
                   <td className="py-2.5 pr-4 text-noche/70">{gratis}</td>
-                  <td className="py-2.5 text-noche/70">{membresia}</td>
+                  <td className="py-2.5 pr-4 text-noche/70">{mensual}</td>
+                  <td className="py-2.5 text-noche/70">{anual}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <p className="mt-3 text-sm text-noche/60">
-          Sin membresía, los límites no se renuevan cada mes. Los de la membresía se renuevan el 1 de cada mes, y
-          lo que no uses en un mes no se acumula para el siguiente.
+          Sin membresía, los límites no se renuevan. Los cupos de la membresía son por cada pago: la mensual dura 31
+          días y la anual 365, y en la anual los usas a tu ritmo durante todo el año. Lo que no uses no pasa a la
+          siguiente membresía. Quien pagó antes del 18 de noviembre de 2026 a las 7:00 p. m. conserva sus condiciones
+          hasta que venza lo que ya pagó.
         </p>
 
         <Titulo>4. Membresía y pagos</Titulo>
@@ -179,7 +165,7 @@ export default function TerminosPage() {
           </li>
           <li>
             Con la membresía puedes comprar búsquedas adicionales: {paquete.busquedas} por {pesos(paquete.precio)}.
-            No vencen y se usan cuando se te acaban las del mes.
+            Se usan cuando se te acaban las de tu membresía y se vencen en la misma fecha que ella.
           </li>
           <li>
             Si tienes un problema con un pago, o quieres retractarte de una compra, escríbenos a {CORREO}. Lo
@@ -204,7 +190,8 @@ export default function TerminosPage() {
           </li>
           <li>
             Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día desde la primera vez que entras; con cuenta gratis,{" "}
-            {DIAS_PRUEBA_PROMOS.gratis} días desde que la creas; con la membresía, siempre.
+            {DIAS_PRUEBA_PROMOS.gratis} días desde que la creas; con la membresía, siempre. La prueba gratis de la
+            cuenta es una por aparato, aunque se usen correos distintos.
           </li>
           <li>
             Con <strong>Ver todo</strong> ves también las prendas sin descuento de las tiendas, de lo más nuevo a lo
@@ -216,7 +203,8 @@ export default function TerminosPage() {
         <Titulo>6. El corazón y los avisos de rebaja</Titulo>
         <Lista>
           <li>
-            Con la membresía, al tocar el corazón de una prenda te avisamos con una notificación en tu app si su
+            Con cuenta gratis puedes dar {ME_GUSTA_GRATIS} me gusta, sin aviso de rebaja. Con la membresía, al tocar el
+            corazón de una prenda te avisamos con una notificación en tu app si su
             precio baja 10% o más desde que la marcaste. Si la notificación no te puede llegar, te avisamos por
             correo. No es un mensaje de texto ni de WhatsApp.
           </li>

@@ -102,26 +102,12 @@ export async function confirmarOrden(
     sb.from("pagos").update({ estado: "acreditado", acreditado_at: new Date().toISOString() }).eq("order_id", orden);
   const devolver = () => sb.from("pagos").update({ estado: "pendiente" }).eq("order_id", orden);
 
-  // Un paquete de búsquedas no toca la membresía: suma búsquedas a su
-  // saldo, que no se vence.
+  // Un paquete de búsquedas no toca la membresía: queda acreditado y su
+  // saldo se calcula desde los pagos (ver busquedasExtra en lib/limites.ts).
   if (esPaquete(pago.plan)) {
-    const sumar = PAQUETES_BUSQUEDAS[pago.plan].busquedas;
-    const { data: fila } = await sb.from("users").select("busquedas_extra").eq("id", pago.user_id).maybeSingle();
-    const saldo = (Number((fila as any)?.busquedas_extra) || 0) + sumar;
-    const { error } = await sb.from("users").update({ busquedas_extra: saldo }).eq("id", pago.user_id);
-    if (error) {
-      console.error("[confirmar] no se pudo sumar el paquete:", error.message);
-      await devolver();
-      return {
-        ok: false,
-        estado: "error",
-        error: "No pudimos sumar tus búsquedas. Escríbenos a hola@loleardlola.com.",
-        status: 500,
-      };
-    }
     await acreditar();
     registrar("pago_aprobado", contexto, { plan: pago.plan, monto: pago.monto_cop, metodo: voucher.metodo ?? "" });
-    return { ok: true, estado: "acreditado", busquedas: sumar, saldo };
+    return { ok: true, estado: "acreditado", busquedas: PAQUETES_BUSQUEDAS[pago.plan].busquedas };
   }
 
   // Si ya se le activó a mano desde Administración por este mismo pago

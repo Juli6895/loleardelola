@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { precioActual } from "@/lib/precios";
+import { compararPrecio, precioActual } from "@/lib/precios";
 import { notificar } from "@/lib/push";
 import { enviarAvisoRebaja } from "@/lib/email";
 import { esAdmin } from "@/lib/admin-correos";
@@ -16,13 +16,12 @@ import { registrar } from "@/lib/eventos";
 // Se compara contra el precio que ELLA vio, no contra el "antes" que
 // muestra la tienda: hay tiendas con "antes" en casi todo el catálogo.
 //
-// Si la notificación no le llegó a ningún celular ni navegador (no dio
-// permiso, se dio de baja, el navegador no las recibe), se le manda el
-// mismo aviso por correo: así siempre le llega.
+// El aviso va por notificación. Solo si no tiene las notificaciones
+// activadas en ningún celular ni navegador (no dio permiso, se dio de
+// baja), se le manda por correo (decisión de Juliana, noviembre de 2026).
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-const REBAJA_MINIMA = 0.1;
 const POR_VEZ = 200;
 const EN_PARALELO = 8;
 
@@ -70,8 +69,7 @@ export async function GET(req: Request) {
           return;
         }
 
-        const tope = Math.min(s.precio_inicial * (1 - REBAJA_MINIMA), s.precio_avisado ?? Infinity);
-        const bajo = hoy.disponible && hoy.precioCop <= tope && hoy.precioCop < (s.precio_avisado ?? Infinity);
+        const { avisar: bajo, cambios } = compararPrecio(s, hoy);
 
         if (bajo) {
           const porcentaje = Math.round((1 - hoy.precioCop / s.precio_inicial) * 100);
@@ -88,14 +86,7 @@ export async function GET(req: Request) {
           registrar("aviso_rebaja_enviado", { userId: s.user_id }, { porcentaje, llegaron, porCorreo });
         }
 
-        await sb
-          .from("seguimientos")
-          .update({
-            precio_ultimo: hoy.precioCop,
-            revisado_at: ahora.toISOString(),
-            ...(bajo ? { precio_avisado: hoy.precioCop, avisado_at: ahora.toISOString() } : {}),
-          })
-          .eq("id", s.id);
+        await sb.from("seguimientos").update(cambios).eq("id", s.id);
       })
     );
   }

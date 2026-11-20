@@ -205,8 +205,8 @@ export default function TerminosPage() {
           <li>
             Con cuenta gratis puedes dar {ME_GUSTA_GRATIS} me gusta, sin aviso de rebaja. Con la membresía, al tocar el
             corazón de una prenda te avisamos con una notificación en tu app si su
-            precio baja 10% o más desde que la marcaste. Si la notificación no te puede llegar, te avisamos por
-            correo. No es un mensaje de texto ni de WhatsApp.
+            precio baja 10% o más desde que la marcaste. Si no tienes las notificaciones activadas, te avisamos
+            por correo. No es un mensaje de texto ni de WhatsApp.
           </li>
           <li>
             Para recibirla en el celular tienes que darle permiso a LoleardLola de enviarte notificaciones. En

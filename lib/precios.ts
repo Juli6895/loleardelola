@@ -15,6 +15,27 @@ import { precioDeVariantes, precioWoo, PRECIOS_DE_COLOMBIA, tiendaDeUrl, type Pr
 
 export type PrecioHoy = { precioCop: number; disponible: boolean };
 
+/** Cuánto tiene que bajar para avisar: 10% desde que le dio corazón. */
+export const REBAJA_MINIMA = 0.1;
+
+/**
+ * Con el precio de hoy, ¿hay que avisar? Y cómo queda guardado. Si el
+ * precio volvió a subir, se olvida el aviso anterior: así, si vuelve a
+ * bajar, se avisa otra vez (antes solo se avisaba la primera rebaja).
+ */
+export function compararPrecio(
+  s: { precio_inicial: number; precio_avisado: number | null },
+  hoy: PrecioHoy
+): { avisar: boolean; cambios: Record<string, unknown> } {
+  const umbral = s.precio_inicial * (1 - REBAJA_MINIMA);
+  const ahora = new Date().toISOString();
+  const bajo = hoy.disponible && hoy.precioCop <= umbral && hoy.precioCop < (s.precio_avisado ?? Infinity);
+  const cambios: Record<string, unknown> = { precio_ultimo: hoy.precioCop, revisado_at: ahora };
+  if (bajo) Object.assign(cambios, { precio_avisado: hoy.precioCop, avisado_at: ahora });
+  else if (s.precio_avisado !== null && hoy.precioCop > umbral) cambios.precio_avisado = null;
+  return { avisar: bajo, cambios };
+}
+
 async function pedir(url: string): Promise<Response> {
   return fetch(url, {
     headers: { Accept: "application/json" },

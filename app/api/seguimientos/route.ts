@@ -5,7 +5,7 @@ import { esAdmin } from "@/lib/admin-correos";
 import { revisarCupo } from "@/lib/limites";
 import { ME_GUSTA_GRATIS } from "@/lib/planes";
 import { tiendaDeUrl } from "@/lib/catalogo-tiendas";
-import { precioActual } from "@/lib/precios";
+import { compararPrecio, precioActual } from "@/lib/precios";
 import { contextoDe, registrar } from "@/lib/eventos";
 
 // GET    /api/seguimientos            → las prendas que sigue
@@ -28,13 +28,38 @@ export async function GET(req: Request) {
   const r = await cargar(req);
   if ("error" in r) return NextResponse.json({ seguimientos: [], puede: false, motivo: r.error });
 
-  const { data } = await supabaseAdmin()
+  const sb = supabaseAdmin();
+  const { data } = await sb
     .from("seguimientos")
-    .select("url, titulo, tienda, imagen, precio_inicial, precio_ultimo, avisado_at, created_at")
+    .select("id, url, titulo, tienda, imagen, precio_inicial, precio_ultimo, precio_avisado, avisado_at, revisado_at, created_at")
     .eq("user_id", r.usuario.id)
     .eq("activo", true)
     .order("created_at", { ascending: false });
-  return NextResponse.json({ seguimientos: data ?? [], puede: true, avisos: r.avisos });
+  const lista = data ?? [];
+
+  // El precio se revisa una vez al día. Las que figuran rebajadas se
+  // revisan otra vez al abrir la lista (si pasó más de una hora): si la
+  // promoción ya se acabó, no siguen saliendo en rojo hasta mañana. El
+  // aviso lo sigue mandando solo la revisión diaria.
+  const haceUnaHora = Date.now() - 3600_000;
+  const viejas = lista
+    .filter((s) => s.precio_ultimo < s.precio_inicial && (!s.revisado_at || new Date(s.revisado_at).getTime() < haceUnaHora))
+    .slice(0, 8);
+  await Promise.all(
+    viejas.map(async (s) => {
+      const hoy = await precioActual(s.url);
+      if (!hoy) return;
+      const { cambios } = compararPrecio(s, hoy);
+      delete cambios.precio_avisado;
+      delete cambios.avisado_at;
+      if (hoy.precioCop > s.precio_inicial * 0.9) cambios.precio_avisado = null;
+      await sb.from("seguimientos").update(cambios).eq("id", s.id);
+      Object.assign(s, cambios);
+    })
+  );
+
+  const seguimientos = lista.map(({ id: _id, precio_avisado: _a, ...resto }) => resto);
+  return NextResponse.json({ seguimientos, puede: true, avisos: r.avisos });
 }
 
 export async function POST(req: Request) {

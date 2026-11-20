@@ -1,4 +1,4 @@
-import { tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
+import { PRECIOS_DE_COLOMBIA, tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
 import {
   filaShopify,
   filaVtex,
@@ -46,7 +46,7 @@ async function paginaShopify(t: Tienda, n: number): Promise<ProductoShopify[] | 
 
 async function paginaWoo(t: Tienda, n: number): Promise<ProductoWoo[] | null> {
   return pagina(
-    `https://${t.host}/wp-json/wc/store/v1/products?orderby=date&order=desc&per_page=${POR_PAGINA}&page=${n}`,
+    `https://${t.host}/wp-json/wc/store/v1/products?orderby=date&order=desc&per_page=${POR_PAGINA}&page=${n}&${PRECIOS_DE_COLOMBIA}`,
     (d) => (Array.isArray(d) ? (d as ProductoWoo[]) : [])
   );
 }

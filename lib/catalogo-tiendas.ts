@@ -86,7 +86,7 @@ export type ProductoWoo = {
   name?: string;
   permalink?: string;
   is_in_stock?: boolean;
-  prices?: { price?: string; regular_price?: string; currency_minor_unit?: number };
+  prices?: { price?: string; regular_price?: string; currency_minor_unit?: number; currency_code?: string };
   images?: Array<{ src?: string }>;
   categories?: Array<{ name?: string }>;
   tags?: Array<{ name?: string }>;
@@ -94,8 +94,22 @@ export type ProductoWoo = {
   description?: string;
 };
 
-/** Precio y "antes" en pesos (la API los da en la unidad mínima). */
+/**
+ * Para pedirle a una tienda WooCommerce los precios de Colombia. Pepita
+ * Pérez (y cualquier tienda con "Price Based on Country") pone el precio
+ * según el país de quien pregunta, y nuestro servidor está en Estados
+ * Unidos: sin esto llegaban dólares (un top de $30.000 salía a 16).
+ */
+export const PRECIOS_DE_COLOMBIA = "wcpbc-manual-country=CO";
+
+/**
+ * Precio y "antes" en pesos (la API los da en la unidad mínima). Si la
+ * tienda igual responde en otra moneda, el precio sale en 0 y la prenda
+ * se descarta: mejor no mostrarla que mostrarla con un precio falso.
+ */
 export function precioWoo(p: ProductoWoo): { precio: number; antes: number | null } {
+  const moneda = p.prices?.currency_code;
+  if (moneda && moneda !== "COP") return { precio: 0, antes: null };
   const div = 10 ** (p.prices?.currency_minor_unit ?? 0);
   const precio = Math.round(Number(p.prices?.price) / div);
   const regular = Math.round(Number(p.prices?.regular_price) / div);

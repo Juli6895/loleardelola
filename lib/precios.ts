@@ -1,4 +1,4 @@
-import { precioDeVariantes, precioWoo, tiendaDeUrl, type ProductoWoo, type VarianteShopify } from "./catalogo-tiendas";
+import { precioDeVariantes, precioWoo, PRECIOS_DE_COLOMBIA, tiendaDeUrl, type ProductoWoo, type VarianteShopify } from "./catalogo-tiendas";
 
 // =====================================================================
 // El precio de HOY de una prenda puntual (para los avisos de rebaja)
@@ -47,7 +47,7 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
       const { origin, pathname } = new URL(url);
       const slug = pathname.split("/").filter(Boolean).pop();
       if (!slug) return null;
-      const res = await pedir(`${origin}/wp-json/wc/store/v1/products?slug=${encodeURIComponent(slug)}`);
+      const res = await pedir(`${origin}/wp-json/wc/store/v1/products?slug=${encodeURIComponent(slug)}&${PRECIOS_DE_COLOMBIA}`);
       if (!res.ok) return null;
       const p = ((await res.json()) as ProductoWoo[])?.[0];
       if (!p) return null;

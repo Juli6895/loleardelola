@@ -4,6 +4,7 @@ import {
   clasificarPrenda,
   precioDeVariantes,
   precioWoo,
+  PRECIOS_DE_COLOMBIA,
   sinEntidades,
   tiendasParaPromos,
   type ProductoWoo,
@@ -293,7 +294,7 @@ async function promosWoo(t: Tienda, hasta: number): Promise<Lectura> {
     if (Date.now() > hasta) return { filas, completa: false };
     // on_sale: solo lo rebajado, así se leen muchas menos páginas.
     const productos = await pagina(
-      `https://${t.host}/wp-json/wc/store/v1/products?on_sale=true&per_page=${POR_PAGINA_WOO}&page=${n}`,
+      `https://${t.host}/wp-json/wc/store/v1/products?on_sale=true&per_page=${POR_PAGINA_WOO}&page=${n}&${PRECIOS_DE_COLOMBIA}`,
       (d) => (Array.isArray(d) ? (d as ProductoWoo[]) : [])
     );
     if (productos === null) {

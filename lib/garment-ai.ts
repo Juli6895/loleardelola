@@ -38,6 +38,14 @@ import { anotarConsumo } from "./costos";
 // centavos; cuando haya usuarias reales hay que volver a medirlo.
 const MODEL_OUTFIT = "claude-sonnet-5";
 
+// La búsqueda por foto prueba primero con Haiku 5.5, unas 22 veces más
+// barato (unos $3 frente a $71-131 por búsqueda), y solo si Haiku falla o
+// no reconoce ninguna prenda se repite con Sonnet. En una prueba con 12
+// fotos (noviembre de 2026) Haiku acertó en la prenda principal, pero en 1
+// de 12 devolvió la lista vacía y suele omitir detalles y accesorios. Para
+// volver a usar solo Sonnet sin publicar: BUSQUEDA_SOLO_SONNET=1 en Vercel.
+const MODEL_BUSQUEDA_BARATO = "claude-haiku-5-5";
+
 // System prompt: persona + instrucciones de formato. Cacheable porque no
 // cambia entre llamadas.
 const SYSTEM_PROMPT = `Eres una stylist colombiana experta en moda urbana y casual. Tu trabajo es mirar una foto de outfit (de Pinterest, Instagram o similar) e identificar las prendas y accesorios con precisión para que la usuaria los pueda buscar en Google Shopping Colombia.
@@ -317,9 +325,31 @@ export async function analyzeImageWithClaude(
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
 
+  // La foto se descarga una sola vez, aunque haya que repetir con otro modelo.
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
-
   const client = new Anthropic({ apiKey });
+
+  if (process.env.BUSQUEDA_SOLO_SONNET === "1") {
+    return analizarOutfit(client, MODEL_OUTFIT, base64, mediaType, options);
+  }
+  try {
+    const barato = await analizarOutfit(client, MODEL_BUSQUEDA_BARATO, base64, mediaType, options);
+    if (barato.searchTerms.length > 0) return barato;
+    console.warn("[garment-ai] Haiku no reconoció ninguna prenda: se repite con Sonnet");
+  } catch (e: any) {
+    console.warn("[garment-ai] Haiku falló, se repite con Sonnet:", e?.message ?? e);
+  }
+  return analizarOutfit(client, MODEL_OUTFIT, base64, mediaType, options);
+}
+
+/** Una llamada de análisis de outfit con el modelo que se le diga. */
+async function analizarOutfit(
+  client: Anthropic,
+  modelo: string,
+  base64: string,
+  mediaType: SupportedMedia,
+  options: AnalyzeOptions
+): Promise<VisionResult> {
 
   // Construir el mensaje del usuario. Si hay presupuesto, lo metemos en el
   // texto para que Claude lo use al calcular priceMaxCop.
@@ -329,7 +359,7 @@ export async function analyzeImageWithClaude(
     : "Analiza este outfit y reporta las prendas con report_outfit. NO incluyas priceMaxCop (no hay presupuesto definido).";
 
   const response = await client.messages.create({
-    model: MODEL_OUTFIT,
+    model: modelo,
     // 7 prendas × 13 campos + dos términos de búsqueda cada una no cabe
     // en 1024 tokens. Cuando se quedaba sin espacio la respuesta salía
     // cortada y los últimos campos llegaban vacíos — parecía que el
@@ -368,7 +398,7 @@ export async function analyzeImageWithClaude(
       },
     ],
   });
-  anotarConsumo("busqueda", MODEL_OUTFIT, response.usage);
+  anotarConsumo("busqueda", modelo, response.usage);
 
   // Buscar el bloque de tool_use en la respuesta.
   const toolUse = response.content.find(

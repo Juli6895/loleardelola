@@ -19,6 +19,10 @@ export const TRM = 4000;
 // una décima parte.
 const PRECIOS_IA: Record<string, { entrada: number; salida: number; cacheEscritura: number; cacheLectura: number }> = {
   "claude-sonnet-5": { entrada: 2, salida: 10, cacheEscritura: 2.5, cacheLectura: 0.2 },
+  // Haiku 5.5 (noviembre de 2026): 20 veces más barato por token. Precios
+  // de prompts de hasta 100.000 tokens; confirmar en la página de
+  // precios de Anthropic.
+  "claude-haiku-5-5": { entrada: 0.1, salida: 0.5, cacheEscritura: 0.125, cacheLectura: 0.01 },
 };
 
 // Google Vision (respaldo de la búsqueda si Claude falla): US$1,50 por

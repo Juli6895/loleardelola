@@ -103,6 +103,18 @@ export type ProductoWoo = {
 export const PRECIOS_DE_COLOMBIA = "wcpbc-manual-country=CO";
 
 /**
+ * Lo mismo para Shopify: con "Shopify Markets" las tiendas cobran otro
+ * precio según el país de quien pregunta, y nuestro servidor está en
+ * Estados Unidos. Molgoa, por ejemplo, daba sus prendas un 40% más caras
+ * que en su página en Colombia (noviembre de 2026). Con ?country=CO
+ * responden el precio de Colombia en producto (.js), catálogo
+ * (products.json) y buscador (search/suggest.json).
+ */
+export function enColombia(url: string): string {
+  return url + (url.includes("?") ? "&" : "?") + "country=CO";
+}
+
+/**
  * Precio y "antes" en pesos (la API los da en la unidad mínima). Si la
  * tienda igual responde en otra moneda, el precio sale en 0 y la prenda
  * se descarta: mejor no mostrarla que mostrarla con un precio falso.
@@ -647,7 +659,7 @@ export function precioDeVariantes(
 
 async function variantesDe(host: string, handle: string): Promise<VarianteShopify[] | null> {
   try {
-    const res = await pedirShopify(`https://${host}/products/${handle}.js`);
+    const res = await pedirShopify(enColombia(`https://${host}/products/${handle}.js`));
     if (!res.ok) return null;
     const p = (await res.json()) as { variants?: VarianteShopify[] };
     return Array.isArray(p.variants) ? p.variants : null;
@@ -660,9 +672,11 @@ async function buscarShopify(t: TiendaShopify, q: string): Promise<Indexado[]> {
   const host = t.host ?? t.dominio;
   return conCache(`${t.dominio}|${q}`, async () => {
     const res = await pedirShopify(
-      `https://${host}/search/suggest.json?q=${encodeURIComponent(q)}` +
-        `&resources[type]=product&resources[limit]=10` +
-        `&resources[options][unavailable_products]=hide`
+      enColombia(
+        `https://${host}/search/suggest.json?q=${encodeURIComponent(q)}` +
+          `&resources[type]=product&resources[limit]=10` +
+          `&resources[options][unavailable_products]=hide`
+      )
     );
     if (!res.ok) throw new Error(`http ${res.status}`);
     const data = (await res.json()) as {

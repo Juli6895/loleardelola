@@ -1,4 +1,4 @@
-import { PRECIOS_DE_COLOMBIA, tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
+import { enColombia, PRECIOS_DE_COLOMBIA, tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
 import {
   filaShopify,
   filaVtex,
@@ -41,7 +41,7 @@ async function paginaShopify(t: Tienda, n: number): Promise<ProductoShopify[] | 
   const sacar = (d: unknown) => (d as { products?: ProductoShopify[] }).products ?? [];
   // /products.json ya viene de lo más reciente a lo más viejo. (El de
   // /collections/all viene por orden alfabético y no hace caso a sort_by.)
-  return pagina(`https://${t.host}/products.json?limit=${POR_PAGINA}&page=${n}`, sacar);
+  return pagina(enColombia(`https://${t.host}/products.json?limit=${POR_PAGINA}&page=${n}`), sacar);
 }
 
 async function paginaWoo(t: Tienda, n: number): Promise<ProductoWoo[] | null> {

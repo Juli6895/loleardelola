@@ -2,6 +2,7 @@ import { supabaseAdmin } from "./supabase";
 import { registrar } from "./eventos";
 import {
   clasificarPrenda,
+  enColombia,
   precioDeVariantes,
   precioWoo,
   PRECIOS_DE_COLOMBIA,
@@ -226,7 +227,7 @@ async function promosShopify(t: Tienda, hasta: number, aLaVez = PAGINAS_SHOPIFY_
     if (primera > 1) await esperar(PAUSA_SHOPIFY_MS);
     const leidas = await Promise.all(
       Array.from({ length: aLaVez }, (_, i) =>
-        pagina(`https://${t.host}/products.json?limit=250&page=${primera + i}`, (d) => (d as { products?: ProductoShopify[] }).products ?? [])
+        pagina(enColombia(`https://${t.host}/products.json?limit=250&page=${primera + i}`), (d) => (d as { products?: ProductoShopify[] }).products ?? [])
       )
     );
     // Si la primera página no responde, la tienda falló del todo.

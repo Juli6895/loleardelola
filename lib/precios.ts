@@ -1,4 +1,4 @@
-import { precioDeVariantes, precioWoo, PRECIOS_DE_COLOMBIA, tiendaDeUrl, type ProductoWoo, type VarianteShopify } from "./catalogo-tiendas";
+import { enColombia, precioDeVariantes, precioWoo, PRECIOS_DE_COLOMBIA, tiendaDeUrl, type ProductoWoo, type VarianteShopify } from "./catalogo-tiendas";
 
 // =====================================================================
 // El precio de HOY de una prenda puntual (para los avisos de rebaja)
@@ -51,7 +51,7 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
   try {
     if (tienda.plataforma === "shopify") {
       const limpia = url.split(/[?#]/)[0].replace(/\/$/, "");
-      const res = await pedir(`${limpia}.js`);
+      const res = await pedir(enColombia(`${limpia}.js`));
       if (!res.ok) return null;
       // La talla del enlace (?variant=) si viene; si no, la disponible
       // más económica. "price" es el de la talla más barata aunque esté

@@ -65,24 +65,30 @@ export function alternarFavorita(favoritas: string[], dominio: string): void {
   guardarFavoritas(favoritas.includes(dominio) ? favoritas.filter((d) => d !== dominio) : [...favoritas, dominio]);
 }
 
-// Si este navegador nunca guardó favoritas, se traen las de la cuenta (o
-// las que ya había guardado desde este navegador). Una vez por visita.
+// Una vez por visita. Con la sesión iniciada, la cuenta manda: sus marcas
+// reemplazan las de este navegador (que pudo quedar con una lista vieja).
+// Si la cuenta no tiene ninguna y el navegador sí, se suben las del
+// navegador a la cuenta. Sin sesión, cada navegador guarda lo suyo.
 let sincronizada = false;
 function traerDeLaCuenta(): void {
   if (sincronizada) return;
   sincronizada = true;
-  let nunca = false;
-  try {
-    nunca = localStorage.getItem(CLAVE_FAVORITAS) === null;
-  } catch {
-    return;
-  }
-  if (!nunca) return;
+  const local = leerFavoritas();
   fetchConDispositivo("/api/marcas")
     .then((r) => r.json())
     .then((j) => {
-      const marcas = limpiar(j.marcas);
-      if (marcas.length > 0) guardarFavoritasLocal(marcas);
+      if (!j?.cuenta) return;
+      const enCuenta = limpiar(j.marcas);
+      if (enCuenta.length > 0) {
+        const igual = enCuenta.length === local.length && enCuenta.every((d) => local.includes(d));
+        if (!igual) guardarFavoritasLocal(enCuenta);
+      } else if (local.length > 0) {
+        fetchConDispositivo("/api/marcas", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ marcas: local }),
+        }).catch(() => {});
+      }
     })
     .catch(() => {});
 }

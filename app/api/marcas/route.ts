@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
-import { resolverUserId } from "@/lib/sesion";
+import { resolverUserId, usuarioActual } from "@/lib/sesion";
 
 // GET  /api/marcas → { marcas }: las "Mis marcas favoritas" guardadas.
 // POST /api/marcas { marcas: string[] } → las guarda.
@@ -21,8 +21,14 @@ export async function GET(req: Request) {
     .select("marcas_favoritas")
     .eq("id", userId)
     .maybeSingle();
-  if (error) return NextResponse.json({ marcas: null });
-  return NextResponse.json({ marcas: (data?.marcas_favoritas as string[] | null) ?? null });
+  if (error) return NextResponse.json({ marcas: null, cuenta: false });
+  // cuenta: si entró con su correo. Con cuenta, lo guardado ahí manda sobre
+  // lo que tenga el navegador (ver traerDeLaCuenta en lib/marcas-favoritas.ts).
+  const usuario = await usuarioActual(req);
+  return NextResponse.json({
+    marcas: (data?.marcas_favoritas as string[] | null) ?? null,
+    cuenta: !!usuario?.conSesion,
+  });
 }
 
 export async function POST(req: Request) {

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
 import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
-import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
 // app instalada, que es la misma página). Los precios y los límites
@@ -81,12 +81,11 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas de outfit al mes y las promociones por{" "}
-                {DIAS_PRUEBA_PROMOS.anonimo} día. Las búsquedas cuentan por celular o computador.
+                <strong>Sin cuenta:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas de outfit al mes y las promociones sin límite de días. Las búsquedas cuentan por celular o computador.
               </li>
               <li>
                 <strong>Con cuenta gratis:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas al mes, {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta y las
-                promociones por {DIAS_PRUEBA_PROMOS.gratis} días desde que creas la cuenta. Esta prueba es una por aparato.
+                promociones sin límite de días.
               </li>
             </ul>
             <p className="mt-2">
@@ -172,8 +171,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               cuando quieras desde ese mismo filtro.
             </p>
             <p className="mt-2">
-              Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día, con cuenta gratis {DIAS_PRUEBA_PROMOS.gratis} días desde que
-              la creas, y con la membresía siempre. La prueba gratis es una por celular o computador.
+              Las ves todas, sin límite de días, con o sin cuenta y con la membresía.
             </p>
           </>
         ),
@@ -380,7 +378,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         p: "¿Puedo tener varias cuentas?",
         r: (
           <p>
-            Puedes, pero la prueba gratis (la búsqueda, el outfit guardado y los días de promociones) es una por
+            Puedes, pero la prueba gratis (la búsqueda y el outfit guardado) es una por
             celular o computador: una cuenta nueva en el mismo aparato no la vuelve a tener. Tampoco aceptamos
             correos temporales. Está explicado en los{" "}
             <Link href="/terminos" className="font-medium text-rosa-600 underline">

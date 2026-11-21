@@ -4,7 +4,6 @@ import AnotarVista from "@/components/AnotarVista";
 import {
   BUSQUEDAS_MES_SIN_MEMBRESIA,
   CUPOS_MEMBRESIA,
-  DIAS_PRUEBA_PROMOS,
   ME_GUSTA_GRATIS,
   PRECIOS,
   PRECIOS_NORMALES,
@@ -48,7 +47,7 @@ export default function TerminosPage() {
     ["Prendas nuevas en tu clóset", cuantas(TOPES.anonimo.prendasCloset, "prenda", "prendas"), cuantas(TOPES.gratis.prendasCloset, "prenda", "prendas"), cupo(mensual.prendasCloset), cupo(anual.prendasCloset)],
     ["Combinaciones de tu clóset", cuantas(TOPES.anonimo.combinacionesClosetGratis, "combinación", "combinaciones"), cuantas(TOPES.gratis.combinacionesClosetGratis, "combinación", "combinaciones"), cupo(mensual.combinaciones), cupo(anual.combinaciones)],
     ["Manual de estilo", "No incluye", "No incluye", cupo(mensual.manuales), cupo(anual.manuales)],
-    ["Promociones de todas las tiendas", `${DIAS_PRUEBA_PROMOS.anonimo} día`, `${DIAS_PRUEBA_PROMOS.gratis} días`, "31 días", "Todo el año"],
+    ["Promociones de todas las tiendas", "Sin límite", "Sin límite", "Sin límite", "Sin límite"],
     ["Mis marcas favoritas", "Sí", "Sí", "Sí", "Sí"],
     ["Me gusta (corazón)", "No incluye", String(ME_GUSTA_GRATIS), cupo(mensual.meGusta), cupo(anual.meGusta)],
     ["Aviso cuando baja de precio", "No incluye", "No incluye", cupo(mensual.meGusta), cupo(anual.meGusta)],
@@ -183,9 +182,7 @@ export default function TerminosPage() {
             y la puedes cambiar cuando quieras; con una talla escogida, el precio que ves es el de esa talla.
           </li>
           <li>
-            Sin cuenta las ves {DIAS_PRUEBA_PROMOS.anonimo} día desde la primera vez que entras; con cuenta gratis,{" "}
-            {DIAS_PRUEBA_PROMOS.gratis} días desde que la creas; con la membresía, siempre. La prueba gratis de la
-            cuenta es una por aparato, aunque se usen correos distintos.
+            Las ves todas, sin límite de días, con o sin cuenta y con la membresía.
           </li>
           <li>
             Con <strong>Ver todo</strong> ves también las prendas sin descuento de las tiendas, de lo más nuevo a lo

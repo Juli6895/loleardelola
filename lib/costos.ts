@@ -53,12 +53,37 @@ export const NOMBRE_SERVICIO: Record<ServicioIA, string> = {
 // planes.ts). Se usa para las consultas anteriores a que cada llamada
 // anotara su costo real, y para los servicios que todavía no se han
 // medido ninguna vez. Sin dato: no se inventa, el servicio sale en $0.
+//
+// Noviembre de 2026: la búsqueda, la prenda del clóset, las combinaciones
+// y la personalidad van con Haiku 5.5 (medido en producción: búsqueda ~$6,
+// prenda ~$2, combinación ~$4). La personalidad todavía no tiene medida
+// con Haiku: es lo medido con Sonnet (~$63 por foto, ~$37 por referencia)
+// dividido en 20, que es lo que cuesta Haiku por token. El manual sigue
+// con Sonnet.
 export const COSTO_REFERENCIA_COP: Partial<Record<ServicioIA, number>> = {
-  busqueda: 137,
-  prenda_closet: 61,
-  combinacion: 89,
-  manual: 223,
+  busqueda: 6,
+  prenda_closet: 2,
+  combinacion: 4,
+  manual: 202,
+  personalidad_foto: 3,
+  personalidad_referencia: 2,
   busqueda_respaldo: Math.round(PRECIO_GOOGLE_VISION_USD * TRM),
+};
+
+/**
+ * El modelo con el que corre hoy cada servicio. El tablero calcula "lo que
+ * cuesta UNA consulta" solo con las llamadas de este modelo: promediar las
+ * de Sonnet (anteriores) con las de Haiku daba un costo que ya no es real.
+ * Si cambia el modelo de un servicio, cambiarlo aquí también.
+ */
+export const MODELO_ACTUAL: Partial<Record<ServicioIA, string>> = {
+  busqueda: "claude-haiku-5-5",
+  prenda_closet: "claude-haiku-5-5",
+  combinacion: "claude-haiku-5-5",
+  personalidad_foto: "claude-haiku-5-5",
+  personalidad_referencia: "claude-haiku-5-5",
+  manual: "claude-sonnet-5",
+  busqueda_respaldo: "google-vision",
 };
 
 type Uso = {

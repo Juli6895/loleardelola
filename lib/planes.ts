@@ -37,7 +37,7 @@ export const TOPES: Record<Plan, Topes> = {
   // Sin cuenta: nada que use la IA (octubre de 2026, a pedido de
   // Juliana: si llega mucha gente de golpe, cada búsqueda, prenda o
   // combinación anónima es plata sin siquiera un correo a cambio). Solo
-  // mira las promociones (ver DIAS_PRUEBA_PROMOS).
+  // mira las promociones (ver lib/acceso-promos.ts).
   anonimo: {
     // 30 al mes por celular o computador (ver BUSQUEDAS_MES_SIN_MEMBRESIA).
     busquedas: 30,
@@ -166,15 +166,8 @@ export function precioDe(p: Producto): number {
   return esPaquete(p) ? PAQUETES_BUSQUEDAS[p].precio : PRECIOS[p];
 }
 
-/**
- * Las promociones de todas las tiendas son el gancho de la membresía:
- * sin cuenta se ven 1 día desde la primera visita, con cuenta gratis 2
- * días desde que la crea, y con membresía siempre.
- */
-export const DIAS_PRUEBA_PROMOS: Record<Exclude<Plan, "membresia">, number> = {
-  anonimo: 1,
-  gratis: 2,
-};
+// Las promociones de todas las tiendas las ve todo el mundo, sin límite
+// de días (noviembre de 2026): ver lib/acceso-promos.ts.
 
 /** Cuántos días de membresía da cada plan. */
 export const DIAS_DE_PLAN: Record<TipoPlan, number> = {

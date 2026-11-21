@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES, type TipoPlan } from "@/lib/planes";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES, type TipoPlan } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
 import SubNavCuenta from "@/components/SubNavCuenta";
@@ -41,7 +41,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
         titulo: "Lo que incluye",
         rubros: [
           ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
-          ["Promociones de todas las tiendas", dias(DIAS_PRUEBA_PROMOS.anonimo)],
+          ["Promociones de todas las tiendas", "Sin límite"],
           ["Marcas favoritas", "Sí"],
         ],
       },
@@ -53,7 +53,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
         titulo: "Lo que incluye",
         rubros: [
           ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
-          ["Promociones de todas las tiendas", dias(DIAS_PRUEBA_PROMOS.gratis)],
+          ["Promociones de todas las tiendas", "Sin límite"],
           ["Outfits guardados", cupo(TOPES.gratis.outfits)],
           ["Me gusta en tus prendas", String(ME_GUSTA_GRATIS)],
           ["Marcas favoritas", "Sí"],
@@ -83,7 +83,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
     {
       titulo: "Promociones y avisos",
       rubros: [
-        ["Promociones", plan === "anual" ? "Todo el año" : "31 días"],
+        ["Promociones", "Sin límite"],
         ["Me gusta", cupo(c.meGusta)],
         ["Avisos de rebaja", cupo(c.meGusta)],
         ["Marcas favoritas", "Sí"],

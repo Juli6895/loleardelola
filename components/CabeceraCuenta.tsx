@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { comoSeLlama, tieneMembresia, useUsuario } from "@/lib/use-usuario";
-import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS } from "@/lib/planes";
+import { CUPOS_MEMBRESIA } from "@/lib/planes";
 
 // El enlace al tablero solo aparece para administración. No es una
 // medida de seguridad —el permiso se revisa en el servidor, ver
@@ -203,7 +203,7 @@ export default function CabeceraCuenta() {
 
           {topes && (
             <p className="mt-5 border-t border-rosa-50 pt-4 text-xs text-noche/40">
-              Con tu cuenta gratis guardas hasta {topes.outfits} outfits y ves las promociones por {DIAS_PRUEBA_PROMOS.gratis} días.
+              Con tu cuenta gratis guardas hasta {topes.outfits} outfits y ves todas las promociones sin límite de días.
             </p>
           )}
         </div>

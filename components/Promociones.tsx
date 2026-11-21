@@ -41,8 +41,8 @@ import {
 // de esta marca" despliega todas. Si buscó algo, arriba van las de esas
 // prendas y abajo "Otros descuentos".
 //
-// Es el gancho de la membresía: sin cuenta se ven 1 día, con cuenta
-// gratis 3 (ver lib/acceso-promos.ts). Después, el aviso para pagar.
+// Sin límite de días para todas (noviembre de 2026); el aviso de abajo solo
+// saldría si lib/acceso-promos.ts volviera a poner un límite.
 //
 // Arriba se escoge "Solo promociones" o "Ver todo": todas las prendas
 // de sus marcas, con o sin rebaja (lib/catalogo-completo.ts), para que

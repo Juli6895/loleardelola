@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA, DISPOSITIVOS_PRUEBA } from "@/lib/admin-correos";
-import { COMISION_BOLD, COSTOS_FIJOS, COSTO_REFERENCIA_COP, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
+import { COMISION_BOLD, COSTOS_FIJOS, COSTO_REFERENCIA_COP, MODELO_ACTUAL, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 import { cloudinary } from "@/lib/cloudinary";
 import { ETIQUETAS } from "@/lib/etiquetas";
 import { tiendasConCatalogo } from "@/lib/catalogo-tiendas";
@@ -635,18 +635,24 @@ export async function GET(req: Request) {
   const mesDe = (cuando: string) => new Date(cuando) >= inicioDeMes;
   const porServicio = (Object.keys(NOMBRE_SERVICIO) as ServicioIA[]).map((servicio) => {
     const medidas = todos.filter((e) => e.nombre === "consumo_ia" && e.props?.servicio === servicio);
-    const usdMedido = medidas.reduce((a, e) => a + (Number(e.props?.usd) || 0), 0);
-    const unitarioMedido = medidas.length ? (usdMedido * TRM) / medidas.length : null;
+    const usdDe = (lista: typeof medidas) => lista.reduce((a, e) => a + (Number(e.props?.usd) || 0), 0);
+    // El costo de UNA consulta, con el modelo que se usa hoy: no se
+    // mezclan las llamadas viejas de Sonnet con las de Haiku.
+    const delModeloActual = medidas.filter((e) => e.props?.modelo === MODELO_ACTUAL[servicio]);
+    const unitarioMedido = delModeloActual.length ? (usdDe(delModeloActual) * TRM) / delModeloActual.length : null;
     const unitarioCop = Math.round(unitarioMedido ?? COSTO_REFERENCIA_COP[servicio] ?? 0);
     const consultas = Math.max(realesDe[servicio] ?? 0, medidas.length);
-    const delMes = medidas.filter((e) => mesDe(e.created_at)).length;
+    // Lo ya gastado se suma tal cual lo costó (cada llamada anotó su
+    // modelo); solo las consultas sin costo anotado usan el unitario.
+    const sinAnotar = Math.max(consultas - medidas.length, 0);
+    const delMes = medidas.filter((e) => mesDe(e.created_at));
     return {
       servicio: NOMBRE_SERVICIO[servicio],
       tipo: "Variable" as const,
       consultas,
       unitarioCop,
-      totalCop: consultas * unitarioCop,
-      delMesCop: delMes * unitarioCop,
+      totalCop: Math.round(usdDe(medidas) * TRM + sinAnotar * unitarioCop),
+      delMesCop: Math.round(usdDe(delMes) * TRM),
       medido: unitarioMedido !== null,
     };
   });

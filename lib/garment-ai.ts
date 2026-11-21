@@ -46,6 +46,32 @@ const MODEL_OUTFIT = "claude-sonnet-5";
 // volver a usar solo Sonnet sin publicar: BUSQUEDA_SOLO_SONNET=1 en Vercel.
 const MODEL_BUSQUEDA_BARATO = "claude-haiku-5-5";
 
+/**
+ * Prueba primero con el modelo barato (Haiku 5.5) y, si falla o el
+ * resultado no sirve, repite con Sonnet. Lo usan la prenda del clóset, la
+ * personalidad de estilo y las combinaciones. En una prueba de noviembre
+ * de 2026 con las mismas entradas, Haiku coincidió con Sonnet en las 20
+ * prendas del clóset y en la personalidad por foto (7 de 7), en 9 de 12
+ * por referencia, y armó combinaciones válidas pero con menos piezas y
+ * accesorios: por eso la combinación exige al menos 3 piezas.
+ * IA_SOLO_SONNET=1 en Vercel vuelve a usar solo Sonnet sin publicar.
+ */
+export async function conModeloBarato<T>(
+  servicio: string,
+  hacer: (modelo: string) => Promise<T>,
+  sirve: (resultado: T) => boolean = () => true
+): Promise<T> {
+  if (process.env.IA_SOLO_SONNET === "1") return hacer(MODEL_OUTFIT);
+  try {
+    const barato = await hacer(MODEL_BUSQUEDA_BARATO);
+    if (sirve(barato)) return barato;
+    console.warn(`[ia] ${servicio}: el resultado de Haiku no sirvió, se repite con Sonnet`);
+  } catch (e: any) {
+    console.warn(`[ia] ${servicio}: Haiku falló, se repite con Sonnet:`, e?.message ?? e);
+  }
+  return hacer(MODEL_OUTFIT);
+}
+
 // System prompt: persona + instrucciones de formato. Cacheable porque no
 // cambia entre llamadas.
 const SYSTEM_PROMPT = `Eres una stylist colombiana experta en moda urbana y casual. Tu trabajo es mirar una foto de outfit (de Pinterest, Instagram o similar) e identificar las prendas y accesorios con precisión para que la usuaria los pueda buscar en Google Shopping Colombia.
@@ -641,8 +667,20 @@ export async function analyzeClosetItem(
     ? `La usuaria dice que la prenda que está subiendo es ${NOMBRE_PISTA[pista]}. Clasifica esa y reporta con report_garment.`
     : "Clasifica esta prenda de clóset y reporta con report_garment.";
 
+  return conModeloBarato("prenda_closet", (modelo) => clasificarPrenda(client, modelo, base64, mediaType, pedido, pista));
+}
+
+/** Una llamada de clasificación de prenda con el modelo que se le diga. */
+async function clasificarPrenda(
+  client: Anthropic,
+  modelo: string,
+  base64: string,
+  mediaType: SupportedMedia,
+  pedido: string,
+  pista?: PistaPrenda | null
+): Promise<ClosetItemAnalysis> {
   const response = await client.messages.create({
-    model: MODEL_OUTFIT,
+    model: modelo,
     max_tokens: 2000,
     system: [{ type: "text", text: CLOSET_SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
     tools: [REPORT_GARMENT_TOOL],
@@ -657,7 +695,7 @@ export async function analyzeClosetItem(
       },
     ],
   });
-  anotarConsumo("prenda_closet", MODEL_OUTFIT, response.usage);
+  anotarConsumo("prenda_closet", modelo, response.usage);
 
   const toolUse = response.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
@@ -668,6 +706,9 @@ export async function analyzeClosetItem(
 
   const input = toolUse.input as { tipo?: string; color?: string; tags?: string[]; label?: string };
   const tipo = input.tipo && TIPOS_CLOSET[input.tipo] ? input.tipo : null;
+  // Sin tipo reconocido la prenda quedaría como "accesorio": con Haiku es
+  // señal de que no la entendió, y se repite con Sonnet.
+  if (!tipo && !pista && modelo !== MODEL_OUTFIT) throw new Error("Haiku no reconoció el tipo de prenda");
   // Si la usuaria dijo cuál era, manda su categoría.
   const category: ClosetCategory = pista ?? (tipo ? TIPOS_CLOSET[tipo] : "accesorio");
 

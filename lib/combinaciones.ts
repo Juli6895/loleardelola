@@ -6,7 +6,7 @@ import {
   type ProductoTienda,
 } from "./catalogo-tiendas";
 import { expediente, type DatosManual } from "./manual-estilo";
-import { fetchImageAsBase64 } from "./garment-ai";
+import { conModeloBarato, fetchImageAsBase64 } from "./garment-ai";
 import { PROYECCIONES } from "./image-consulting/proyeccion";
 import { PERSONALIDADES } from "./image-consulting/personalidad";
 import type { ClosetCategory } from "@/types";
@@ -25,12 +25,14 @@ import { anotarConsumo } from "./costos";
 // Las prendas que le faltan se buscan en el catálogo real de las
 // tiendas, igual que en el manual: lo que no existe no se muestra.
 //
-// Va con Sonnet, como el manual: ya no es "qué color combina", es
-// cruzar la prenda con los pilares de su perfil, y ahí Haiku se queda
-// corto.
+// Va con Haiku primero (unas 20 veces más barato). En la prueba de
+// noviembre de 2026 armó outfits válidos y con el mismo estilo, pero con
+// menos piezas (4 en vez de 5) y casi sin accesorios: si arma menos de
+// MIN_PIEZAS o falla, se repite con Sonnet (ver conModeloBarato en
+// lib/garment-ai.ts).
 // =====================================================================
 
-const MODELO = "claude-sonnet-5";
+const MIN_PIEZAS = 3;
 
 const NOMBRE_CATEGORIA: Record<ClosetCategory, string> = {
   top: "una parte de arriba (blusa, camiseta, top)",
@@ -162,7 +164,8 @@ function limpiarCombo(c: any): ComboSugerido | null {
 
 async function armarOutfit(
   p: PrendaDelCloset,
-  perfil: DatosManual
+  perfil: DatosManual,
+  modelo: string
 ): Promise<{ titulo: string; descripcion: string; prendas: ComboSugerido[] }> {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
@@ -182,7 +185,7 @@ async function armarOutfit(
 
   const client = new Anthropic({ apiKey });
   const response = await client.messages.create({
-    model: MODELO,
+    model: modelo,
     max_tokens: 1500,
     system: [{ type: "text", text: SISTEMA, cache_control: { type: "ephemeral" } }],
     tools: [REPORT_TOOL],
@@ -202,7 +205,7 @@ async function armarOutfit(
       },
     ],
   });
-  anotarConsumo("combinacion", MODELO, response.usage);
+  anotarConsumo("combinacion", modelo, response.usage);
 
   const toolUse = response.content.find(
     (b): b is Anthropic.ToolUseBlock => b.type === "tool_use"
@@ -230,7 +233,11 @@ export async function outfitConFotos(
   p: PrendaDelCloset,
   perfil: DatosManual
 ): Promise<OutfitDelCloset> {
-  const outfit = await armarOutfit(p, perfil);
+  const outfit = await conModeloBarato(
+    "combinacion",
+    (modelo) => armarOutfit(p, perfil, modelo),
+    (o) => o.prendas.length >= MIN_PIEZAS
+  );
 
   const conFotos = await Promise.all(
     outfit.prendas.map(async (c) => {

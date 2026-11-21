@@ -1,5 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { fetchImageAsBase64 } from "./garment-ai";
+import { conModeloBarato, fetchImageAsBase64 } from "./garment-ai";
 import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalidad";
 import { anotarConsumo } from "./costos";
 
@@ -16,10 +16,13 @@ import { anotarConsumo } from "./costos";
 // igual sin importar cómo se obtuvo el resultado.
 // =====================================================================
 
-// Ubicar a alguien en un arquetipo es un juicio fino, y con Haiku salía
-// impreciso. Va con Sonnet: el volumen es bajo (una vez por usuaria) y
-// aquí la precisión importa más que el costo.
-const MODEL = "claude-sonnet-5";
+// Ubicar a alguien en un arquetipo es un juicio fino, y con una versión
+// anterior de Haiku salía impreciso. Con Haiku 5.5 la prueba de noviembre
+// de 2026 dio la misma personalidad principal que Sonnet en 7 de 7 fotos y
+// en 9 de 12 referentes (la secundaria cambia más: no hay una respuesta
+// única). Va con Haiku y, si falla o no devuelve algo válido, con Sonnet
+// (ver conModeloBarato en lib/garment-ai.ts).
+const MODEL_RESPALDO = "claude-sonnet-5";
 
 // Antes solo se le pasaban la etiqueta y la descripción de cada
 // arquetipo. Al mirar una foto eso es demasiado abstracto — el modelo
@@ -90,7 +93,7 @@ const REPORT_TOOL: Anthropic.Tool = {
   },
 };
 
-function parseToolResult(response: Anthropic.Message): PersonalidadResultado {
+function parseToolResult(response: Anthropic.Message, estricto = false): PersonalidadResultado {
   const toolUse = response.content.find(
     (block): block is Anthropic.ToolUseBlock => block.type === "tool_use"
   );
@@ -105,6 +108,11 @@ function parseToolResult(response: Anthropic.Message): PersonalidadResultado {
   };
 
   const VALID: Personalidad[] = ["clasica", "romantica", "dramatica", "natural", "creativa", "sensual"];
+  // Sin esto, un arquetipo inválido o una explicación vacía se disfrazan
+  // de "natural". Con el modelo barato es señal para repetir con Sonnet.
+  if (estricto && (!VALID.includes(input.personalidad as Personalidad) || !input.explicacion?.trim())) {
+    throw new Error("Haiku no devolvió una personalidad válida");
+  }
   const personalidad: Personalidad = VALID.includes(input.personalidad as Personalidad)
     ? (input.personalidad as Personalidad)
     : "natural";
@@ -133,8 +141,12 @@ export async function inferirPersonalidadPorReferencia(
   if (!apiKey) throw new Error("Falta ANTHROPIC_API_KEY");
 
   const client = new Anthropic({ apiKey });
+  return conModeloBarato("personalidad_referencia", (modelo) => porReferencia(client, modelo, nombreReferencia));
+}
+
+async function porReferencia(client: Anthropic, modelo: string, nombreReferencia: string): Promise<PersonalidadResultado> {
   const response = await client.messages.create({
-    model: MODEL,
+    model: modelo,
     max_tokens: 1024,
     system: [
       {
@@ -152,9 +164,9 @@ export async function inferirPersonalidadPorReferencia(
       },
     ],
   });
-  anotarConsumo("personalidad_referencia", MODEL, response.usage);
+  anotarConsumo("personalidad_referencia", modelo, response.usage);
 
-  return parseToolResult(response);
+  return parseToolResult(response, modelo !== MODEL_RESPALDO);
 }
 
 /**
@@ -171,9 +183,17 @@ export async function inferirPersonalidadPorImagen(
 
   const { base64, mediaType } = await fetchImageAsBase64(imageUrl);
   const client = new Anthropic({ apiKey });
+  return conModeloBarato("personalidad_foto", (modelo) => porImagen(client, modelo, base64, mediaType));
+}
 
+async function porImagen(
+  client: Anthropic,
+  modelo: string,
+  base64: string,
+  mediaType: Awaited<ReturnType<typeof fetchImageAsBase64>>["mediaType"]
+): Promise<PersonalidadResultado> {
   const response = await client.messages.create({
-    model: MODEL,
+    model: modelo,
     max_tokens: 1024,
     system: [
       {
@@ -200,7 +220,7 @@ export async function inferirPersonalidadPorImagen(
       },
     ],
   });
-  anotarConsumo("personalidad_foto", MODEL, response.usage);
+  anotarConsumo("personalidad_foto", modelo, response.usage);
 
-  return parseToolResult(response);
+  return parseToolResult(response, modelo !== MODEL_RESPALDO);
 }

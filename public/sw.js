@@ -33,6 +33,9 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith("/api/")) return;
+  // En el servidor local los archivos de /_next/static/ no llevan versión
+  // en el nombre: guardarlos haría correr código viejo al probar.
+  if (self.location.hostname === "localhost") return;
 
   if (req.mode === "navigate") {
     event.respondWith(fetch(req).catch(() => caches.match(SIN_INTERNET)));

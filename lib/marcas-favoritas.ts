@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import { fetchConDispositivo } from "./device-id";
 import { anotar } from "./use-evento";
 
@@ -49,15 +50,34 @@ function guardarFavoritasLocal(dominios: string[]): void {
   window.dispatchEvent(new Event(EVENTO_FAVORITAS));
 }
 
+// Mientras un cambio va camino a la cuenta, no se trae la lista de la
+// cuenta: llegaría la de antes y desharía lo que acaba de marcar.
+let guardando = 0;
+let ultimoCambio = 0;
+
 export function guardarFavoritas(dominios: string[]): void {
   const unicas = limpiar(dominios);
   guardarFavoritasLocal(unicas);
   anotar("filtro_aplicado", { filtro: "marcas_favoritas", cantidad: unicas.length });
+  guardando++;
+  ultimoCambio = Date.now();
   fetchConDispositivo("/api/marcas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ marcas: unicas }),
-  }).catch(() => {});
+  })
+    .then((r) => r.json())
+    .then((j) => {
+      if (!j?.ok) throw new Error("no se guardó");
+    })
+    .catch(() => {
+      toast.error("No pudimos guardar tus marcas en tu cuenta. Revisa tu conexión e inténtalo de nuevo.", {
+        id: "marcas-sin-guardar",
+      });
+    })
+    .finally(() => {
+      guardando--;
+    });
 }
 
 /** Pone o quita el corazón de una marca. */
@@ -65,19 +85,23 @@ export function alternarFavorita(favoritas: string[], dominio: string): void {
   guardarFavoritas(favoritas.includes(dominio) ? favoritas.filter((d) => d !== dominio) : [...favoritas, dominio]);
 }
 
-// Una vez por visita. Con la sesión iniciada, la cuenta manda: sus marcas
-// reemplazan las de este navegador (que pudo quedar con una lista vieja).
-// Si la cuenta no tiene ninguna y el navegador sí, se suben las del
-// navegador a la cuenta. Sin sesión, cada navegador guarda lo suyo.
-let sincronizada = false;
+// Al abrir la página y cada vez que vuelve a ella (otra pestaña, la app
+// en segundo plano). Con la sesión iniciada, la cuenta manda: sus marcas
+// reemplazan las de este navegador, así el celular y el computador ven
+// lo mismo. Si la cuenta no tiene ninguna y el navegador sí, se suben las
+// del navegador a la cuenta. Sin sesión, cada navegador guarda lo suyo.
+let ultimaSincronizacion = 0;
 function traerDeLaCuenta(): void {
-  if (sincronizada) return;
-  sincronizada = true;
+  const ahora = Date.now();
+  // Una sola consulta aunque varios componentes la pidan a la vez.
+  if (ahora - ultimaSincronizacion < 2000) return;
+  if (guardando > 0 || ahora - ultimoCambio < 3000) return;
+  ultimaSincronizacion = ahora;
   const local = leerFavoritas();
   fetchConDispositivo("/api/marcas")
     .then((r) => r.json())
     .then((j) => {
-      if (!j?.cuenta) return;
+      if (!j?.cuenta || guardando > 0 || Date.now() - ultimoCambio < 3000) return;
       const enCuenta = limpiar(j.marcas);
       if (enCuenta.length > 0) {
         const igual = enCuenta.length === local.length && enCuenta.every((d) => local.includes(d));
@@ -100,12 +124,20 @@ export function useMarcasFavoritas(): string[] {
     const actualizar = () => setMarcas(leerFavoritas());
     actualizar();
     traerDeLaCuenta();
+    // Vuelve a la página: pudo cambiarlas en el celular o en otro computador.
+    const alVolver = () => {
+      if (document.visibilityState === "visible") traerDeLaCuenta();
+    };
     window.addEventListener(EVENTO_FAVORITAS, actualizar);
     // Si las cambia en otra pestaña.
     window.addEventListener("storage", actualizar);
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
     return () => {
       window.removeEventListener(EVENTO_FAVORITAS, actualizar);
       window.removeEventListener("storage", actualizar);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
     };
   }, []);
   return marcas;

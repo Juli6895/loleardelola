@@ -4,6 +4,7 @@ import { exigirAdmin } from "@/lib/admin";
 import { CORREOS_PRUEBA, DISPOSITIVOS_PRUEBA } from "@/lib/admin-correos";
 import { COMISION_BOLD, COSTOS_FIJOS, COSTO_REFERENCIA_COP, MODELO_ACTUAL, NOMBRE_SERVICIO, TRM, type ServicioIA } from "@/lib/costos";
 import { cloudinary } from "@/lib/cloudinary";
+import { calcularRentabilidad, type Segmento } from "@/lib/rentabilidad";
 import { ETIQUETAS } from "@/lib/etiquetas";
 import { tiendasConCatalogo } from "@/lib/catalogo-tiendas";
 import { getTiendasInstagram } from "@/lib/tiendas-instagram";
@@ -750,6 +751,44 @@ export async function GET(req: Request) {
     detalle: "Uno por cada vez que alguien pide su código para entrar.",
   });
 
+  // ------------------------------------- rentabilidad por tipo de usuaria
+  // La tabla de Excel de Juliana con datos reales (ver lib/rentabilidad.ts).
+  // Cada persona, por lo que es hoy: membresía activa (por el plan de su
+  // último pago), con registro o sin registro.
+  const idsActivas = new Set(activas.map((u) => u.id as string));
+  const RANGO: Record<Segmento, number> = { sinRegistro: 0, conRegistro: 1, mensual: 2, anual: 3 };
+  const segmentoPorPersona = new Map<string, Segmento>();
+  for (const e of eventos) {
+    if (!e.user_id) continue;
+    const s: Segmento = idsActivas.has(e.user_id)
+      ? planDe.get(e.user_id) === "anual"
+        ? "anual"
+        : "mensual"
+      : idsConCorreo.has(e.user_id)
+        ? "conRegistro"
+        : "sinRegistro";
+    const p = persona(e);
+    const antes = segmentoPorPersona.get(p);
+    if (!antes || RANGO[s] > RANGO[antes]) segmentoPorPersona.set(p, s);
+  }
+  const unitarioDeServicio = new Map<ServicioIA, number>(
+    (Object.keys(NOMBRE_SERVICIO) as ServicioIA[]).map((s) => [
+      s,
+      porServicio.find((f) => f.servicio === NOMBRE_SERVICIO[s])?.unitarioCop ?? 0,
+    ])
+  );
+  const entradaRentabilidad = {
+    eventos,
+    personaDe: persona,
+    segmentoDe: (p: string) => segmentoPorPersona.get(p) ?? "sinRegistro",
+    unitarioDe: (s: ServicioIA) => unitarioDeServicio.get(s) ?? 0,
+    pagos: pagosReales,
+  };
+  const rentabilidad = {
+    mes: calcularRentabilidad({ ...entradaRentabilidad, desde: inicioDeMes }),
+    siempre: calcularRentabilidad({ ...entradaRentabilidad, desde: null }),
+  };
+
   const personasDelMes = new Set(
     visitas.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
   ).size;
@@ -828,6 +867,7 @@ export async function GET(req: Request) {
       resultadoDelMesCop: Math.round(bruto - delPeriodo.totalVariable - totalFijo),
     },
     cuentas,
+    rentabilidad,
     porVencer: activas
       .filter((u) => (new Date(u.premium_until).getTime() - ahora.getTime()) / 86400000 <= 15)
       .map((u) => ({ email: u.email, name: u.name, premium_until: u.premium_until })),

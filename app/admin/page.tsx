@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "@/lib/device-id";
 import { SQL_GASTOS } from "@/lib/sql-gastos";
+import type { Rentabilidad } from "@/lib/rentabilidad";
 
 // Tablero de administración. Solo para el correo de administración
 // (ver lib/admin.ts) — el permiso se revisa en el servidor, no acá:
@@ -72,6 +73,7 @@ type Datos = {
   costos: Costos;
   porVencer: Array<{ email: string; name: string | null; premium_until: string }>;
   cuentas: Array<{ email: string; celular: string | null; desde: string; ultimaVez: string | null; plan: string; venceMembresia: string | null }>;
+  rentabilidad?: { mes: Rentabilidad; siempre: Rentabilidad };
 };
 
 export default function AdminPage() {
@@ -249,6 +251,8 @@ export default function AdminPage() {
       <SeccionGustos gustos={datos.gustos} />
 
       {/* ---- Costos ---- */}
+      {datos.rentabilidad && <SeccionRentabilidad datos={datos.rentabilidad} />}
+
       <SeccionCostos costos={datos.costos} cobrado={datos.dinero.brutoCop} />
       <SeccionGastos gastos={datos.costos.gastosManuales} falta={datos.costos.faltaMigracionGastos} onCambio={cargar} />
 
@@ -379,6 +383,136 @@ function Vacio({ children }: { children: React.ReactNode }) {
  * Lo que cuesta operar la app: variables (se pagan por uso, medidos de
  * verdad en cada llamada) y fijos (al mes, aunque nadie la use).
  */
+/**
+ * La tabla de Excel de Juliana con datos reales: por tipo de usuaria,
+ * consultas, personas, costos, ingresos y utilidad (ver lib/rentabilidad.ts).
+ */
+function SeccionRentabilidad({ datos }: { datos: { mes: Rentabilidad; siempre: Rentabilidad } }) {
+  const [periodo, setPeriodo] = useState<"mes" | "siempre">("mes");
+  const r = datos[periodo];
+  type Seg = Rentabilidad["segmentos"][number];
+  const decimal = (n: number) => n.toLocaleString("es-CO", { maximumFractionDigits: 1 });
+  // Un color por tipo de usuaria, como en la tabla de Excel.
+  const colores = ["bg-slate-50", "bg-lime-50", "bg-rose-50", "bg-amber-50"];
+  const celda = "px-2 py-1.5 text-right tabular-nums whitespace-nowrap";
+  const nombreCelda = "sticky left-0 z-10 bg-white px-2 py-1.5 text-left text-noche whitespace-nowrap";
+  const membresia = (s: Seg, v: (m: Seg) => string) => (s.precioCop == null ? "—" : v(s));
+  // Fila de resumen: una celda que ocupa las 4 columnas de cada tipo.
+  const resumen = (etiqueta: string, valor: (s: Seg) => string, total: string, clase = "") => (
+    <tr className={`border-t border-rosa-50 ${clase}`}>
+      <td className={nombreCelda}>{etiqueta}</td>
+      <td className={celda} />
+      {r.segmentos.map((s, i) => (
+        <td key={s.clave} colSpan={4} className={`${celda} ${colores[i]}`}>
+          {valor(s)}
+        </td>
+      ))}
+      <td className={`${celda} font-semibold`}>{total}</td>
+    </tr>
+  );
+
+  return (
+    <Seccion
+      titulo="Rentabilidad por tipo de usuaria"
+      nota="Como tu tabla de Excel, con datos reales. Cada persona cuenta según lo que es hoy (membresía activa, con registro o sin registro); las personas son las que entraron en el periodo. Sin las cuentas de prueba."
+    >
+      <div className="mb-3 flex gap-2">
+        {(["mes", "siempre"] as const).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriodo(p)}
+            className={`rounded-full px-4 py-1.5 text-sm transition ${
+              periodo === p ? "bg-noche text-white" : "border border-noche/20 text-noche/70 hover:border-noche"
+            }`}
+          >
+            {p === "mes" ? "Este mes" : "Desde siempre"}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <Numero etiqueta="Personas" valor={r.total.personas.toLocaleString("es-CO")} />
+        <Numero etiqueta="Ingresos (sin Bold)" valor={pesos(r.total.ingresosCop)} />
+        <Numero etiqueta="Costo de las consultas" valor={pesos(r.total.costoCop)} />
+        <Numero etiqueta="Utilidad" valor={pesos(r.total.utilidadCop)} destacado={r.total.utilidadCop < 0} />
+      </div>
+
+      <div className="mt-4 overflow-x-auto">
+        <table className="w-full min-w-[1100px] text-xs">
+          <thead>
+            <tr className="text-noche">
+              <th className={nombreCelda} />
+              <th className={celda} />
+              {r.segmentos.map((s, i) => (
+                <th key={s.clave} colSpan={4} className={`${colores[i]} px-2 py-1.5 text-center font-semibold`}>
+                  {s.nombre} · {s.personas.toLocaleString("es-CO")} {s.personas === 1 ? "persona" : "personas"}
+                </th>
+              ))}
+              <th className={celda} />
+            </tr>
+            <tr className="text-noche/50">
+              <th className={`${nombreCelda} font-normal text-noche/50`}>Consulta</th>
+              <th className={`${celda} font-normal`}>Costo de 1</th>
+              {r.segmentos.map((s, i) =>
+                ["Consultas", "Por persona", "Costo por persona", "Costo total"].map((c) => (
+                  <th key={s.clave + c} className={`${celda} ${colores[i]} font-normal`}>
+                    {c}
+                  </th>
+                ))
+              )}
+              <th className={`${celda} font-normal`}>Costo total</th>
+            </tr>
+          </thead>
+          <tbody>
+            {r.segmentos[0].filas.map((f, j) => (
+              <tr key={f.servicio} className="border-t border-rosa-50 text-noche/70">
+                <td className={nombreCelda}>{f.servicio}</td>
+                <td className={celda}>{pesos(f.unitarioCop)}</td>
+                {r.segmentos.map((s, i) => {
+                  const x = s.filas[j];
+                  return [
+                    <td key={s.clave + "c"} className={`${celda} ${colores[i]}`}>{x.consultas.toLocaleString("es-CO")}</td>,
+                    <td key={s.clave + "p"} className={`${celda} ${colores[i]}`}>{decimal(x.porPersona)}</td>,
+                    <td key={s.clave + "cp"} className={`${celda} ${colores[i]}`}>{pesos(x.costoPorPersonaCop)}</td>,
+                    <td key={s.clave + "ct"} className={`${celda} ${colores[i]}`}>{pesos(x.costoTotalCop)}</td>,
+                  ];
+                })}
+                <td className={celda}>{pesos(r.segmentos.reduce((a, s) => a + s.filas[j].costoTotalCop, 0))}</td>
+              </tr>
+            ))}
+            {resumen(
+              "Costo total",
+              (s) => `${pesos(s.costoPorPersonaCop)} por persona · ${pesos(s.costoTotalCop)} en total`,
+              pesos(r.total.costoCop),
+              "font-semibold text-noche"
+            )}
+            {resumen("Precio", (s) => membresia(s, (m) => pesos(m.precioCop!)), "")}
+            {resumen(
+              "Comisión de Bold",
+              (s) => membresia(s, (m) => `${pesos(m.boldFijoCop!)} + ${pesos(m.boldPorcentajeCop!)} (2,89%)`),
+              ""
+            )}
+            {resumen(
+              "Utilidad por membresía",
+              (s) => membresia(s, (m) => `${pesos(m.utilidadPorPersonaCop!)} · ${m.margen}%`),
+              "",
+              "font-semibold text-noche"
+            )}
+            {resumen("Pagos en el periodo", (s) => membresia(s, (m) => m.pagos.toLocaleString("es-CO")), "")}
+            {resumen("Ingresos (sin Bold)", (s) => pesos(s.ingresosCop), pesos(r.total.ingresosCop))}
+            {resumen("Costos totales", (s) => pesos(s.costoTotalCop), pesos(r.total.costoCop))}
+            {resumen("Utilidad total", (s) => pesos(s.utilidadCop), pesos(r.total.utilidadCop), "bg-yellow-50 font-semibold text-noche")}
+          </tbody>
+        </table>
+      </div>
+      <p className="mt-2 text-xs text-noche/45">
+        Costo por persona = consultas por persona × costo de 1. Utilidad por membresía = precio − Bold − costo por
+        persona. Ingresos = lo pagado en el periodo menos la comisión de Bold. No incluye los costos fijos (ver Costos).
+      </p>
+    </Seccion>
+  );
+}
+
 function SeccionCostos({ costos, cobrado }: { costos: Costos; cobrado: number }) {
   return (
     <Seccion

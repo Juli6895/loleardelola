@@ -77,9 +77,10 @@ function gruposDe(plan: ClavePlan): Grupo[] {
     {
       titulo: "Tu estilo",
       rubros: [
+        // La personalidad por foto o por referencia no se muestra: es parte
+        // de armar el manual (Juliana, noviembre de 2026). Su cupo sigue
+        // corriendo y sus costos siguen en el admin.
         ["Manual de estilo", cupo(c.manuales)],
-        ["Personalidad por foto", cupo(c.personalidadFoto)],
-        ["Personalidad por referencia", cupo(c.personalidadReferencia)],
       ],
     },
     {

@@ -145,8 +145,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
                 {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año; outfits guardados y me gusta sin límite.
               </li>
               <li>
-                En las dos: {CUPOS_MEMBRESIA.mensual.manuales} manual de estilo, {CUPOS_MEMBRESIA.mensual.personalidadFoto} análisis de personalidad por foto y{" "}
-                {CUPOS_MEMBRESIA.mensual.personalidadReferencia} por referencia.
+                Manual de estilo: {CUPOS_MEMBRESIA.mensual.manuales} con la mensual y {CUPOS_MEMBRESIA.anual.manuales} con la anual.
               </li>
               <li>Las promociones de todas las tiendas mientras tengas la membresía.</li>
             </ul>

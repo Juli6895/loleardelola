@@ -41,7 +41,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
         titulo: "Lo que incluye",
         rubros: [
           ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
-          ["Promociones de todas las tiendas", "Sin límite"],
+          ["Ver promociones de todas las tiendas", "Sin límite"],
           ["Una prenda en tu clóset y una combinación", "Gratis"],
           ["Marcas favoritas", "Sí"],
         ],
@@ -54,7 +54,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
         titulo: "Lo que incluye",
         rubros: [
           ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
-          ["Promociones de todas las tiendas", "Sin límite"],
+          ["Ver promociones de todas las tiendas", "Sin límite"],
           ["Una prenda en tu clóset y una combinación", "Gratis"],
           ["Outfits guardados", cupo(TOPES.gratis.outfits)],
           ["Me gusta en tus prendas", String(ME_GUSTA_GRATIS)],
@@ -86,7 +86,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
     {
       titulo: "Promociones y avisos",
       rubros: [
-        ["Promociones", "Sin límite"],
+        ["Ver promociones", "Sin límite"],
         ["Me gusta", cupo(c.meGusta)],
         ["Avisos de rebaja", cupo(c.meGusta)],
         ["Marcas favoritas", "Sí"],

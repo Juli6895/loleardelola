@@ -5,7 +5,7 @@ import { PERSONALIDADES, type Personalidad } from "./image-consulting/personalid
 import { CONTRASTES, TONOS_PIEL, type Contraste, type TonoPiel } from "./image-consulting/colorimetria";
 import { PROYECCIONES, type Proyeccion } from "./image-consulting/proyeccion";
 import {
-  buscarEnCatalogos,
+  buscarConFavoritasPrimero,
   COLORES_BUSCABLES,
   TIPOS_BUSCABLES,
   type ProductoTienda,
@@ -568,20 +568,21 @@ export type ManualListo = {
   prendasClave?: PrendaClaveLista[];
 };
 
-async function fotosPara(p: PrendaManual, maximo: number): Promise<ProductoTienda[]> {
+async function fotosPara(p: PrendaManual, maximo: number, favoritas: string[]): Promise<ProductoTienda[]> {
   try {
-    return await buscarEnCatalogos({ tipo: p.tipo, color: p.color || null, rasgos: p.rasgos }, maximo);
+    // Las marcas favoritas salen primero y se completa con las demás.
+    return await buscarConFavoritasPrimero({ tipo: p.tipo, color: p.color || null, rasgos: p.rasgos }, maximo, favoritas);
   } catch (e) {
     console.warn("[manual] no se pudo buscar en catálogo:", p.tipo, e);
     return [];
   }
 }
 
-export async function adjuntarFotos(manual: ManualGenerado): Promise<ManualListo> {
+export async function adjuntarFotos(manual: ManualGenerado, favoritas: string[] = []): Promise<ManualListo> {
   const [outfits, estilo, basicos] = await Promise.all([
     Promise.all(
       manual.outfits.map(async (o) => {
-        const conFotos = await Promise.all(o.prendas.map(async (p) => ({ ...p, fotos: await fotosPara(p, 2) })));
+        const conFotos = await Promise.all(o.prendas.map(async (p) => ({ ...p, fotos: await fotosPara(p, 2, favoritas) })));
         const prendas = conFotos.filter((p) => p.fotos.length > 0);
         // Menos de dos prendas confirmadas ya no se ve como un outfit —
         // mejor no mostrar ese momento que mostrar una prenda suelta.
@@ -589,8 +590,8 @@ export async function adjuntarFotos(manual: ManualGenerado): Promise<ManualListo
       })
     ),
     // El tablero de su estilo: 4 fotos, una por prenda.
-    Promise.all(manual.estilo.map(async (p) => ({ ...p, fotos: await fotosPara(p, 1) }))),
-    Promise.all(manual.basicos.map(async (p) => ({ ...p, fotos: await fotosPara(p, 2) }))),
+    Promise.all(manual.estilo.map(async (p) => ({ ...p, fotos: await fotosPara(p, 1, favoritas) }))),
+    Promise.all(manual.basicos.map(async (p) => ({ ...p, fotos: await fotosPara(p, 2, favoritas) }))),
   ]);
 
   return {

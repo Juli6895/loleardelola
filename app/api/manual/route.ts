@@ -6,6 +6,7 @@ import { contextoDe, registrar } from "@/lib/eventos";
 import {
   adjuntarFotos,
   COLUMNAS_PERFIL,
+  type ManualGenerado,
   datosDesdeFila,
   generarManual,
   huella,
@@ -62,6 +63,39 @@ function parsearManual(manualMd: string | null): ManualListo | null {
   }
 }
 
+/** Las marcas favoritas de la cuenta y cuándo se cambiaron por última vez. */
+async function marcasDe(userId: string): Promise<{ lista: string[]; cambiaronEl: string | null }> {
+  const { data } = await supabaseAdmin()
+    .from("users")
+    .select("marcas_favoritas, marcas_favoritas_at")
+    .eq("id", userId)
+    .maybeSingle();
+  const lista = Array.isArray(data?.marcas_favoritas)
+    ? (data.marcas_favoritas as unknown[]).filter((d): d is string => typeof d === "string")
+    : [];
+  return { lista, cambiaronEl: (data?.marcas_favoritas_at as string | null) ?? null };
+}
+
+/**
+ * El manual guardado, sin sus fotos: las prendas que ya tiene, para volver
+ * a buscarles foto (con otras marcas primero) sin pagar otra generación.
+ */
+function sinFotos(m: ManualListo): ManualGenerado {
+  const quita = <T extends { fotos: unknown }>(p: T) => {
+    const { fotos: _fotos, ...resto } = p;
+    return resto;
+  };
+  return {
+    texto: m.texto,
+    paleta: m.paleta,
+    evitar: m.evitar,
+    favoritas: m.favoritas,
+    outfits: m.outfits.map((o) => ({ titulo: o.titulo, descripcion: o.descripcion, prendas: o.prendas.map(quita) })),
+    estilo: (m.estilo ?? []).map(quita),
+    basicos: (m.basicos ?? []).map(quita),
+  } as unknown as ManualGenerado;
+}
+
 /** Hay un manual guardado, pero con la forma de antes de la asesoría. */
 function esFormatoViejo(manualMd: string | null): boolean {
   const m = parsearManual(manualMd);
@@ -106,12 +140,45 @@ export async function GET(req: Request) {
     // ...o lo que cambió fue la forma del manual, no su perfil: la
     // pantalla lo dice distinto ("hay una versión nueva").
     formatoViejo: conMembresia && esFormatoViejo(r.guardado.manual_md),
+    // Cambió sus marcas favoritas después de armar el manual: sus fotos
+    // pueden no ser de sus marcas. Se actualizan sin gastar un manual.
+    fotosDesactualizadas: conMembresia && !!parsearManual(r.guardado.manual_md) && (await marcasCambiadasDespues(r.usuario.id, r.guardado.manual_generado_at)),
   });
+}
+
+async function marcasCambiadasDespues(userId: string, generadoEl: string | null): Promise<boolean> {
+  const { cambiaronEl } = await marcasDe(userId);
+  return !!cambiaronEl && !!generadoEl && new Date(cambiaronEl) > new Date(generadoEl);
 }
 
 export async function POST(req: Request) {
   const r = await cargar(req);
   if ("error" in r) return NextResponse.json({ error: r.error }, { status: r.status });
+  const body = await req.json().catch(() => ({}));
+  const { lista: favoritas } = await marcasDe(r.usuario.id);
+
+  // Solo fotos: vuelve a buscar las prendas del manual guardado con sus
+  // marcas favoritas primero. No llama a la IA ni gasta un manual del cupo.
+  if (body?.soloFotos === true) {
+    if (r.usuario.plan !== "membresia") {
+      return NextResponse.json({ error: "El manual de estilo es parte de la membresía." }, { status: 402 });
+    }
+    const guardado = parsearManual(r.guardado.manual_md);
+    if (!guardado) {
+      return NextResponse.json({ error: "Primero arma tu manual." }, { status: 400 });
+    }
+    try {
+      const manual = await adjuntarFotos(sinFotos(guardado), favoritas);
+      await supabaseAdmin()
+        .from("users")
+        .update({ manual_md: JSON.stringify(manual), manual_generado_at: new Date().toISOString() })
+        .eq("id", r.usuario.id);
+      return NextResponse.json({ manual, reusado: true, fotosActualizadas: true });
+    } catch (e) {
+      console.error("[api/manual] no se pudieron actualizar las fotos:", e);
+      return NextResponse.json({ error: "No pudimos actualizar las fotos. Intenta en un momento." }, { status: 500 });
+    }
+  }
 
   if (r.usuario.plan !== "membresia") {
     return NextResponse.json(
@@ -146,7 +213,7 @@ export async function POST(req: Request) {
     const crudo = await generarManual(r.datos, await prendasFavoritas(r.usuario.id));
     // Se filtra ANTES de guardar: lo que queda en manual_md ya es solo
     // lo que de verdad existe en el catálogo, con sus fotos adjuntas.
-    const manual = await adjuntarFotos(crudo);
+    const manual = await adjuntarFotos(crudo, favoritas);
     await supabaseAdmin()
       .from("users")
       .update({

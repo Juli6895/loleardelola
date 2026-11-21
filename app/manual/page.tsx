@@ -47,6 +47,8 @@ type Estado = {
   desactualizado: boolean;
   // El manual guardado es de antes del formato de asesoría.
   formatoViejo?: boolean;
+  // Cambió sus marcas favoritas después de armar el manual.
+  fotosDesactualizadas?: boolean;
 };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
@@ -97,6 +99,25 @@ function Contenido() {
       if (!res.ok) throw new Error(json.error ?? "No pudimos armar tu manual");
       await cargar();
       toast.success("¡Tu manual está listo!");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setGenerando(false);
+    }
+  }
+
+  async function actualizarFotos() {
+    setGenerando(true);
+    try {
+      const res = await fetchConDispositivo("/api/manual", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ soloFotos: true }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "No pudimos actualizar las fotos");
+      await cargar();
+      toast.success("Las fotos ya priorizan tus marcas favoritas.");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -201,6 +222,19 @@ function Contenido() {
         onDescargar={descargarHtml}
         descargando={descargando}
       />
+
+      {estado.fotosDesactualizadas && !estado.desactualizado && (
+        <div className="rounded-2xl border border-rosa-200 bg-rosa-50/50 p-4 text-center">
+          <p className="text-sm text-noche/70">Cambiaste tus marcas favoritas. Actualiza las fotos para ver primero esas tiendas.</p>
+          <button
+            onClick={actualizarFotos}
+            disabled={generando}
+            className="mt-3 rounded-full border border-noche px-5 py-2 text-sm font-medium text-noche transition hover:bg-noche hover:text-white disabled:opacity-50"
+          >
+            Actualizar fotos con mis marcas
+          </button>
+        </div>
+      )}
 
       {estado.desactualizado && (
         <div className="rounded-2xl border border-rosa-300 bg-rosa-50/70 p-5 text-center">

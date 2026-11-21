@@ -229,7 +229,11 @@ export async function revisarCupo(
 ): Promise<{ permitido: true } | { permitido: false; mensaje: string; tope: number }> {
   if (esAdmin(usuario.email)) return { permitido: true };
   const periodo = await periodoDe(usuario.id);
-  if (!periodo || periodo.anterior) return revisarCondicionAnterior(usuario, uso);
+  // Desde el 21 de noviembre de 2026 los cupos de CUPOS_MEMBRESIA aplican a
+  // todo pago, también a los de antes de INICIO_CUPOS_NUEVOS (decisión de
+  // Juliana). Las condiciones anteriores quedan solo para una membresía
+  // sin pago registrado (activada a mano).
+  if (!periodo) return revisarCondicionAnterior(usuario, uso);
   const tope = CUPOS_MEMBRESIA[periodo.plan][uso];
   if (tope === null) return { permitido: true };
   if ((await usadasEnPeriodo(usuario.id, uso, periodo)) < tope) return { permitido: true };
@@ -418,7 +422,7 @@ export async function gastarBusquedaExtra(userId: string): Promise<void> {
 export async function saldoDeBusquedas(usuario: UsuarioActual) {
   const periodo = await periodoDe(usuario.id);
   const extra = await busquedasExtra(usuario.id, periodo);
-  if (!periodo || periodo.anterior) {
+  if (!periodo) {
     const { inicio } = mesEnCurso();
     return {
       usadas: await usadasDesde(usuario.id, "busquedas", inicio),

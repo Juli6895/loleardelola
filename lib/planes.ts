@@ -247,6 +247,8 @@ export function periodoActual(pagos: PagoMembresia[], ahora: Date = new Date()):
       plan,
       inicio: new Date(inicio),
       fin: new Date(fin),
+      // Solo informativo: desde el 21 de noviembre de 2026 los cupos de
+      // CUPOS_MEMBRESIA aplican también a estos pagos (ver revisarCupo).
       anterior: pagado < new Date(INICIO_CUPOS_NUEVOS).getTime(),
     };
     if (inicio > ahora.getTime()) break;

@@ -868,23 +868,22 @@ function consultasPara(
  * parecidas, casi nunca las rebajadas, y la mayoría de tiendas no salía.
  */
 /**
- * Igual que buscarEnCatalogos, pero con las marcas favoritas primero: busca
- * en ellas y, si no alcanzan a completar `maximo`, rellena con las demás
- * tiendas. No excluye a nadie: favoritas solo ordena (ver
- * lib/marcas-favoritas.ts). Sin favoritas es una búsqueda normal.
+ * Igual que buscarEnCatalogos, pero con las marcas favoritas primero: si
+ * no alcanzan a completar `maximo`, se rellena con las demás tiendas. No
+ * excluye a nadie: favoritas solo ordena (ver lib/marcas-favoritas.ts).
+ *
+ * Es UNA sola búsqueda en todas las tiendas, ordenada con las favoritas
+ * arriba. Antes eran dos a la vez (favoritas y todas): con el manual, que
+ * busca ~18 prendas, eran el doble de consultas a las tiendas, varias se
+ * caían y el manual quedaba con menos fotos de sus marcas y sin algunas
+ * prendas (noviembre de 2026).
  */
 export async function buscarConFavoritasPrimero(
   c: ConsultaPrenda,
   maximo: number,
   favoritas: string[]
 ): Promise<ProductoTienda[]> {
-  if (favoritas.length === 0) return buscarEnCatalogos(c, maximo);
-  const [deFavoritas, deTodas] = await Promise.all([
-    buscarEnCatalogos(c, maximo, 0, favoritas).catch(() => [] as ProductoTienda[]),
-    buscarEnCatalogos(c, maximo),
-  ]);
-  const vistos = new Set<string>();
-  return [...deFavoritas, ...deTodas].filter((p) => !vistos.has(p.url) && !!vistos.add(p.url)).slice(0, maximo);
+  return buscarEnCatalogos(c, maximo, 0, [], favoritas);
 }
 
 export async function buscarEnCatalogos(
@@ -893,7 +892,10 @@ export async function buscarEnCatalogos(
   descuentoMinimo = 0,
   // Para buscar solo en algunas tiendas (?marcas= en /api/catalogo).
   // Vacío = todas.
-  marcas: string[] = []
+  marcas: string[] = [],
+  // Busca en todas, pero las de estas tiendas van primero (sus marcas
+  // favoritas). Solo cambia el orden, no lo que se encuentra.
+  preferidas: string[] = []
 ): Promise<ProductoTienda[]> {
   const tipo = normalizar(c.tipo).trim();
   if (!tipo) return [];
@@ -992,7 +994,10 @@ export async function buscarEnCatalogos(
     rebajados.sort((a, b) => descuentoDe(b.p) - descuentoDe(a.p) || b.punto - a.punto);
     puntuados.splice(0, puntuados.length, ...rebajados);
   } else {
-    puntuados.sort((a, b) => b.punto - a.punto);
+    const preferida = new Set(preferidas);
+    puntuados.sort(
+      (a, b) => Number(preferida.has(b.p.dominio)) - Number(preferida.has(a.p.dominio)) || b.punto - a.punto
+    );
   }
 
   // Máximo 3 por tienda, para que una no se lleve toda la fila.

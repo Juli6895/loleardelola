@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import {
-  buscarEnCatalogos,
+  buscarConFavoritasPrimero,
   COLORES_BUSCABLES,
   TIPOS_BUSCABLES,
   type ProductoTienda,
@@ -231,7 +231,8 @@ async function armarOutfit(
  */
 export async function outfitConFotos(
   p: PrendaDelCloset,
-  perfil: DatosManual
+  perfil: DatosManual,
+  marcasFavoritas: string[] = []
 ): Promise<OutfitDelCloset> {
   const outfit = await conModeloBarato(
     "combinacion",
@@ -242,7 +243,11 @@ export async function outfitConFotos(
   const conFotos = await Promise.all(
     outfit.prendas.map(async (c) => {
       try {
-        const fotos = await buscarEnCatalogos({ tipo: c.tipo, color: c.color || null, rasgos: c.rasgos }, 4);
+        const fotos = await buscarConFavoritasPrimero(
+          { tipo: c.tipo, color: c.color || null, rasgos: c.rasgos },
+          4,
+          marcasFavoritas
+        );
         return { ...c, fotos };
       } catch (e) {
         console.warn("[combinaciones] no se pudo buscar en catálogo:", c.tipo, e);

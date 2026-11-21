@@ -867,6 +867,26 @@ function consultasPara(
  * tope de 3 por tienda: si no, las 3 de cada tienda eran sus prendas más
  * parecidas, casi nunca las rebajadas, y la mayoría de tiendas no salía.
  */
+/**
+ * Igual que buscarEnCatalogos, pero con las marcas favoritas primero: busca
+ * en ellas y, si no alcanzan a completar `maximo`, rellena con las demás
+ * tiendas. No excluye a nadie: favoritas solo ordena (ver
+ * lib/marcas-favoritas.ts). Sin favoritas es una búsqueda normal.
+ */
+export async function buscarConFavoritasPrimero(
+  c: ConsultaPrenda,
+  maximo: number,
+  favoritas: string[]
+): Promise<ProductoTienda[]> {
+  if (favoritas.length === 0) return buscarEnCatalogos(c, maximo);
+  const [deFavoritas, deTodas] = await Promise.all([
+    buscarEnCatalogos(c, maximo, 0, favoritas).catch(() => [] as ProductoTienda[]),
+    buscarEnCatalogos(c, maximo),
+  ]);
+  const vistos = new Set<string>();
+  return [...deFavoritas, ...deTodas].filter((p) => !vistos.has(p.url) && !!vistos.add(p.url)).slice(0, maximo);
+}
+
 export async function buscarEnCatalogos(
   c: ConsultaPrenda,
   maximo = 8,

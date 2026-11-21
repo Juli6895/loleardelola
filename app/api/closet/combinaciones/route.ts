@@ -52,6 +52,16 @@ export async function POST(req: Request) {
     .eq("id", usuario.id)
     .maybeSingle();
   const perfil = datosDesdeFila(fila ?? {});
+  // Aparte: si la migración de marcas no se ha corrido, la columna no
+  // existe y no debe tumbar la consulta del perfil.
+  const { data: filaMarcas } = await sb
+    .from("users")
+    .select("marcas_favoritas")
+    .eq("id", usuario.id)
+    .maybeSingle();
+  const marcasFavoritas = Array.isArray(filaMarcas?.marcas_favoritas)
+    ? (filaMarcas.marcas_favoritas as unknown[]).filter((d): d is string => typeof d === "string")
+    : [];
 
   try {
     const outfit = await outfitConFotos(
@@ -62,7 +72,8 @@ export async function POST(req: Request) {
         label: item.label ?? null,
         foto: item.image_url ?? null,
       },
-      perfil
+      perfil,
+      marcasFavoritas
     );
     registrar("combinacion_buscada", contextoDe(req, usuario.id), {
       categoria: item.category,

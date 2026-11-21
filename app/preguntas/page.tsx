@@ -81,11 +81,11 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas de outfit al mes y las promociones sin límite de días. Las búsquedas cuentan por celular o computador.
+                <strong>Sin cuenta:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas de outfit al mes, las promociones sin límite de días y una prenda en tu clóset con una combinación. Las búsquedas cuentan por celular o computador.
               </li>
               <li>
-                <strong>Con cuenta gratis:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas al mes, {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta y las
-                promociones sin límite de días.
+                <strong>Con cuenta gratis:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas al mes, {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta, las
+                promociones sin límite de días y la misma prenda y combinación gratis (no se suman a las de antes de crear la cuenta).
               </li>
             </ul>
             <p className="mt-2">
@@ -259,7 +259,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
           <p>
             Sube fotos de las prendas que ya tienes. Las clasificamos solas y, con "Buscar combinaciones", te
             armamos un outfit alrededor de esa prenda según lo que quieres proyectar, con prendas de tiendas
-            que le suman. Es parte de la membresía: {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones con la
+            que le suman. Gratis, una prenda y una combinación por celular o computador. Con la membresía: {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones con la
             mensual, o {CUPOS_MEMBRESIA.anual.prendasCloset} y {CUPOS_MEMBRESIA.anual.combinaciones} con la anual.
           </p>
         ),

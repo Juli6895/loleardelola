@@ -34,27 +34,29 @@ export function mensajeBusquedasGratis(renueva: Date): string {
 }
 
 export const TOPES: Record<Plan, Topes> = {
-  // Sin cuenta: nada que use la IA (octubre de 2026, a pedido de
-  // Juliana: si llega mucha gente de golpe, cada búsqueda, prenda o
-  // combinación anónima es plata sin siquiera un correo a cambio). Solo
-  // mira las promociones (ver lib/acceso-promos.ts).
+  // Sin cuenta: búsquedas gratis al mes, las promociones sin límite y,
+  // para atraer tráfico (noviembre de 2026, a pedido de Juliana), UNA
+  // prenda en el clóset y UNA combinación, en total por celular o
+  // computador (~$6 de IA por persona). Antes: nada que use la IA.
   anonimo: {
     // 30 al mes por celular o computador (ver BUSQUEDAS_MES_SIN_MEMBRESIA).
     busquedas: 30,
     outfits: 0,
-    prendasCloset: 0,
+    prendasCloset: 1,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 0,
+    combinacionesClosetGratis: 1,
   },
-  // Con cuenta gratis (noviembre de 2026, tabla de Juliana): nada que
-  // use la IA. Guarda hasta 3 outfits, da 3 me gusta y ve las promociones
-  // 2 días. Aplica a todas las cuentas gratis, también a las que ya existían.
+  // Con cuenta gratis (noviembre de 2026, tabla de Juliana): guarda hasta
+  // 3 outfits, da 3 me gusta, ve las promociones sin límite y tiene la
+  // misma prenda y combinación gratis de quien no tiene cuenta (no se
+  // suman: crear la cuenta en el mismo aparato no da otra). Aplica a todas
+  // las cuentas gratis, también a las que ya existían.
   gratis: {
     busquedas: 30,
     outfits: 3,
-    prendasCloset: 0,
+    prendasCloset: 1,
     manualDeEstilo: false,
-    combinacionesClosetGratis: 0,
+    combinacionesClosetGratis: 1,
   },
   membresia: {
     busquedas: null,

@@ -301,7 +301,12 @@ export async function revisarTope(
   // al mes, por celular o computador (con o sin cuenta).
   if (recurso === "busquedas") return revisarBusquedasGratis(req, usuario);
 
-  const usadas = await contar(usuario.id, recurso);
+  // La prenda gratis del clóset es una por celular o computador, con o sin
+  // cuenta, y borrarla no devuelve la prueba (el evento queda).
+  const usadas =
+    recurso === "prendasCloset"
+      ? await usadasEnCuentas(await usuariosDelAparato(req, usuario.id), recurso)
+      : await contar(usuario.id, recurso);
   const veredicto = puedeUsar(usuario.plan, recurso, usadas);
 
   if (veredicto.permitido) {
@@ -361,35 +366,17 @@ export async function puedeVerCombinaciones(
     return { permitido: false, mensaje: "Buscar combinaciones es parte de la membresía.", destrabaCon: "membresia" };
   }
 
-  const usadas = await usadasDesde(usuario.id, "combinaciones", null);
-  if (usadas < tope) {
-    if (usuario.plan !== "gratis") return { permitido: true };
-    const otras = await otrasCuentasDelAparato(req, usuario.id);
-    if (otras.length === 0) return { permitido: true };
-    const { count } = await supabaseAdmin()
-      .from("eventos")
-      .select("id", { count: "exact", head: true })
-      .eq("nombre", "combinacion_buscada")
-      .in("user_id", otras);
-    if (usadas + (count ?? 0) < tope) return { permitido: true };
-    return { permitido: false, mensaje: MENSAJE_PRUEBA_USADA, destrabaCon: "membresia" };
-  }
+  // El total gratis es por celular o computador, con o sin cuenta: se suman
+  // las de todas las cuentas de este aparato.
+  const ids = await usuariosDelAparato(req, usuario.id);
+  const { count } = await supabaseAdmin()
+    .from("eventos")
+    .select("id", { count: "exact", head: true })
+    .eq("nombre", "combinacion_buscada")
+    .in("user_id", ids);
+  if ((count ?? 0) < tope) return { permitido: true };
 
   const cuantas = tope === 1 ? "tu combinación gratis" : `tus ${tope} combinaciones gratis`;
-  if (usuario.plan === "anonimo" && tope === 0) {
-    return {
-      permitido: false,
-      mensaje: "Para buscar combinaciones, crea tu cuenta gratis con tu correo.",
-      destrabaCon: "gratis",
-    };
-  }
-  if (usuario.plan === "anonimo") {
-    return {
-      permitido: false,
-      mensaje: `Ya usaste ${cuantas}. Crea tu cuenta gratis y tienes ${TOPES.gratis.combinacionesClosetGratis}, o con la membresía, sin tope.`,
-      destrabaCon: "gratis",
-    };
-  }
   return {
     permitido: false,
     mensaje: `Ya usaste ${cuantas}. Con la membresía buscas combinaciones sin tope.`,

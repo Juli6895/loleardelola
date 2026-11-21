@@ -7,7 +7,7 @@ import { fetchConDispositivo } from "@/lib/device-id";
 import type { ClosetItem } from "@/types";
 import SubNavCuenta from "@/components/SubNavCuenta";
 import EncabezadoSeccion from "@/components/EncabezadoSeccion";
-import { CUPOS_MEMBRESIA } from "@/lib/planes";
+import { CUPOS_MEMBRESIA, TOPES } from "@/lib/planes";
 import { esAdmin } from "@/lib/admin-correos";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 import { useUsuario } from "@/lib/use-usuario";
@@ -32,7 +32,9 @@ export default function MiClosetPage() {
   }, []);
 
   // Subir prendas es parte de la membresía (ver TOPES en lib/planes.ts).
-  const atLimit = !conMembresia && !esAdmin(usuario?.email);
+  // Sin membresía: una prenda gratis en total (ver TOPES). Mientras carga, o
+  // si ya la borró, se deja intentar y el servidor decide (revisarTope).
+  const atLimit = !conMembresia && !esAdmin(usuario?.email) && (items?.length ?? 0) >= (TOPES.gratis.prendasCloset ?? 0);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -49,7 +51,7 @@ export default function MiClosetPage() {
         )}
         {atLimit ? (
           <div className="mt-3 rounded-xl border border-rosa-200 bg-rosa-50/60 p-4 text-center">
-            <p className="text-sm font-medium text-noche">Subir tus prendas es parte de la membresía.</p>
+            <p className="text-sm font-medium text-noche">Ya subiste tu prenda gratis. Subir más es parte de la membresía.</p>
             <p className="mt-1 text-xs text-noche/60">
               Con la mensual subes {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas y con la anual{" "}
               {CUPOS_MEMBRESIA.anual.prendasCloset}, y te armamos combinaciones con lo que tienes.

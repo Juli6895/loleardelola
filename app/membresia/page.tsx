@@ -146,7 +146,10 @@ export default function MembresiaPage() {
               }`}
             >
               <span className="block text-sm font-semibold">{o.nombre}</span>
-              <span className="mt-1 block font-display text-2xl">{o.precio}</span>
+              <span className="mt-1 block font-display text-2xl">
+                {o.precio}
+                <span className="ml-1 align-middle font-sans text-[10px] font-medium tracking-wide opacity-60">COP</span>
+              </span>
               <span className={`mt-0.5 block text-xs ${activa ? "text-white/70" : "text-noche/50"}`}>{o.nota}</span>
             </button>
           );
@@ -162,13 +165,13 @@ export default function MembresiaPage() {
               {plan === "registro" && "Crea tu cuenta gratis con tu correo."}
               {plan === "mensual" && (
                 <>
-                  {pesos(PRECIOS.mensual)} por 31 días ·{" "}
+                  {pesos(PRECIOS.mensual)} COP por 31 días ·{" "}
                   <span className="line-through">{pesos(PRECIOS_NORMALES.mensual)}</span> precio normal
                 </>
               )}
               {plan === "anual" && (
                 <>
-                  Equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes ·{" "}
+                  {pesos(PRECIOS.anual)} COP al año, equivale a {pesos(Math.round(PRECIOS.anual / 12))} al mes ·{" "}
                   <span className="line-through">{pesos(PRECIOS_NORMALES.anual)}</span> precio normal
                 </>
               )}

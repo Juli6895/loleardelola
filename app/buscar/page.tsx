@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
 import Link from "next/link";
 import { tieneMembresia, useUsuario } from "@/lib/use-usuario";
-import { CUPOS_MEMBRESIA, TOPES } from "@/lib/planes";
-import { fetchConDispositivo } from "@/lib/device-id";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, TOPES } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se busca un outfit. Corta a propósito: arriba el título,
@@ -45,16 +44,6 @@ export default function BuscarPage() {
     new Set((result?.result.prendas ?? []).map((p) => p.tipo).filter((t): t is string => !!t))
   );
 
-  // Con membresía: cuántas búsquedas lleva, en una sola línea.
-  const [saldo, setSaldo] = useState<{ usadas: number; tope: number | null; extra: number } | null>(null);
-  useEffect(() => {
-    if (!conMembresia) return;
-    fetchConDispositivo("/api/membresia/saldo")
-      .then((r) => r.json())
-      .then((j) => setSaldo(j.saldo ?? null))
-      .catch(() => setSaldo(null));
-  }, [conMembresia, result]);
-
   return (
     <div className="mx-auto max-w-6xl space-y-10">
       <div className="mx-auto min-w-0 max-w-4xl space-y-6">
@@ -75,19 +64,13 @@ export default function BuscarPage() {
             <SearchBox onResult={setResult} />
           </div>
 
-          {/* Cupos en una línea: cuánto lleva, o qué da la membresía. */}
+          {/* Cupos en una línea. */}
           <p className="relative mt-4 text-center text-xs text-noche/55">
             {conMembresia ? (
-              saldo && (
-                <>
-                  Llevas {saldo.tope === null ? saldo.usadas : `${Math.min(saldo.usadas, saldo.tope)} de ${saldo.tope}`} búsquedas
-                  {saldo.extra > 0 ? ` · ${saldo.extra} adicionales` : ""}
-                </>
-              )
+              <>Búsquedas sin límite con tu membresía</>
             ) : (
               <>
-                Buscar es parte de la membresía: {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas al mes o{" "}
-                {CUPOS_MEMBRESIA.anual.busquedas} al año.{" "}
+                {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis al mes. Con la membresía, sin límite.{" "}
                 <Link href="/membresia" className="font-medium text-rosa-600 underline-offset-2 hover:underline">
                   Ver planes
                 </Link>

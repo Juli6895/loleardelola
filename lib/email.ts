@@ -48,6 +48,41 @@ export async function enviarAvisoRebaja(
   });
 }
 
+/**
+ * La alerta de que las búsquedas del mes llegaron al límite que se puso
+ * (ver lib/alertas.ts). Va al correo de administración.
+ */
+export async function enviarAlertaBusquedas(
+  correo: string,
+  datos: { total: number; umbral: number }
+): Promise<Resultado> {
+  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM) {
+    console.warn("[email] Sin RESEND_API_KEY: no se mandó la alerta de búsquedas.");
+    return { enviado: false, motivo: "correo-no-configurado" };
+  }
+  const n = (v: number) => v.toLocaleString("es-CO");
+  // Lo que cuesta cada búsqueda: unos $5 si responde Haiku y hasta unos
+  // $13 contando las que se repiten con Sonnet.
+  const desde = n(Math.round(datos.total * 5));
+  const hasta = n(Math.round(datos.total * 13));
+  const titulo = `Alerta: ya van ${n(datos.total)} búsquedas este mes`;
+  const cuerpo = `Las búsquedas de outfits de este mes llegaron a ${n(datos.total)} (tu alerta estaba en ${n(datos.umbral)}). Con cada búsqueda en unos $5 a $13, el mes va en unos $${desde} a $${hasta}.`;
+  return enviar(correo, {
+    subject: titulo,
+    html: `
+<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:460px;margin:0 auto;padding:32px 24px;color:#2b2430">
+  <p style="font-size:22px;margin:0 0 4px;font-weight:600">LoleardLola</p>
+  <p style="margin:0 0 24px;color:#7a6f78;font-size:14px">Alerta de uso</p>
+  <p style="font-size:18px;font-weight:600;margin:0 0 12px">${titulo}</p>
+  <p style="font-size:15px;color:#5c525c;margin:0 0 16px">${cuerpo}</p>
+  <p style="font-size:15px;color:#5c525c;margin:0 0 24px">Revisa en Administración si es uso normal de clientes o algo raro, por ejemplo una máquina buscando.</p>
+  <a href="https://www.loleardlola.com/admin" style="display:inline-block;background:#2b2430;color:#fff;text-decoration:none;padding:12px 24px;border-radius:999px;font-size:14px;font-weight:600">Abrir Administración</a>
+  <p style="font-size:12px;color:#8d8189;margin:28px 0 0">Este aviso se manda una sola vez por mes.</p>
+</div>`.trim(),
+    text: `${titulo}\n${cuerpo}\nRevisa en Administración si es uso normal o algo raro: https://www.loleardlola.com/admin\nEste aviso se manda una sola vez por mes.`,
+  });
+}
+
 async function enviar(correo: string, m: Mensaje): Promise<Resultado> {
   const apiKey = process.env.RESEND_API_KEY!;
   const from = process.env.RESEND_FROM!;

@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabase";
 import { usuarioActual } from "@/lib/sesion";
 import { armarBoton, llaveDeCobroCorrecta } from "@/lib/bold";
-import { esPaquete, PAQUETE_VIGENTE, precioDe, type Producto } from "@/lib/planes";
+import { esPaquete, precioDe, type Producto } from "@/lib/planes";
 import { esAdmin } from "@/lib/admin-correos";
 import { contextoDe, registrar } from "@/lib/eventos";
 
@@ -23,9 +23,10 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json();
-  // Una pantalla vieja puede pedir un paquete que ya no se vende.
-  if (esPaquete(body.plan) && body.plan !== PAQUETE_VIGENTE) {
-    return NextResponse.json({ error: "Ese paquete cambió. Recarga la página para ver el nuevo." }, { status: 409 });
+  // Con la membresía las búsquedas no tienen tope: los paquetes ya no se
+  // venden. Una pantalla vieja todavía puede pedirlos.
+  if (esPaquete(body.plan)) {
+    return NextResponse.json({ error: "Las búsquedas ahora son ilimitadas con la membresía. Recarga la página." }, { status: 409 });
   }
   const plan: Producto = esPaquete(body.plan) ? body.plan : body.plan === "anual" ? "anual" : "mensual";
 

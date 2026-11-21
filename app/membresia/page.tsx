@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PAQUETE_VIGENTE, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES, type TipoPlan } from "@/lib/planes";
-import { fetchConDispositivo } from "@/lib/device-id";
+import { useState } from "react";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES, type TipoPlan } from "@/lib/planes";
 import BotonPago from "@/components/BotonPago";
 import AnotarVista from "@/components/AnotarVista";
 import SubNavCuenta from "@/components/SubNavCuenta";
@@ -41,6 +40,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
       {
         titulo: "Lo que incluye",
         rubros: [
+          ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
           ["Promociones de todas las tiendas", dias(DIAS_PRUEBA_PROMOS.anonimo)],
           ["Marcas favoritas", "Sí"],
         ],
@@ -52,6 +52,7 @@ function gruposDe(plan: ClavePlan): Grupo[] {
       {
         titulo: "Lo que incluye",
         rubros: [
+          ["Búsquedas de outfits", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`],
           ["Promociones de todas las tiendas", dias(DIAS_PRUEBA_PROMOS.gratis)],
           ["Outfits guardados", cupo(TOPES.gratis.outfits)],
           ["Me gusta en tus prendas", String(ME_GUSTA_GRATIS)],
@@ -94,21 +95,10 @@ function gruposDe(plan: ClavePlan): Grupo[] {
 export default function MembresiaPage() {
   const { usuario } = useUsuario();
   const conMembresia = tieneMembresia(usuario);
-  const paquete = PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE];
   const [plan, setPlan] = useState<ClavePlan>("mensual");
   const opcion = OPCIONES.find((o) => o.clave === plan)!;
   const esPago = plan === "mensual" || plan === "anual";
   const grupos = gruposDe(plan);
-
-  // Cuántas búsquedas le quedan (las de su membresía y las de paquetes).
-  const [saldo, setSaldo] = useState<{ usadas: number; tope: number | null; extra: number; alMes: boolean } | null>(null);
-  useEffect(() => {
-    if (!conMembresia) return;
-    fetchConDispositivo("/api/membresia/saldo")
-      .then((r) => r.json())
-      .then((j) => setSaldo(j.saldo ?? null))
-      .catch(() => setSaldo(null));
-  }, [conMembresia]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6 py-6">
@@ -224,11 +214,11 @@ export default function MembresiaPage() {
         </div>
 
         <p className="mt-4 text-xs text-noche/50">
-          {plan === "mensual" && `Tus cupos duran los 31 días de tu membresía. Si necesitas más: ${paquete.busquedas} búsquedas por ${pesos(paquete.precio)}.`}
-          {plan === "anual" && `Usas tus cupos a tu ritmo durante todo el año. Si necesitas más: ${paquete.busquedas} búsquedas por ${pesos(paquete.precio)}.`}
+          {plan === "mensual" && "Las búsquedas y los outfits guardados no tienen límite. Los demás cupos duran los 31 días de tu membresía."}
+          {plan === "anual" && "Las búsquedas y los outfits guardados no tienen límite. Los demás cupos los usas a tu ritmo durante todo el año."}
           {!esPago && (
             <>
-              Buscar outfits, tu clóset y tu manual de estilo son parte de la membresía.{" "}
+              Con la membresía buscas sin límite, y tienes tu clóset y tu manual de estilo.{" "}
               <button type="button" onClick={() => setPlan("mensual")} className="font-medium text-rosa-600 underline">
                 Ver Pago un mes
               </button>
@@ -236,32 +226,6 @@ export default function MembresiaPage() {
           )}
         </p>
       </section>
-
-      {/* ---- Paquete de búsquedas: solo para quien ya tiene membresía ---- */}
-      {conMembresia && (
-        <div id="paquetes" className="scroll-mt-6 rounded-2xl border border-rosa-100 bg-white p-5 shadow-sm sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <h2 className="font-display text-xl text-noche">
-                {paquete.busquedas} búsquedas adicionales por {pesos(paquete.precio)}
-              </h2>
-              <p className="mt-1 max-w-md text-sm text-noche/60">
-                Se usan cuando se acaban las de tu membresía y se vencen en la misma fecha que ella.
-              </p>
-              {saldo && (
-                <p className="mt-2 text-sm font-medium text-noche">
-                  {saldo.alMes ? "Este mes" : "En esta membresía"} llevas{" "}
-                  {saldo.tope === null ? saldo.usadas : `${Math.min(saldo.usadas, saldo.tope)} de ${saldo.tope}`} búsquedas
-                  {saldo.extra > 0 ? ` · te quedan ${saldo.extra} adicionales` : ""}.
-                </p>
-              )}
-            </div>
-            <div className="w-full shrink-0 sm:w-52">
-              <BotonPago plan={PAQUETE_VIGENTE} etiqueta={`Comprar ${paquete.busquedas} búsquedas`} />
-            </div>
-          </div>
-        </div>
-      )}
 
       <p className="text-center text-xs text-noche/40">
         El pago lo procesa Bold. La membresía no se renueva sola: cuando quieras la renuevas desde aquí.

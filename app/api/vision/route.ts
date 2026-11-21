@@ -7,6 +7,7 @@ import { getAllowedMerchants } from "@/lib/merchant-allowlist";
 import { getTiendasInstagram } from "@/lib/tiendas-instagram";
 import { revisarTope, registrarBusqueda, gastarBusquedaExtra } from "@/lib/limites";
 import { contextoDe, registrar } from "@/lib/eventos";
+import { revisarAlertaBusquedas } from "@/lib/alertas";
 import type { VisionResult } from "@/types";
 import { anotarConsumoGoogleVision } from "@/lib/costos";
 
@@ -90,6 +91,8 @@ export async function POST(req: Request) {
     // Se cuenta solo si el análisis salió bien: una foto que falló no
     // le debe gastar una búsqueda a nadie.
     await registrarBusqueda(tope.usuario.id, result.data.searchTerms);
+    // Avisa por correo si el mes llegó al límite de búsquedas (una vez).
+    await revisarAlertaBusquedas();
     // Si ya había usado las del mes, esta salió de su paquete.
     if (tope.usaExtra) await gastarBusquedaExtra(tope.usuario.id);
     registrar("busqueda_ok", contextoDe(req, tope.usuario.id), {

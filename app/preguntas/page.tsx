@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
 import { ENLACE_SUGERIR } from "@/lib/sugerir-comercio";
-import { CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PAQUETE_VIGENTE, PAQUETES_BUSQUEDAS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, DIAS_PRUEBA_PROMOS, ME_GUSTA_GRATIS, PRECIOS, PRECIOS_NORMALES, TOPES } from "@/lib/planes";
 
 // Preguntas frecuentes, para todas las usuarias (en la página y en la
 // app instalada, que es la misma página). Los precios y los límites
@@ -81,15 +81,16 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             <p>Puedes probarla gratis:</p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Sin cuenta:</strong> las promociones por {DIAS_PRUEBA_PROMOS.anonimo} día.
+                <strong>Sin cuenta:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas de outfit al mes y las promociones por{" "}
+                {DIAS_PRUEBA_PROMOS.anonimo} día. Las búsquedas cuentan por celular o computador.
               </li>
               <li>
-                <strong>Con cuenta gratis:</strong> {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta y las
+                <strong>Con cuenta gratis:</strong> {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas al mes, {TOPES.gratis.outfits} outfits guardados, {ME_GUSTA_GRATIS} me gusta y las
                 promociones por {DIAS_PRUEBA_PROMOS.gratis} días desde que creas la cuenta. Esta prueba es una por aparato.
               </li>
             </ul>
             <p className="mt-2">
-              Para buscar outfits, usar tu clóset, tener tu manual de estilo y recibir avisos de rebaja está la{" "}
+              Para buscar sin límite, guardar todos los outfits que quieras, usar tu clóset, tener tu manual de estilo y recibir avisos de rebaja está la{" "}
               <Link href="/membresia" className="font-medium text-rosa-600 underline">
                 membresía
               </Link>
@@ -137,12 +138,12 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Mensual (31 días):</strong> {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas, {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas nuevas,{" "}
-                {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones, {CUPOS_MEMBRESIA.mensual.outfits} outfits guardados y {CUPOS_MEMBRESIA.mensual.meGusta} me gusta con aviso de rebaja.
+                <strong>Mensual (31 días):</strong> búsquedas y outfits guardados sin límite, {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas nuevas,{" "}
+                {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones y {CUPOS_MEMBRESIA.mensual.meGusta} me gusta con aviso de rebaja.
               </li>
               <li>
-                <strong>Anual:</strong> {CUPOS_MEMBRESIA.anual.busquedas} búsquedas, {CUPOS_MEMBRESIA.anual.prendasCloset} prendas nuevas y{" "}
-                {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año, con outfits guardados y me gusta sin tope.
+                <strong>Anual:</strong> búsquedas y outfits guardados sin límite, {CUPOS_MEMBRESIA.anual.prendasCloset} prendas nuevas y{" "}
+                {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año, y me gusta sin tope.
               </li>
               <li>
                 En las dos: {CUPOS_MEMBRESIA.mensual.manuales} manual de estilo, {CUPOS_MEMBRESIA.mensual.personalidadFoto} análisis de personalidad por foto y{" "}
@@ -200,20 +201,15 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
         ),
       },
       {
-        p: "¿Qué pasa si se me acaban las búsquedas?",
+        p: "¿Hay un límite de búsquedas?",
         r: (
           <p>
-            Puedes comprar un paquete de{" "}
-            <strong>
-              {PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE].busquedas} búsquedas adicionales por{" "}
-              {pesos(PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE].precio)}
-            </strong>{" "}
-            en{" "}
-            <Link href="/membresia#paquetes" className="font-medium text-rosa-600 underline">
-              Membresía
-            </Link>
-            . Se usan cuando ya gastaste las de tu membresía y se vencen en la misma fecha que ella. Los paquetes son
-            para quienes tienen la membresía.
+            Con la{" "}
+            <Link href="/membresia" className="font-medium text-rosa-600 underline">
+              membresía
+            </Link>{" "}
+            no: buscas todas las veces que quieras. Sin membresía tienes {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis
+            al mes por celular o computador, y se renuevan el 1 de cada mes.
           </p>
         ),
       },

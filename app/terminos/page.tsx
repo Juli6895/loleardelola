@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AnotarVista from "@/components/AnotarVista";
 import {
+  BUSQUEDAS_MES_SIN_MEMBRESIA,
   CUPOS_MEMBRESIA,
   DIAS_PRUEBA_PROMOS,
   ME_GUSTA_GRATIS,
-  PAQUETE_VIGENTE,
-  PAQUETES_BUSQUEDAS,
   PRECIOS,
   PRECIOS_NORMALES,
   TOPES,
@@ -41,11 +40,10 @@ function Lista({ children }: { children: React.ReactNode }) {
 }
 
 export default function TerminosPage() {
-  const paquete = PAQUETES_BUSQUEDAS[PAQUETE_VIGENTE];
   const { mensual, anual } = CUPOS_MEMBRESIA;
   const cupo = (n: number | null) => (n === null ? "Sin tope" : String(n));
   const filas: Array<[string, string, string, string, string]> = [
-    ["Búsquedas de outfit", cuantas(TOPES.anonimo.busquedas, "búsqueda", "búsquedas"), cuantas(TOPES.gratis.busquedas, "búsqueda", "búsquedas"), cupo(mensual.busquedas), cupo(anual.busquedas)],
+    ["Búsquedas de outfit", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`, `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`, cupo(mensual.busquedas), cupo(anual.busquedas)],
     ["Outfits guardados", cuantas(TOPES.anonimo.outfits, "outfit", "outfits"), cuantas(TOPES.gratis.outfits, "outfit", "outfits"), cupo(mensual.outfits), cupo(anual.outfits)],
     ["Prendas nuevas en tu clóset", cuantas(TOPES.anonimo.prendasCloset, "prenda", "prendas"), cuantas(TOPES.gratis.prendasCloset, "prenda", "prendas"), cupo(mensual.prendasCloset), cupo(anual.prendasCloset)],
     ["Combinaciones de tu clóset", cuantas(TOPES.anonimo.combinacionesClosetGratis, "combinación", "combinaciones"), cuantas(TOPES.gratis.combinacionesClosetGratis, "combinación", "combinaciones"), cupo(mensual.combinaciones), cupo(anual.combinaciones)],
@@ -64,7 +62,7 @@ export default function TerminosPage() {
       <div className="rounded-3xl border border-rosa-100 bg-white p-8 shadow-sm sm:p-12">
         <p className="text-xs font-medium uppercase tracking-widest text-rosa-500">Documento legal</p>
         <h1 className="mt-3 font-display text-3xl text-noche sm:text-4xl">Términos y condiciones</h1>
-        <p className="mt-2 text-sm text-noche/50">Última actualización: 18 de noviembre de 2026</p>
+        <p className="mt-2 text-sm text-noche/50">Última actualización: 20 de noviembre de 2026</p>
 
         <p className="mt-6 text-noche/80">
           Estas son las reglas para usar LoleardLola, en la página y en la app. Al crear tu cuenta las aceptas,
@@ -142,10 +140,10 @@ export default function TerminosPage() {
           </table>
         </div>
         <p className="mt-3 text-sm text-noche/60">
-          Sin membresía, los límites no se renuevan. Los cupos de la membresía son por cada pago: la mensual dura 31
-          días y la anual 365, y en la anual los usas a tu ritmo durante todo el año. Lo que no uses no pasa a la
-          siguiente membresía. Quien pagó antes del 18 de noviembre de 2026 a las 7:00 p. m. conserva sus condiciones
-          hasta que venza lo que ya pagó.
+          Las {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis se cuentan por celular o computador, con o sin cuenta, y se
+          renuevan el 1 de cada mes. Con la membresía, las búsquedas y los outfits guardados no tienen límite. Los
+          demás límites sin membresía no se renuevan, y los cupos de la membresía son por cada pago: la mensual dura 31
+          días y la anual 365. Lo que no uses no pasa a la siguiente membresía.
         </p>
 
         <Titulo>4. Membresía y pagos</Titulo>
@@ -162,10 +160,6 @@ export default function TerminosPage() {
           <li>
             <strong>No se renueva sola:</strong> pagas un mes o un año y ya, sin cobros automáticos. Si pagas antes
             de que se venza, los días se suman a los que te quedan.
-          </li>
-          <li>
-            Con la membresía puedes comprar búsquedas adicionales: {paquete.busquedas} por {pesos(paquete.precio)}.
-            Se usan cuando se te acaban las de tu membresía y se vencen en la misma fecha que ella.
           </li>
           <li>
             Si tienes un problema con un pago, o quieres retractarte de una compra, escríbenos a {CORREO}. Lo

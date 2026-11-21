@@ -81,3 +81,44 @@ export async function pruebaPromosDelAparato(req: Request, userId: string | null
     .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
   return fechas[0] ?? null;
 }
+
+const DIAS_HUELLA_MES = 35;
+// Una conexión compartida (wifi de una universidad, datos del celular) junta
+// a mucha gente que no se conoce: si la huella aparece en más personas que
+// esto, no se usa para sumar búsquedas y solo cuenta el navegador.
+const MAX_PERSONAS_POR_HUELLA = 10;
+
+/**
+ * Todas las cuentas, con o sin correo, que se han usado en este aparato
+ * (el mismo navegador o la misma huella), más la propia. Sirve para contar
+ * las búsquedas gratis por celular o computador y no por cuenta.
+ */
+export async function usuariosDelAparato(req: Request, userId: string): Promise<string[]> {
+  const sb = supabaseAdmin();
+  const ids = new Set<string>([userId]);
+
+  const navegador = req.headers.get("x-device-id");
+  if (navegador && UUID_RE.test(navegador)) {
+    const [eventos, cuentas] = await Promise.all([
+      sb.from("eventos").select("user_id").eq("device_id", navegador).not("user_id", "is", null).limit(5000),
+      sb.from("users").select("id").eq("device_id", navegador),
+    ]);
+    for (const f of eventos.data ?? []) if (f.user_id) ids.add(f.user_id as string);
+    for (const f of cuentas.data ?? []) if (f.id) ids.add(f.id as string);
+  }
+
+  const huella = huellaDe(req);
+  if (huella) {
+    const desde = new Date(Date.now() - DIAS_HUELLA_MES * 86_400_000).toISOString();
+    const { data } = await sb
+      .from("eventos")
+      .select("user_id")
+      .eq("props->>huella", huella)
+      .not("user_id", "is", null)
+      .gte("created_at", desde)
+      .limit(5000);
+    const mismos = new Set((data ?? []).map((f) => f.user_id as string));
+    if (mismos.size <= MAX_PERSONAS_POR_HUELLA) for (const id of Array.from(mismos)) ids.add(id);
+  }
+  return Array.from(ids);
+}

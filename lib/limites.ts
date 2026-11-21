@@ -2,10 +2,12 @@ import { supabaseAdmin } from "./supabase";
 import { usuarioActual, type UsuarioActual } from "./sesion";
 import { esAdmin } from "./admin-correos";
 import { contextoDe, registrar } from "./eventos";
-import { otrasCuentasDelAparato } from "./aparato";
+import { otrasCuentasDelAparato, usuariosDelAparato } from "./aparato";
 import {
+  BUSQUEDAS_MES_SIN_MEMBRESIA,
   CUPOS_MEMBRESIA,
   ME_GUSTA_ANTERIOR,
+  mensajeBusquedasGratis,
   mensajeCupo,
   mensajeDeTope,
   mensajeTopeMensual,
@@ -100,7 +102,7 @@ async function usadasEnCuentas(ids: string[], recurso: Recurso): Promise<number>
 // Topes mensuales de la membresía
 // ---------------------------------------------------------------------
 /** El 1 del mes en curso y el del siguiente, a medianoche en Colombia (UTC-5). */
-function mesEnCurso(): { inicio: Date; renueva: Date } {
+export function mesEnCurso(): { inicio: Date; renueva: Date } {
   const ahora = new Date(Date.now() - 5 * 3600_000);
   const y = ahora.getUTCFullYear();
   const m = ahora.getUTCMonth();
@@ -205,6 +207,9 @@ async function revisarCondicionAnterior(
       tope: ME_GUSTA_ANTERIOR,
     };
   }
+  // Las búsquedas ya no tienen tope para nadie con membresía, tampoco para
+  // quien pagó antes de los cupos nuevos.
+  if (uso === "busquedas") return { permitido: true };
   if (!(uso in TOPES_MES_MEMBRESIA)) return { permitido: true };
   const mensual = uso as UsoMensual;
   const { inicio, renueva } = mesEnCurso();
@@ -229,6 +234,36 @@ export async function revisarCupo(
   if (tope === null) return { permitido: true };
   if ((await usadasEnPeriodo(usuario.id, uso, periodo)) < tope) return { permitido: true };
   return { permitido: false, mensaje: mensajeCupo(uso, tope, periodo.fin), tope };
+}
+
+/**
+ * Las búsquedas gratis del mes, sumadas entre todas las cuentas de este
+ * celular o computador. Guardar un outfit también deja una fila en searches
+ * (con outfit_id): esa no es una búsqueda nueva. Si la consulta falla se
+ * deja pasar: mejor una búsqueda de más que negarla por un error de la app.
+ */
+async function revisarBusquedasGratis(req: Request, usuario: UsuarioActual): Promise<Veredicto> {
+  const ids = await usuariosDelAparato(req, usuario.id);
+  const { inicio, renueva } = mesEnCurso();
+  const { count } = await supabaseAdmin()
+    .from("searches")
+    .select("id", { count: "exact", head: true })
+    .in("user_id", ids)
+    .is("outfit_id", null)
+    .gte("created_at", inicio.toISOString());
+  const usadas = count ?? 0;
+  if (usadas < BUSQUEDAS_MES_SIN_MEMBRESIA) {
+    return { permitido: true, usuario, usadas, tope: BUSQUEDAS_MES_SIN_MEMBRESIA };
+  }
+  registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso: "busquedas", plan: usuario.plan, motivo: "mes" });
+  return {
+    permitido: false,
+    usuario,
+    mensaje: mensajeBusquedasGratis(renueva),
+    destrabaCon: "membresia",
+    usadas,
+    tope: BUSQUEDAS_MES_SIN_MEMBRESIA,
+  };
 }
 
 /** ¿Puede hacer una más de este recurso? */
@@ -261,6 +296,10 @@ export async function revisarTope(
     registrar("tope_alcanzado", contextoDe(req, usuario.id), { recurso, plan: usuario.plan });
     return { permitido: false, usuario, mensaje: cupo.mensaje, destrabaCon: null, usadas: 0, tope: cupo.tope };
   }
+
+  // Sin membresía las búsquedas son gratis hasta BUSQUEDAS_MES_SIN_MEMBRESIA
+  // al mes, por celular o computador (con o sin cuenta).
+  if (recurso === "busquedas") return revisarBusquedasGratis(req, usuario);
 
   const usadas = await contar(usuario.id, recurso);
   const veredicto = puedeUsar(usuario.plan, recurso, usadas);
@@ -396,7 +435,7 @@ export async function saldoDeBusquedas(usuario: UsuarioActual) {
     const { inicio } = mesEnCurso();
     return {
       usadas: await usadasDesde(usuario.id, "busquedas", inicio),
-      tope: TOPES_MES_MEMBRESIA.busquedas as number | null,
+      tope: null as number | null,
       extra,
       alMes: true,
       vence: null as string | null,

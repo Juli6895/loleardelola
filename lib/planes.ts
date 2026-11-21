@@ -22,13 +22,25 @@ export type Topes = {
 };
 
 // null = sin tope.
+// Sin membresía (con o sin cuenta): búsquedas gratis al mes, contadas por
+// celular o computador (noviembre de 2026, decisión de Juliana). Con la
+// membresía las búsquedas y los outfits guardados no tienen tope.
+export const BUSQUEDAS_MES_SIN_MEMBRESIA = 30;
+
+/** El mensaje al llegar a las búsquedas gratis del mes. */
+export function mensajeBusquedasGratis(renueva: Date): string {
+  const fecha = renueva.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
+  return `Usaste tus ${BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis de este mes. Se renuevan el ${fecha}. Con la membresía buscas sin límite.`;
+}
+
 export const TOPES: Record<Plan, Topes> = {
   // Sin cuenta: nada que use la IA (octubre de 2026, a pedido de
   // Juliana: si llega mucha gente de golpe, cada búsqueda, prenda o
   // combinación anónima es plata sin siquiera un correo a cambio). Solo
   // mira las promociones (ver DIAS_PRUEBA_PROMOS).
   anonimo: {
-    busquedas: 0,
+    // 30 al mes por celular o computador (ver BUSQUEDAS_MES_SIN_MEMBRESIA).
+    busquedas: 30,
     outfits: 0,
     prendasCloset: 0,
     manualDeEstilo: false,
@@ -38,7 +50,7 @@ export const TOPES: Record<Plan, Topes> = {
   // use la IA. Guarda hasta 3 outfits, da 3 me gusta y ve las promociones
   // 2 días. Aplica a todas las cuentas gratis, también a las que ya existían.
   gratis: {
-    busquedas: 0,
+    busquedas: 30,
     outfits: 3,
     prendasCloset: 0,
     manualDeEstilo: false,
@@ -185,8 +197,8 @@ export type UsoMembresia =
 
 export const CUPOS_MEMBRESIA: Record<TipoPlan, Record<UsoMembresia, number | null>> = {
   mensual: {
-    busquedas: 5,
-    outfits: 105,
+    busquedas: null,
+    outfits: null,
     prendasCloset: 5,
     combinaciones: 5,
     manuales: 1,
@@ -195,7 +207,7 @@ export const CUPOS_MEMBRESIA: Record<TipoPlan, Record<UsoMembresia, number | nul
     personalidadReferencia: 1,
   },
   anual: {
-    busquedas: 60,
+    busquedas: null,
     outfits: null,
     prendasCloset: 60,
     combinaciones: 60,

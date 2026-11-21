@@ -64,6 +64,9 @@ export const EVENTOS = [
   "pago_error",
   // Una búsqueda que salió de un paquete adicional.
   "busqueda_paquete_usada",
+  // Se mandó la alerta de que el mes llegó al límite de búsquedas
+  // (ver lib/alertas.ts). Una vez por mes.
+  "alerta_busquedas",
 
   // Manual
   "manual_visto",

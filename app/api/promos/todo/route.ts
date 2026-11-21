@@ -8,11 +8,15 @@ import { prendasDeLaMarca } from "@/lib/catalogo-completo";
 //   tienda para "Cargar más" (null: no hay más). Ver lib/catalogo-completo.ts.
 //
 // La respuesta es la misma para todas: queda 10 minutos en la caché de
-// Vercel, para que lo nuevo de cada tienda se vea pronto. Si la tienda no
+// Vercel, para que lo nuevo de cada tienda se vea pronto. Pasados los 10
+// minutos se puede servir la copia vieja solo 1 minuto más mientras se
+// lee de nuevo la tienda (antes eran 30: "Ver todo" podía mostrar un
+// catálogo de hasta 40 minutos). No se baja más porque algunas tiendas
+// limitan cuántas veces se les pide el catálogo. Si la tienda no
 // respondió no se guarda: antes el vacío quedaba hasta hora y media.
 export const maxDuration = 60;
 
-const CACHE = "public, s-maxage=600, stale-while-revalidate=1800";
+const CACHE = "public, s-maxage=600, stale-while-revalidate=60";
 
 export async function GET(req: Request) {
   const params = new URL(req.url).searchParams;

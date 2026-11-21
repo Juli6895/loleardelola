@@ -89,7 +89,7 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
               </li>
             </ul>
             <p className="mt-2">
-              Para buscar sin límite, guardar todos los outfits que quieras, usar tu clóset, tener tu manual de estilo y recibir avisos de rebaja está la{" "}
+              Para buscar más, guardar todos los outfits que quieras, usar tu clóset, tener tu manual de estilo y recibir avisos de rebaja está la{" "}
               <Link href="/membresia" className="font-medium text-rosa-600 underline">
                 membresía
               </Link>
@@ -137,12 +137,12 @@ const GRUPOS: Array<{ titulo: string; preguntas: Pregunta[] }> = [
             </p>
             <ul className="mt-2 list-disc space-y-1 pl-5">
               <li>
-                <strong>Mensual (31 días):</strong> búsquedas y outfits guardados sin límite, {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas nuevas,{" "}
-                {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones y {CUPOS_MEMBRESIA.mensual.meGusta} me gusta con aviso de rebaja.
+                <strong>Mensual (31 días):</strong> {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas, {CUPOS_MEMBRESIA.mensual.prendasCloset} prendas nuevas,{" "}
+                {CUPOS_MEMBRESIA.mensual.combinaciones} combinaciones, outfits guardados y me gusta con aviso de rebaja sin límite.
               </li>
               <li>
-                <strong>Anual:</strong> búsquedas y outfits guardados sin límite, {CUPOS_MEMBRESIA.anual.prendasCloset} prendas nuevas y{" "}
-                {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año, y me gusta sin tope.
+                <strong>Anual:</strong> {CUPOS_MEMBRESIA.anual.busquedas?.toLocaleString("es-CO")} búsquedas, {CUPOS_MEMBRESIA.anual.prendasCloset} prendas nuevas y{" "}
+                {CUPOS_MEMBRESIA.anual.combinaciones} combinaciones para usar a tu ritmo durante el año; outfits guardados y me gusta sin límite.
               </li>
               <li>
                 En las dos: {CUPOS_MEMBRESIA.mensual.manuales} manual de estilo, {CUPOS_MEMBRESIA.mensual.personalidadFoto} análisis de personalidad por foto y{" "}

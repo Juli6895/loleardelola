@@ -5,7 +5,7 @@ import SearchBox, { type SearchResult as R } from "@/components/SearchBox";
 import SearchResult from "@/components/SearchResult";
 import Link from "next/link";
 import { tieneMembresia, useUsuario } from "@/lib/use-usuario";
-import { BUSQUEDAS_MES_SIN_MEMBRESIA, TOPES } from "@/lib/planes";
+import { BUSQUEDAS_MES_SIN_MEMBRESIA, CUPOS_MEMBRESIA, TOPES } from "@/lib/planes";
 import { useAnotarUnaVez } from "@/lib/use-evento";
 
 // Página donde se busca un outfit. Corta a propósito: arriba el título,
@@ -67,10 +67,10 @@ export default function BuscarPage() {
           {/* Cupos en una línea. */}
           <p className="relative mt-4 text-center text-xs text-noche/55">
             {conMembresia ? (
-              <>Búsquedas sin límite con tu membresía</>
+              <>Tu membresía incluye {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas al mes ({CUPOS_MEMBRESIA.anual.busquedas?.toLocaleString("es-CO")} al año en la anual)</>
             ) : (
               <>
-                {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis al mes. Con la membresía, sin límite.{" "}
+                {BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis al mes. Con la membresía, {CUPOS_MEMBRESIA.mensual.busquedas}.{" "}
                 <Link href="/membresia" className="font-medium text-rosa-600 underline-offset-2 hover:underline">
                   Ver planes
                 </Link>

@@ -7,7 +7,7 @@ import { mesEnCurso } from "./limites";
 // =====================================================================
 // Alerta de búsquedas del mes
 // =====================================================================
-// Con las búsquedas ilimitadas para quien paga y 30 al mes gratis por
+// Con las búsquedas de la membresía (100 al mes) y 30 al mes gratis por
 // aparato, cada búsqueda cuesta unos $5 a $13 (Claude). Si el uso se
 // dispara —una campaña que funciona, o una máquina buscando— conviene
 // enterarse el mismo día y no al revisar el tablero.

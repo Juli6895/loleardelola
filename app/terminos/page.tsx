@@ -40,7 +40,7 @@ function Lista({ children }: { children: React.ReactNode }) {
 
 export default function TerminosPage() {
   const { mensual, anual } = CUPOS_MEMBRESIA;
-  const cupo = (n: number | null) => (n === null ? "Sin tope" : String(n));
+  const cupo = (n: number | null) => (n === null ? "Sin tope" : n.toLocaleString("es-CO"));
   const filas: Array<[string, string, string, string, string]> = [
     ["Búsquedas de outfit", `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`, `${BUSQUEDAS_MES_SIN_MEMBRESIA} al mes`, cupo(mensual.busquedas), cupo(anual.busquedas)],
     ["Outfits guardados", cuantas(TOPES.anonimo.outfits, "outfit", "outfits"), cuantas(TOPES.gratis.outfits, "outfit", "outfits"), cupo(mensual.outfits), cupo(anual.outfits)],

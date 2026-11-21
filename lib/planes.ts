@@ -30,7 +30,7 @@ export const BUSQUEDAS_MES_SIN_MEMBRESIA = 30;
 /** El mensaje al llegar a las búsquedas gratis del mes. */
 export function mensajeBusquedasGratis(renueva: Date): string {
   const fecha = renueva.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
-  return `Usaste tus ${BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis de este mes. Se renuevan el ${fecha}. Con la membresía buscas sin límite.`;
+  return `Usaste tus ${BUSQUEDAS_MES_SIN_MEMBRESIA} búsquedas gratis de este mes. Se renuevan el ${fecha}. Con la membresía tienes ${CUPOS_MEMBRESIA.mensual.busquedas} al mes.`;
 }
 
 export const TOPES: Record<Plan, Topes> = {
@@ -181,8 +181,13 @@ export const DIAS_DE_PLAN: Record<TipoPlan, number> = {
 // Cupos de la membresía (tabla de Juliana, noviembre de 2026)
 // ---------------------------------------------------------------------
 // Aplican a cada pago hecho desde INICIO_CUPOS_NUEVOS. El cupo es por
-// membresía pagada, no por mes del calendario: la anual usa sus 60 a su
-// ritmo durante todo el año. null = sin tope.
+// membresía pagada, no por mes del calendario: la anual usa los suyos a
+// su ritmo durante todo el año. null = sin tope.
+//
+// 21 de noviembre de 2026, tabla de Excel de Juliana: outfits guardados,
+// me gusta (y sus avisos de rebaja) sin tope; las búsquedas SÍ tienen
+// tope, para controlar el gasto: 100 en la mensual y 1.200 en la anual.
+// Lo demás: la anual es la mensual × 12 (el manual y la personalidad, 4).
 export type UsoMembresia =
   | UsoMensual
   | "outfits"
@@ -192,24 +197,24 @@ export type UsoMembresia =
 
 export const CUPOS_MEMBRESIA: Record<TipoPlan, Record<UsoMembresia, number | null>> = {
   mensual: {
-    busquedas: null,
+    busquedas: 100,
     outfits: null,
-    prendasCloset: 5,
-    combinaciones: 5,
-    manuales: 1,
-    meGusta: 100,
-    personalidadFoto: 1,
-    personalidadReferencia: 1,
-  },
-  anual: {
-    busquedas: null,
-    outfits: null,
-    prendasCloset: 60,
-    combinaciones: 60,
+    prendasCloset: 30,
+    combinaciones: 30,
     manuales: 1,
     meGusta: null,
     personalidadFoto: 1,
     personalidadReferencia: 1,
+  },
+  anual: {
+    busquedas: 1200,
+    outfits: null,
+    prendasCloset: 360,
+    combinaciones: 360,
+    manuales: 4,
+    meGusta: null,
+    personalidadFoto: 4,
+    personalidadReferencia: 4,
   },
 };
 
@@ -267,11 +272,19 @@ export function mensajeCupo(uso: UsoMembresia, tope: number, fin: Date): string 
   if (uso === "outfits" || uso === "meGusta") {
     return `Llegaste a ${tope} ${NOMBRE_CUPO[uso]}. Quita alguno para agregar otro.`;
   }
-  const fecha = fin.toLocaleDateString("es-CO", { day: "numeric", month: "long", timeZone: "America/Bogota" });
+  // Con el año si no es este (la anual vence el año que viene).
+  const otroAno = fin.getFullYear() !== new Date().getFullYear();
+  const fecha = fin.toLocaleDateString("es-CO", {
+    day: "numeric",
+    month: "long",
+    ...(otroAno ? { year: "numeric" as const } : {}),
+    timeZone: "America/Bogota",
+  });
+  const n = tope.toLocaleString("es-CO");
   if (uso === "busquedas") {
-    return `Llegaste a tus ${tope} búsquedas de esta membresía, vigente hasta el ${fecha}. Si quieres seguir, compra un paquete de búsquedas en Membresía.`;
+    return `Llegaste a tus ${n} búsquedas de esta membresía, vigente hasta el ${fecha}. Al renovarla tienes ${n} más.`;
   }
-  return `Ya usaste ${tope === 1 ? "tu" : `tus ${tope}`} ${NOMBRE_CUPO[uso]} de esta membresía, vigente hasta el ${fecha}.`;
+  return `Ya usaste ${tope === 1 ? "tu" : `tus ${n}`} ${NOMBRE_CUPO[uso]} de esta membresía, vigente hasta el ${fecha}.`;
 }
 
 export function planDe(usuario: {

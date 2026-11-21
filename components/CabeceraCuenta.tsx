@@ -31,7 +31,7 @@ const LO_DE_LA_MEMBRESIA = [
   },
   {
     titulo: "Búsquedas de outfits y avisos",
-    detalle: "Búsquedas y outfits guardados sin límite, y avisos cuando baja el precio de lo que te gustó.",
+    detalle: `${CUPOS_MEMBRESIA.mensual.busquedas} búsquedas al mes, outfits guardados sin límite y avisos cuando baja el precio de lo que te gustó.`,
   },
 ];
 

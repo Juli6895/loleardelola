@@ -20,7 +20,7 @@ import { tieneMembresia, useUsuario } from "@/lib/use-usuario";
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO");
 const dias = (n: number) => `${n} ${n === 1 ? "día" : "días"}`;
-const cupo = (n: number | null) => (n === null ? "Sin tope" : String(n));
+const cupo = (n: number | null) => (n === null ? "Sin tope" : n.toLocaleString("es-CO"));
 
 type ClavePlan = "gratis" | "registro" | TipoPlan;
 type Grupo = { titulo: string; rubros: Array<[string, string]> };
@@ -216,11 +216,11 @@ export default function MembresiaPage() {
         </div>
 
         <p className="mt-4 text-xs text-noche/50">
-          {plan === "mensual" && "Las búsquedas y los outfits guardados no tienen límite. Los demás cupos duran los 31 días de tu membresía."}
-          {plan === "anual" && "Las búsquedas y los outfits guardados no tienen límite. Los demás cupos los usas a tu ritmo durante todo el año."}
+          {plan === "mensual" && "Los outfits guardados y los me gusta no tienen límite. Los demás cupos, también las búsquedas, duran los 31 días de tu membresía."}
+          {plan === "anual" && "Los outfits guardados y los me gusta no tienen límite. Los demás cupos, también las búsquedas, los usas a tu ritmo durante todo el año."}
           {!esPago && (
             <>
-              Con la membresía buscas sin límite, y tienes tu clóset y tu manual de estilo.{" "}
+              Con la membresía tienes {CUPOS_MEMBRESIA.mensual.busquedas} búsquedas al mes, tu clóset y tu manual de estilo.{" "}
               <button type="button" onClick={() => setPlan("mensual")} className="font-medium text-rosa-600 underline">
                 Ver Pago un mes
               </button>

@@ -171,7 +171,9 @@ export type ProductoShopify = {
   images?: Array<{ src?: string }>;
 };
 
-type Lectura = { filas: Fila[]; completa: boolean };
+// detalle: por qué se descartaron las prendas, cuando una tienda se leyó
+// entera pero no quedó ninguna (queda en Errores del tablero).
+type Lectura = { filas: Fila[]; completa: boolean; detalle?: string };
 
 /**
  * Una prenda de Shopify como fila, o null si no sirve (agotada, sin foto,
@@ -321,22 +323,49 @@ export function filaStorefront(t: Tienda, p: ProductoStorefront, minimo: number 
   };
 }
 
+/** Por qué una prenda storefront no quedó como promo (para el diagnóstico). */
+function motivoStorefront(p: ProductoStorefront): string {
+  if (!p.name || !p.slug) return "sin nombre";
+  if (Array.isArray(p.sizes) && p.sizes.length === 0) return "sin tallas";
+  if (p.currency && p.currency !== "COP") return `moneda ${p.currency}`;
+  const { precio, antes } = precioStorefront(p);
+  if (!(precio > 0)) return "sin precio";
+  if (!antes) return "sin rebaja";
+  return "rebaja de 10% o menos, sin tipo de prenda o sin foto";
+}
+
 async function promosStorefront(t: Tienda, hasta: number): Promise<Lectura> {
   const filas: Fila[] = [];
+  const motivos = new Map<string, number>();
+  let leidas = 0;
+  const cerrar = (completa: boolean): Lectura => {
+    // Se leyó la tienda pero no quedó nada: se dice por qué, para no
+    // confundirlo con "la tienda no tiene rebajas" (Pepita Pérez, nov 2026).
+    const detalle =
+      filas.length === 0 && leidas > 0
+        ? `${leidas} prendas leídas, ninguna quedó: ${Array.from(motivos, ([m, n]) => `${m} (${n})`).join(", ")}`
+        : undefined;
+    return { filas, completa, detalle };
+  };
   for (let n = 1; n <= 40; n++) {
-    if (Date.now() > hasta) return { filas, completa: false };
+    if (Date.now() > hasta) return cerrar(false);
     const productos = await pagina(urlCatalogoStorefront(t.host, n), (d) => ((d as { products?: ProductoStorefront[] }).products ?? []));
     if (productos === null) {
       if (n === 1) throw new Error(`no respondió (${ultimoError.get(t.host) ?? "sin detalle"})`);
-      return { filas, completa: false };
+      return cerrar(false);
     }
     for (const p of productos) {
+      leidas++;
       const fila = filaStorefront(t, p, MINIMO_PORCENTAJE);
       if (fila) filas.push(fila);
+      else {
+        const m = motivoStorefront(p);
+        motivos.set(m, (motivos.get(m) ?? 0) + 1);
+      }
     }
-    if (productos.length < POR_PAGINA_STOREFRONT) return { filas, completa: true };
+    if (productos.length < POR_PAGINA_STOREFRONT) return cerrar(true);
   }
-  return { filas, completa: true };
+  return cerrar(true);
 }
 
 const POR_PAGINA_WOO = 100;
@@ -511,7 +540,7 @@ async function guardar(dominio: string, { filas, completa }: Lectura, inicio: st
   if (error) throw new Error(error.message);
 }
 
-export type ResumenTienda = { tienda: string; promos: number; ok: boolean; completa?: boolean; error?: string };
+export type ResumenTienda = { tienda: string; promos: number; ok: boolean; completa?: boolean; error?: string; detalle?: string };
 
 /** Revisa las tiendas de un lote (todas a la vez) y guarda sus promos. */
 export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
@@ -547,7 +576,10 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
         if (!lectura.completa && frenada) {
           await registrar("promos_tienda_error", {}, { tienda: t.nombre, motivo: `${t.nombre}: lectura incompleta (${frenada})` });
         }
-        return { tienda: t.nombre, promos: lectura.filas.length, ok: true, completa: lectura.completa };
+        if (lectura.detalle) {
+          await registrar("promos_tienda_error", {}, { tienda: t.nombre, motivo: `${t.nombre}: ${lectura.detalle}`.slice(0, 300) });
+        }
+        return { tienda: t.nombre, promos: lectura.filas.length, ok: true, completa: lectura.completa, detalle: lectura.detalle };
       } catch (e) {
         console.error(`[promos-diarias] ${t.nombre}:`, e);
         const error = String((e as Error).message ?? e).slice(0, 120);

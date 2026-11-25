@@ -78,7 +78,18 @@ type TiendaWoo = {
   host?: string;
   soloTipos?: string[];
 };
-type Tienda = TiendaShopify | TiendaVtex | TiendaWoo;
+// Tienda propia hecha a la medida (Next.js), con su catálogo público en
+// /api/storefront/catalog?page=N: 24 prendas por página, precios en pesos.
+// Pepita Pérez se pasó de WooCommerce a esto en noviembre de 2026. Como
+// WooCommerce: promociones, "Ver todo" y avisos, no búsqueda por foto.
+type TiendaStorefront = {
+  plataforma: "storefront";
+  dominio: string;
+  nombre: string;
+  host?: string;
+  soloTipos?: string[];
+};
+type Tienda = TiendaShopify | TiendaVtex | TiendaWoo | TiendaStorefront;
 export type Plataforma = Tienda["plataforma"];
 
 /** Una prenda de WooCommerce, como la entrega su API de la tienda. */
@@ -93,6 +104,55 @@ export type ProductoWoo = {
   attributes?: Array<{ name?: string; terms?: Array<{ name?: string }> }>;
   description?: string;
 };
+
+/** Una prenda de /api/storefront/catalog (ver TiendaStorefront). */
+export type ProductoStorefront = {
+  slug?: string;
+  name?: string;
+  description?: string;
+  image?: { url?: string } | null;
+  primaryMedia?: { url?: string; kind?: string } | null;
+  priceMinor?: number;
+  compareAtMinor?: number | null;
+  currency?: string;
+  sizes?: string[];
+};
+
+export const POR_PAGINA_STOREFRONT = 24;
+
+/** La dirección del catálogo de una tienda storefront. */
+export function urlCatalogoStorefront(host: string, pagina: number): string {
+  return `https://${host}/api/storefront/catalog?page=${pagina}`;
+}
+
+/** La ficha de la prenda en la tienda. */
+export function urlProductoStorefront(host: string, slug: string): string {
+  return `https://${host}/producto/${slug}`;
+}
+
+/** La foto, con la dirección completa (la API la da relativa). */
+export function imagenStorefront(host: string, p: ProductoStorefront): string | null {
+  const u = p.image?.url ?? (p.primaryMedia?.kind === "image" ? p.primaryMedia?.url : null) ?? null;
+  if (!u) return null;
+  return u.startsWith("http") ? u : `https://${host}${u.startsWith("/") ? "" : "/"}${u}`;
+}
+
+/** Precio y "antes" en pesos. Otra moneda: precio 0 (se descarta). */
+export function precioStorefront(p: ProductoStorefront): { precio: number; antes: number | null } {
+  if (p.currency && p.currency !== "COP") return { precio: 0, antes: null };
+  const precio = Math.round(Number(p.priceMinor) || 0);
+  const antes = Math.round(Number(p.compareAtMinor) || 0);
+  return { precio, antes: antes > precio ? antes : null };
+}
+
+/**
+ * El slug sin el código del final ("vestido-nardo-1c452f82" →
+ * "vestido-nardo"): así se encuentran también las prendas guardadas con
+ * el enlace de la tienda vieja (WooCommerce), que no lo tenía.
+ */
+export function slugBase(slug: string): string {
+  return slug.replace(/\/$/, "").replace(/-[0-9a-f]{8}$/i, "");
+}
 
 /**
  * Para pedirle a una tienda WooCommerce los precios de Colombia. Pepita
@@ -227,7 +287,7 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "molgoa.com", nombre: "Molgoa" },
   { plataforma: "shopify", dominio: "vidamia.co", nombre: "Vida Mía" },
   // Pepita Pérez (Bucaramanga): WooCommerce, ver TiendaWoo.
-  { plataforma: "woo", dominio: "pepitaperez.co", nombre: "Pepita Pérez" },
+  { plataforma: "storefront", dominio: "pepitaperez.co", nombre: "Pepita Pérez" },
   // H&M Colombia: VTEX en co.hm.com. Mezcla hombre y niños: los descarta
   // ES_DE_HOMBRE_O_NINO por la categoría ("/HOMBRE/...", "/NIÑOS/...").
   // Onda de Mar se quitó (noviembre de 2026). Zara y Mango no se pueden:

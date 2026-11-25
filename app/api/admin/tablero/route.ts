@@ -81,6 +81,13 @@ function lugarDe(e: Evento): string {
   return base;
 }
 
+/** Anotados como error antes de separarlos, pero no son fallas de la app. */
+function esRuido(e: Evento): boolean {
+  if (e.nombre === "aviso_error" && e.props?.paso === "notificaciones") return true;
+  if (e.nombre === "pagina_error" && /Object Not Found Matching Id|^Script error\.?$/i.test(String(e.props?.motivo ?? ""))) return true;
+  return false;
+}
+
 function esError(nombre: string): boolean {
   return nombre.endsWith("_error") || nombre === "tope_alcanzado";
 }
@@ -289,7 +296,7 @@ export async function GET(req: Request) {
     string,
     { correo: string; servicio: string; lugar: string; error: string; veces: number; ultimaVez: string }
   >();
-  for (const e of eventos.filter((x) => esError(x.nombre))) {
+  for (const e of eventos.filter((x) => esError(x.nombre) && !esRuido(x))) {
     const lugar = lugarDe(e);
     const error =
       e.nombre === "tope_alcanzado"

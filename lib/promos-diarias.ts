@@ -5,6 +5,12 @@ import {
   enColombia,
   precioDeVariantes,
   precioWoo,
+  precioStorefront,
+  imagenStorefront,
+  urlCatalogoStorefront,
+  urlProductoStorefront,
+  POR_PAGINA_STOREFRONT,
+  type ProductoStorefront,
   PRECIOS_DE_COLOMBIA,
   sinEntidades,
   tiendasParaPromos,
@@ -287,6 +293,52 @@ export function filaWoo(t: Tienda, p: ProductoWoo, minimo: number | null): Fila 
   };
 }
 
+/** Igual que filaShopify, para una prenda de una tienda storefront. */
+export function filaStorefront(t: Tienda, p: ProductoStorefront, minimo: number | null): Fila | null {
+  if (!p.name || !p.slug) return null;
+  // Sin ninguna talla a la venta, está agotada.
+  if (Array.isArray(p.sizes) && p.sizes.length === 0) return null;
+  const { precio, antes } = precioStorefront(p);
+  if (!(precio > 0)) return null;
+  if (minimo !== null && (!antes || porcentaje(precio, antes) <= minimo)) return null;
+  const titulo = p.name.trim();
+  const tipo = clasificarPrenda({ dominio: t.dominio, titulo, clase: "", tags: [], descripcion: p.description ?? "" });
+  const imagen = imagenStorefront(t.host, p);
+  if (!tipo || !imagen) return null;
+  // La API no da el precio de cada talla: todas al mismo precio.
+  const tallas = juntarTallas((p.sizes ?? []).map((x) => ({ talla: normalizarTalla(x), precio, antes, q: "" })));
+  return {
+    url: urlProductoStorefront(t.host, p.slug),
+    dominio: t.dominio,
+    tienda: t.nombre,
+    titulo,
+    imagen,
+    tipo,
+    precio_cop: precio,
+    precio_antes_cop: antes,
+    descuento: antes ? 1 - precio / antes : 0,
+    tallas,
+  };
+}
+
+async function promosStorefront(t: Tienda, hasta: number): Promise<Lectura> {
+  const filas: Fila[] = [];
+  for (let n = 1; n <= 40; n++) {
+    if (Date.now() > hasta) return { filas, completa: false };
+    const productos = await pagina(urlCatalogoStorefront(t.host, n), (d) => ((d as { products?: ProductoStorefront[] }).products ?? []));
+    if (productos === null) {
+      if (n === 1) throw new Error(`no respondió (${ultimoError.get(t.host) ?? "sin detalle"})`);
+      return { filas, completa: false };
+    }
+    for (const p of productos) {
+      const fila = filaStorefront(t, p, MINIMO_PORCENTAJE);
+      if (fila) filas.push(fila);
+    }
+    if (productos.length < POR_PAGINA_STOREFRONT) return { filas, completa: true };
+  }
+  return { filas, completa: true };
+}
+
 const POR_PAGINA_WOO = 100;
 
 async function promosWoo(t: Tienda, hasta: number): Promise<Lectura> {
@@ -473,7 +525,9 @@ export async function actualizarLote(lote: number): Promise<ResumenTienda[]> {
           ? promosShopify(t, hasta, aLaVez)
           : t.plataforma === "woo"
             ? promosWoo(t, hasta)
-            : promosVtex(t, hasta);
+            : t.plataforma === "storefront"
+              ? promosStorefront(t, hasta)
+              : promosVtex(t, hasta);
       ultimoError.delete(t.host);
       try {
         let lectura: Lectura;
@@ -510,5 +564,11 @@ export async function leerPromosDeTienda(dominio: string): Promise<Lectura | nul
   const t = tiendasParaPromos().find((x) => x.dominio === dominio);
   if (!t) return null;
   const hasta = Date.now() + TIEMPO_MS;
-  return t.plataforma === "shopify" ? promosShopify(t, hasta) : t.plataforma === "woo" ? promosWoo(t, hasta) : promosVtex(t, hasta);
+  return t.plataforma === "shopify"
+    ? promosShopify(t, hasta)
+    : t.plataforma === "woo"
+      ? promosWoo(t, hasta)
+      : t.plataforma === "storefront"
+        ? promosStorefront(t, hasta)
+        : promosVtex(t, hasta);
 }

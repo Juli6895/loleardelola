@@ -96,6 +96,9 @@ export const EVENTOS = [
   "seguimiento_creado",
   "aviso_rebaja_enviado",
   "aviso_error",
+  // Le dio corazón pero no tiene permiso de notificaciones en ese aparato:
+  // no es una falla de la app (antes se anotaba como aviso_error).
+  "push_sin_permiso",
 
   // Cuánto tiempo pasó en cada sección (segundos, solo con la pestaña a
   // la vista) y los errores de la página en el navegador.

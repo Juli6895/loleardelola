@@ -85,7 +85,8 @@ export default function BotonAvisame({ prenda }: { prenda: Prenda }) {
 
       const problema = await activarNotificaciones();
       if (problema) {
-        anotar("aviso_error", { paso: "notificaciones", motivo: problema.slice(0, 160) });
+        // No es una falla: ese aparato no dio permiso de notificaciones.
+        anotar("push_sin_permiso", { motivo: problema.slice(0, 160) });
         toast(`Listo: si baja de precio te avisamos por correo. ${problema}`, { duration: 9000 });
         return;
       }

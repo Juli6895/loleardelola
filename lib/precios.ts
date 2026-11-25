@@ -1,4 +1,17 @@
-import { enColombia, precioDeVariantes, precioWoo, PRECIOS_DE_COLOMBIA, tiendaDeUrl, type ProductoWoo, type VarianteShopify } from "./catalogo-tiendas";
+import {
+  enColombia,
+  POR_PAGINA_STOREFRONT,
+  precioDeVariantes,
+  precioStorefront,
+  precioWoo,
+  PRECIOS_DE_COLOMBIA,
+  slugBase,
+  tiendaDeUrl,
+  urlCatalogoStorefront,
+  type ProductoStorefront,
+  type ProductoWoo,
+  type VarianteShopify,
+} from "./catalogo-tiendas";
 
 // =====================================================================
 // El precio de HOY de una prenda puntual (para los avisos de rebaja)
@@ -61,6 +74,29 @@ export async function precioActual(url: string): Promise<PrecioHoy | null> {
       const deLaTalla = (p.variants ?? []).filter((v) => v.id === pedida);
       const r = precioDeVariantes(deLaTalla.length > 0 ? deLaTalla : (p.variants ?? []), true);
       return r ? { precioCop: r.precioCop, disponible: r.disponible } : null;
+    }
+
+    if (tienda.plataforma === "storefront") {
+      // No hay ficha por prenda en la API: se busca en el catálogo, que es
+      // corto (Pepita Pérez tiene ~100 prendas, 5 páginas). Vale el slug
+      // nuevo o el del enlace viejo de WooCommerce (ver slugBase).
+      const { origin, pathname } = new URL(url);
+      const slug = pathname.split("/").filter(Boolean).pop();
+      if (!slug) return null;
+      const buscado = slugBase(slug);
+      const host = new URL(origin).host;
+      for (let n = 1; n <= 20; n++) {
+        const res = await pedir(urlCatalogoStorefront(host, n));
+        if (!res.ok) return null;
+        const productos = ((await res.json()) as { products?: ProductoStorefront[] }).products ?? [];
+        const p = productos.find((x) => x.slug === slug) ?? productos.find((x) => x.slug && slugBase(x.slug) === buscado);
+        if (p) {
+          const { precio } = precioStorefront(p);
+          return precio > 0 ? { precioCop: precio, disponible: (p.sizes ?? []).length > 0 } : null;
+        }
+        if (productos.length < POR_PAGINA_STOREFRONT) return null;
+      }
+      return null;
     }
 
     if (tienda.plataforma === "woo") {

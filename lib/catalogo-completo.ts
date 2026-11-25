@@ -1,6 +1,16 @@
-import { enColombia, PRECIOS_DE_COLOMBIA, tiendasParaPromos, tipoNormalizado, type ProductoWoo } from "./catalogo-tiendas";
+import {
+  enColombia,
+  POR_PAGINA_STOREFRONT,
+  PRECIOS_DE_COLOMBIA,
+  tiendasParaPromos,
+  tipoNormalizado,
+  urlCatalogoStorefront,
+  type ProductoStorefront,
+  type ProductoWoo,
+} from "./catalogo-tiendas";
 import {
   filaShopify,
+  filaStorefront,
   filaVtex,
   filaWoo,
   pagina,
@@ -49,6 +59,10 @@ async function paginaWoo(t: Tienda, n: number): Promise<ProductoWoo[] | null> {
     `https://${t.host}/wp-json/wc/store/v1/products?orderby=date&order=desc&per_page=${POR_PAGINA}&page=${n}&${PRECIOS_DE_COLOMBIA}`,
     (d) => (Array.isArray(d) ? (d as ProductoWoo[]) : [])
   );
+}
+
+async function paginaStorefront(t: Tienda, n: number): Promise<ProductoStorefront[] | null> {
+  return pagina(urlCatalogoStorefront(t.host, n), (d) => ((d as { products?: ProductoStorefront[] }).products ?? []));
 }
 
 async function paginaVtex(t: Tienda, n: number): Promise<ProductoVtex[] | null> {
@@ -104,7 +118,13 @@ export async function prendasDeLaMarca(
   let n = desde;
   for (let leidas = 0; leidas < PAGINAS_MAX && salida.size < MINIMO; leidas++, n++) {
     const productos =
-      t.plataforma === "shopify" ? await paginaShopify(t, n) : t.plataforma === "woo" ? await paginaWoo(t, n) : await paginaVtex(t, n);
+      t.plataforma === "shopify"
+        ? await paginaShopify(t, n)
+        : t.plataforma === "woo"
+          ? await paginaWoo(t, n)
+          : t.plataforma === "storefront"
+            ? await paginaStorefront(t, n)
+            : await paginaVtex(t, n);
     // La tienda no respondió: se muestra lo que alcanzó a llegar.
     if (!productos) return { prendas: Array.from(salida.values()), siguiente: null, fallo: true };
     for (const p of productos) {
@@ -113,13 +133,18 @@ export async function prendasDeLaMarca(
           ? filaShopify(t, p as ProductoShopify, null)
           : t.plataforma === "woo"
             ? filaWoo(t, p as ProductoWoo, null)
-            : filaVtex(t, p as ProductoVtex, null);
+            : t.plataforma === "storefront"
+              ? filaStorefront(t, p as ProductoStorefront, null)
+              : filaVtex(t, p as ProductoVtex, null);
       const promo = f && aPromo(f, buscados, conTalla);
       // VTEX repite prendas entre páginas.
       if (promo && !salida.has(promo.url.split("?")[0])) salida.set(promo.url.split("?")[0], promo);
     }
     // Una página incompleta es la última.
-    if (productos.length < POR_PAGINA) return { prendas: Array.from(salida.values()), siguiente: null };
+    // (storefront entrega de a 24, no de a 50.)
+    if (productos.length < (t.plataforma === "storefront" ? POR_PAGINA_STOREFRONT : POR_PAGINA)) {
+      return { prendas: Array.from(salida.values()), siguiente: null };
+    }
   }
   return { prendas: Array.from(salida.values()), siguiente: n };
 }

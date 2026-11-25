@@ -26,6 +26,8 @@ type Evento = {
   props: Record<string, any> | null;
   user_id: string | null;
   device_id: string | null;
+  // La visita (sesión del navegador). null en lo que anota el servidor solo.
+  sesion_id?: string | null;
   created_at: string;
 };
 
@@ -115,7 +117,7 @@ export async function GET(req: Request) {
   for (let desde = 0; desde < 50000; desde += 1000) {
     const { data, error } = await sb
       .from("eventos")
-      .select("nombre, props, user_id, device_id, created_at")
+      .select("nombre, props, user_id, device_id, sesion_id, created_at")
       .order("created_at", { ascending: true })
       .range(desde, desde + 999);
     if (error) {
@@ -796,6 +798,33 @@ export async function GET(req: Request) {
     siempre: calcularRentabilidad({ ...entradaRentabilidad, desde: null }),
   };
 
+  // ------------------------------------------- cifras para convocatorias
+  // Una visita = una sesión del navegador (sesion_id: se renueva al cerrar
+  // la pestaña). "Usaron la app" = hicieron algo más que entrar (buscar,
+  // ver promociones, dar corazón...) o se quedaron 10 segundos o más.
+  const SOLO_ENTRAR = new Set(["pagina_vista", "inicio_visto", "app_abierta", "tiempo_pagina"]);
+  const usoDeLaApp = () => {
+    const porPersona = new Map<string, { sesiones: Set<string>; dias: Set<string>; activa: boolean; segundos: number }>();
+    for (const e of visitas) {
+      const p = persona(e);
+      const f = porPersona.get(p) ?? { sesiones: new Set<string>(), dias: new Set<string>(), activa: false, segundos: 0 };
+      const sesion = e.sesion_id;
+      if (sesion) f.sesiones.add(sesion);
+      f.dias.add(e.created_at.slice(0, 10));
+      if (!SOLO_ENTRAR.has(e.nombre)) f.activa = true;
+      if (e.nombre === "tiempo_pagina") f.segundos += Number(e.props?.segundos) || 0;
+      porPersona.set(p, f);
+    }
+    const lista = Array.from(porPersona.values());
+    const visitasTotal = lista.reduce((a, f) => a + Math.max(f.sesiones.size, 1), 0);
+    return {
+      visitas: visitasTotal,
+      visitasPorPersona: lista.length ? Math.round((visitasTotal / lista.length) * 10) / 10 : 0,
+      volvieron: lista.filter((f) => f.dias.size >= 2).length,
+      usaronLaApp: lista.filter((f) => f.activa || f.segundos >= 10).length,
+    };
+  };
+
   const personasDelMes = new Set(
     visitas.filter((e) => new Date(e.created_at) >= inicioDeMes).map(persona)
   ).size;
@@ -837,6 +866,7 @@ export async function GET(req: Request) {
     desde: todos[0]?.created_at ?? null,
     resumen: {
       personas: personasCon(null),
+      ...usoDeLaApp(),
       cuentasCreadas: cuentasCreadas ?? 0,
       membresiasActivas: activas.length,
       mensuales,

@@ -44,7 +44,17 @@ type Costos = {
 type Gasto = { id: string; tipo: "fijo" | "variable"; rubro: string; detalle: string | null; valor_cop: number; fecha: string; activo: boolean };
 type Datos = {
   desde: string | null;
-  resumen: { personas: number; cuentasCreadas: number; membresiasActivas: number; mensuales: number; anuales: number };
+  resumen: {
+    personas: number;
+    cuentasCreadas: number;
+    membresiasActivas: number;
+    mensuales: number;
+    anuales: number;
+    visitas?: number;
+    visitasPorPersona?: number;
+    volvieron?: number;
+    usaronLaApp?: number;
+  };
   embudo: Array<{ paso: string; personas: number }>;
   etiquetas: Array<{ etapa: string; etiquetas: Array<{ evento: string; cuando: string; veces: number; personas: number }> }>;
   secciones: Array<{ seccion: string; visitas: number; personas: number; minutosPromedio: number }>;
@@ -131,6 +141,27 @@ export default function AdminPage() {
         <Numero etiqueta="Mensual" valor={r.mensuales} />
         <Numero etiqueta="Anual" valor={r.anuales} />
       </div>
+      {r.visitas !== undefined && (
+        <div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <Numero etiqueta="Visitas" valor={r.visitas.toLocaleString("es-CO")} />
+            <Numero etiqueta="Visitas por persona" valor={(r.visitasPorPersona ?? 0).toLocaleString("es-CO")} />
+            <Numero
+              etiqueta="Volvieron otro día"
+              valor={`${r.volvieron ?? 0} (${r.personas ? Math.round(((r.volvieron ?? 0) / r.personas) * 100) : 0}%)`}
+            />
+            <Numero
+              etiqueta="Usaron la app"
+              valor={`${r.usaronLaApp ?? 0} (${r.personas ? Math.round(((r.usaronLaApp ?? 0) / r.personas) * 100) : 0}%)`}
+            />
+          </div>
+          <p className="mt-2 text-xs text-noche/45">
+            Persona = un celular o computador, o una cuenta (la misma persona en varios aparatos con su cuenta cuenta una
+            vez). Visita = una vez que abrió la página. Usaron la app = hicieron algo más que entrar o se quedaron 10
+            segundos o más. Sin robots ni tus cuentas de prueba.
+          </p>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-3">
         <Numero etiqueta="Pagos este mes" valor={datos.dinero.pagosDelMes} />
         <Numero etiqueta="Cobrado este mes" valor={pesos(datos.dinero.brutoCop)} />

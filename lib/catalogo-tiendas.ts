@@ -312,6 +312,9 @@ const TIENDAS: Tienda[] = [
   // wanitta.com es la tienda de Estados Unidos y lleva a esta.
   { plataforma: "shopify", dominio: "wanitta.com.co", nombre: "Wanitta" },
   { plataforma: "shopify", dominio: "lemontree.com.co", nombre: "Lemon Tree" },
+  // Básicos (camisetas, camibuzos, buzos). Mezcla hombre y mujer: lo de
+  // hombre lo descarta ES_DE_HOMBRE_O_NINO.
+  { plataforma: "shopify", dominio: "glokalstore.com", nombre: "Glokal" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.

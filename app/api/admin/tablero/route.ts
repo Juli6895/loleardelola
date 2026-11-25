@@ -43,6 +43,7 @@ const SECCIONES = [
   { clave: "manual", nombre: "Mi manual", evento: "manual_visto" },
   { clave: "membresia", nombre: "Membresía", evento: "membresia_vista" },
   { clave: "preguntas", nombre: "Preguntas frecuentes", evento: "preguntas_visto" },
+  { clave: "tendencias", nombre: "Tendencias", evento: "tendencias_visto" },
 ];
 
 const EMBUDO = [

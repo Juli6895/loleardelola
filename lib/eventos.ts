@@ -105,6 +105,7 @@ export const EVENTOS = [
   "tiempo_pagina",
   "inicio_visto",
   "preguntas_visto",
+  "tendencias_visto",
   "promociones_visto",
   "pagina_error",
 

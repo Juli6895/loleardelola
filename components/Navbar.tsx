@@ -22,7 +22,10 @@ const LINKS = [
   { href: "/mi-closet", label: "Mi clóset" },
   { href: "/membresia", label: "Membresía" },
 ];
-const LINKS_DESPUES_DE_MARCAS = [{ href: "/preguntas", label: "Preguntas" }];
+const LINKS_DESPUES_DE_MARCAS = [
+  { href: "/tendencias", label: "Tendencias" },
+  { href: "/preguntas", label: "Preguntas" },
+];
 
 // Navbar responsive. Todas las secciones siguen abiertas sin cuenta —
 // se puede usar la app sin registrarse, con topes (ver lib/planes.ts).

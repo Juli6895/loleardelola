@@ -12,6 +12,7 @@ import {
 } from "./catalogo-tiendas";
 import type { RangoEdad } from "@/types";
 import { anotarConsumo } from "./costos";
+import { tendenciasParaElManual } from "./tendencias";
 
 // =====================================================================
 // Manual de estilo personal (lo que da la membresía)
@@ -275,6 +276,9 @@ REGLAS:
 11. TEN EN CUENTA SU EDAD para que cada prenda se sienta acorde a su momento de vida. No se trata de "vestir mayor" o "vestir joven": ajusta el detalle (proporción, estampado, tela), no la calidad de la asesoría.
 
 12. PRENDAS QUE SE BUSCAN EN TIENDAS (estilo, outfits, básicos): tipo y color SOLO de las listas permitidas del esquema — son los nombres con que las tiendas titulan sus prendas; con otros nombres no se encuentran. Si el matiz no está (ej. "blanco roto"), usa el más cercano ("marfil"). El denim es una tela, no un color: un jean va con color "azul". rasgos: 2 a 4 palabras o frases MUY cortas (ej. ["midi", "manga larga", "lino"]). Pide siempre más candidatas de las que se van a mostrar: algunas no van a existir en las tiendas.
+
+13. TENDENCIAS DE LA TEMPORADA (abajo). Úsalas para escoger, entre las opciones que YA le favorecen por figura, color y proyección, las que además están vigentes. Nunca sugieras una prenda o un color solo por ser tendencia si su expediente pide otra cosa. Si una tendencia le va bien, puedes nombrarla en el texto en una frase (como mucho dos en todo el manual), sin marcas.
+${tendenciasParaElManual()}
 
 EL CAMPO "texto" — markdown con estos títulos exactos, en este orden:
 

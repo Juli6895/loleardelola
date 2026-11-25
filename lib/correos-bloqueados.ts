@@ -17,7 +17,7 @@ import crypto from "crypto";
 // celular (+57...) o su navegador; para desbloquear, se quita.
 // =====================================================================
 
-// Diciembre de 2026: se desbloqueó a la única persona que estaba aquí (sus
+// 25 de noviembre de 2026: se desbloqueó a la única persona que estaba aquí (sus
 // dos correos, su celular y su navegador), a pedido de Juliana.
 const BLOQUEADOS = new Set<string>([
 ]);

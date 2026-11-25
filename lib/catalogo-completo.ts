@@ -21,6 +21,7 @@ import {
   type Tienda,
 } from "./promos-diarias";
 import type { Promo } from "./promos-guardadas";
+import { cumpleEstilos, estilosDe, type Estilo } from "./estilo-prenda";
 
 // =====================================================================
 // "Ver todo" en Promociones: todas las prendas de una marca
@@ -77,8 +78,9 @@ async function paginaVtex(t: Tienda, n: number): Promise<ProductoVtex[] | null> 
  * enlace son los de la talla escogida más económica, igual que en las
  * promos (lib/promos-guardadas.ts).
  */
-function aPromo(f: Fila, tipos: Set<string>, tallas: Set<string>): Promo | null {
+function aPromo(f: Fila, tipos: Set<string>, tallas: Set<string>, estilos: Estilo[] = []): Promo | null {
   if (tipos.size > 0 && !tipos.has(f.tipo)) return null;
+  if (estilos.length > 0 && !cumpleEstilos(estilosDe(f.titulo, f.tipo), estilos)) return null;
   let precio = f.precio_cop;
   let antes = f.precio_antes_cop;
   let url = f.url;
@@ -107,7 +109,8 @@ export async function prendasDeLaMarca(
   dominio: string,
   desde: number,
   tipos: string[],
-  tallas: string[]
+  tallas: string[],
+  estilos: Estilo[] = []
 ): Promise<PaginaMarca> {
   const t = tiendasParaPromos().find((x) => x.dominio === dominio);
   if (!t) return { prendas: [], siguiente: null };
@@ -136,7 +139,7 @@ export async function prendasDeLaMarca(
             : t.plataforma === "storefront"
               ? filaStorefront(t, p as ProductoStorefront, null)
               : filaVtex(t, p as ProductoVtex, null);
-      const promo = f && aPromo(f, buscados, conTalla);
+      const promo = f && aPromo(f, buscados, conTalla, estilos);
       // VTEX repite prendas entre páginas.
       if (promo && !salida.has(promo.url.split("?")[0])) salida.set(promo.url.split("?")[0], promo);
     }

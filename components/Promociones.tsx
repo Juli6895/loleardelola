@@ -20,9 +20,13 @@ import BanderaColombia from "@/components/BanderaColombia";
 import { esColombiana } from "@/lib/marcas-colombianas";
 import SugerirComercio from "@/components/SugerirComercio";
 import { esTallaDeLetra, guardarTallas, ordenarTallas, useTallasFavoritas } from "@/lib/tallas-favoritas";
+import FiltrosEstilo from "@/components/FiltrosEstilo";
+import type { Estilo } from "@/lib/estilo-prenda";
 import {
+  guardarEstilos,
   guardarPrendas,
   guardarVista,
+  useEstilosFiltro,
   useAccesoPromos,
   useAlAbrirFiltros,
   usePrendasFiltro,
@@ -50,7 +54,11 @@ import {
 // =====================================================================
 
 type Grupo = { dominio: string; tienda: string; total: number; promos: ProductoTienda[] };
-type Facetas = { tipos: Array<{ tipo: string; n: number }>; tallas: Array<{ talla: string; n: number }> };
+type Facetas = {
+  tipos: Array<{ tipo: string; n: number }>;
+  tallas: Array<{ talla: string; n: number }>;
+  estilos?: Array<{ estilo: Estilo; n: number }>;
+};
 type Acceso = { permitido: boolean; plan: "anonimo" | "gratis" | "membresia"; hasta: string | null };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
@@ -77,8 +85,10 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   // lo abre el botón de rayitas de la barra (lib/filtros-promos.ts).
   const prendas = usePrendasFiltro();
   const misTallas = useTallasFavoritas();
-  const filtros = `&prendas=${encodeURIComponent(prendas.join(","))}&tallas=${encodeURIComponent(misTallas.join(","))}`;
-  const conFiltros = marcasVisibles !== null || prendas.length > 0 || misTallas.length > 0;
+  // Clima, momento y ocasión (lib/estilo-prenda.ts), también de esta visita.
+  const estilos = useEstilosFiltro();
+  const filtros = `&prendas=${encodeURIComponent(prendas.join(","))}&tallas=${encodeURIComponent(misTallas.join(","))}&estilos=${encodeURIComponent(estilos.join(","))}`;
+  const conFiltros = marcasVisibles !== null || prendas.length > 0 || misTallas.length > 0 || estilos.length > 0;
   const acceso = useAccesoPromos();
   const vista = useVistaPromos();
   const [panelAbierto, setPanelAbierto] = useState(false);
@@ -159,6 +169,13 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
             onPrendas={guardarPrendas}
             tallas={misTallas}
           />
+          <div className="mt-4">
+            <FiltrosEstilo
+              estilos={estilos}
+              onEstilos={guardarEstilos}
+              cuantos={vista === "promos" && datos?.facetas?.estilos ? new Map(datos.facetas.estilos.map((x) => [x.estilo, x.n])) : null}
+            />
+          </div>
           <p className="mb-2 mt-4 text-xs font-semibold uppercase tracking-wide text-noche/50">Marcas</p>
           <FiltroDeMarcas filtro={filtroMarcas} favoritas={favoritas} onCambiar={guardarFiltroMarcas} />
         </PanelFiltros>
@@ -174,9 +191,9 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
         />
       )}
 
-      {vista === "promos" && vacio && (prendas.length > 0 || misTallas.length > 0) && (
+      {vista === "promos" && vacio && (prendas.length > 0 || misTallas.length > 0 || estilos.length > 0) && (
         <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/70">
-          No hay promociones con esos filtros hoy. Prueba con otra prenda u otra talla.
+          No hay promociones con esos filtros hoy. Prueba con otra prenda, talla u ocasión.
         </p>
       )}
 

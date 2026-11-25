@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { deLosTipos, facetas, filtrar, porMarca, todasLasPromos, type Promo } from "@/lib/promos-guardadas";
+import { estilosValidos } from "@/lib/estilo-prenda";
 
 // GET /api/promos
 //   ?tipos=vestido|blusa  → { relacionadas, marcas }: las de esas prendas
@@ -11,6 +12,7 @@ import { deLosTipos, facetas, filtrar, porMarca, todasLasPromos, type Promo } fr
 //                           cuando se acabó la prueba.
 //   &marcas=a.com,b.co    → solo esas marcas ("Mis marcas" del menú).
 //   &prendas=vestido,jean → filtro de tipo de prenda de la página.
+//   &estilos=noche,fiesta → clima, momento y ocasión (lib/estilo-prenda.ts).
 //   &tallas=S,M           → solo las que tienen esa talla disponible y
 //                           rebajada, con el precio de esa talla.
 // La respuesta principal trae además { facetas }: cuántas hay de cada
@@ -42,6 +44,7 @@ export async function GET(req: Request) {
       .slice(0, 30);
   const prendas = lista("prendas");
   const tallas = lista("tallas");
+  const estilos = estilosValidos(lista("estilos"));
   const marcas = new Set(
     (params.get("marcas") ?? "")
       .split(",")
@@ -52,7 +55,7 @@ export async function GET(req: Request) {
   try {
     const guardadas = await todasLasPromos();
     const deMisMarcas = marcas.size > 0 ? guardadas.filter((p) => marcas.has(p.dominio)) : guardadas;
-    const todas = filtrar(deMisMarcas, prendas, tallas);
+    const todas = filtrar(deMisMarcas, prendas, tallas, estilos);
     // Las tallas no viajan al navegador: ya se usaron para el precio.
     const sinTallas = (p: Promo) => {
       const { tallas: _t, ...resto } = p;
@@ -73,7 +76,7 @@ export async function GET(req: Request) {
     return json({
       relacionadas: tipos.length > 0 ? grupos(deLosTipos(todas, tipos)) : [],
       marcas: grupos(todas),
-      facetas: facetas(deMisMarcas, prendas, tallas),
+      facetas: facetas(deMisMarcas, prendas, tallas, estilos),
     });
   } catch (e) {
     console.error("[api/promos] falló:", e);

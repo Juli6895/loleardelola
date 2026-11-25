@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prendasDeLaMarca } from "@/lib/catalogo-completo";
+import { estilosValidos } from "@/lib/estilo-prenda";
 
 // GET /api/promos/todo?marca=dominio&desde=1[&prendas=vestido,jean&tallas=S,M]
 //   → { prendas, siguiente }: "Ver todo" de Promociones. Todas las
@@ -31,7 +32,7 @@ export async function GET(req: Request) {
   if (!marca) return NextResponse.json({ prendas: [], siguiente: null }, { status: 400 });
 
   try {
-    const r = await prendasDeLaMarca(marca, desde, lista("prendas"), lista("tallas"));
+    const r = await prendasDeLaMarca(marca, desde, lista("prendas"), lista("tallas"), estilosValidos(lista("estilos")));
     const { fallo, ...cuerpo } = r;
     return NextResponse.json(cuerpo, { headers: { "Cache-Control": fallo ? "no-store" : CACHE } });
   } catch (e) {

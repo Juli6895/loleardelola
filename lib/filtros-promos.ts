@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { fetchConDispositivo } from "./device-id";
 import { anotar } from "./use-evento";
+import { estilosValidos, type Estilo } from "./estilo-prenda";
 
 // =====================================================================
 // Lo que comparten la barra de arriba y las promociones
@@ -63,6 +64,42 @@ export function usePrendasFiltro(): string[] {
     return () => window.removeEventListener(PRENDAS_CAMBIARON, actualizar);
   }, []);
   return prendas;
+}
+
+// Clima, momento y ocasión (lib/estilo-prenda.ts): de esta visita, como
+// el tipo de prenda. Los comparten Promociones, "Ver todo" y Buscar.
+const CLAVE_ESTILOS = "loleardelola:estilos";
+const ESTILOS_CAMBIARON = "loleardelola:estilos-cambiaron";
+
+function leerEstilos(): Estilo[] {
+  try {
+    const v = JSON.parse(sessionStorage.getItem(CLAVE_ESTILOS) ?? "[]");
+    return Array.isArray(v) ? estilosValidos(v.filter((x) => typeof x === "string")) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function guardarEstilos(estilos: Estilo[]): void {
+  try {
+    sessionStorage.setItem(CLAVE_ESTILOS, JSON.stringify(Array.from(new Set(estilos))));
+  } catch {
+    // Sin almacenamiento: el filtro dura lo que dure la página.
+  }
+  window.dispatchEvent(new Event(ESTILOS_CAMBIARON));
+  anotar("filtro_aplicado", { filtro: "estilo", cantidad: new Set(estilos).size });
+}
+
+/** Clima, momento y ocasión escogidos en esta visita (vacío = todos). */
+export function useEstilosFiltro(): Estilo[] {
+  const [estilos, setEstilos] = useState<Estilo[]>([]);
+  useEffect(() => {
+    const actualizar = () => setEstilos(leerEstilos());
+    actualizar();
+    window.addEventListener(ESTILOS_CAMBIARON, actualizar);
+    return () => window.removeEventListener(ESTILOS_CAMBIARON, actualizar);
+  }, []);
+  return estilos;
 }
 
 export type AccesoPromos = { permitido: boolean; plan: "anonimo" | "gratis" | "membresia"; hasta: string | null };

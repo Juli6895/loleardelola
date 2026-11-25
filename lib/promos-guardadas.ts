@@ -1,3 +1,4 @@
+import { cumpleEstilos, estilosDe, GRUPO_DE, type Estilo } from "./estilo-prenda";
 import { supabaseAdmin } from "./supabase";
 import {
   FUERA_DE_PROMOCIONES,
@@ -131,8 +132,10 @@ const porcentaje = (p: number, a: number) => Math.round((1 - p / a) * 100);
  * ese caso el precio y el enlace pasan a ser los de esa talla, para que
  * al entrar a la tienda se vea lo mismo.
  */
-export function filtrar(promos: Promo[], tipos: string[], tallas: string[]): Promo[] {
-  const conTipo = tipos.length > 0 ? deLosTipos(promos, tipos) : promos;
+export function filtrar(promos: Promo[], tipos: string[], tallas: string[], estilos: Estilo[] = []): Promo[] {
+  const deTipo = tipos.length > 0 ? deLosTipos(promos, tipos) : promos;
+  // Clima, momento y ocasión: por el nombre de la prenda (lib/estilo-prenda.ts).
+  const conTipo = estilos.length > 0 ? deTipo.filter((p) => cumpleEstilos(estilosDe(p.titulo, p.tipo), estilos)) : deTipo;
   if (tallas.length === 0) return conTipo;
   const buscadas = new Set(tallas);
   const salida: Promo[] = [];
@@ -152,11 +155,22 @@ export function filtrar(promos: Promo[], tipos: string[], tallas: string[]): Pro
  * filtro. Los tipos se cuentan con la talla escogida, y las tallas con
  * los tipos escogidos: así el número dice cuántas va a ver al tocarlo.
  */
-export function facetas(promos: Promo[], tipos: string[], tallas: string[]) {
+export function facetas(promos: Promo[], tipos: string[], tallas: string[], estilos: Estilo[] = []) {
   const porTipo = new Map<string, number>();
-  for (const p of filtrar(promos, [], tallas)) if (p.tipo) porTipo.set(p.tipo, (porTipo.get(p.tipo) ?? 0) + 1);
+  for (const p of filtrar(promos, [], tallas, estilos)) if (p.tipo) porTipo.set(p.tipo, (porTipo.get(p.tipo) ?? 0) + 1);
   const porTalla = new Map<string, number>();
-  for (const p of filtrar(promos, tipos, [])) {
+  // Cada estilo se cuenta con los demás filtros y con lo escogido en los
+  // OTROS grupos: así el número dice cuántas va a ver al tocarlo.
+  const porEstilo = new Map<Estilo, number>();
+  const base = filtrar(promos, tipos, tallas);
+  for (const p of base) {
+    const suyos = estilosDe(p.titulo, p.tipo);
+    for (const e of suyos) {
+      const otros = estilos.filter((x) => GRUPO_DE[x] !== GRUPO_DE[e]);
+      if (cumpleEstilos(suyos, otros)) porEstilo.set(e, (porEstilo.get(e) ?? 0) + 1);
+    }
+  }
+  for (const p of filtrar(promos, tipos, [], estilos)) {
     for (const t of p.tallas ?? []) {
       if (t.a && porcentaje(t.p, t.a) > MINIMO) porTalla.set(t.t, (porTalla.get(t.t) ?? 0) + 1);
     }
@@ -164,5 +178,6 @@ export function facetas(promos: Promo[], tipos: string[], tallas: string[]) {
   return {
     tipos: Array.from(porTipo, ([tipo, n]) => ({ tipo, n })).sort((a, b) => b.n - a.n),
     tallas: Array.from(porTalla, ([talla, n]) => ({ talla, n })),
+    estilos: Array.from(porEstilo, ([estilo, n]) => ({ estilo, n })),
   };
 }

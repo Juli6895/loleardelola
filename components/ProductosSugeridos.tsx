@@ -4,6 +4,9 @@ import type { GrupoProductos } from "@/lib/use-catalogo";
 import { anotarClicComercio } from "@/lib/use-evento";
 import BotonAvisame from "@/components/BotonAvisame";
 import ExplicaCampanita from "@/components/ExplicaCampanita";
+import FiltrosEstilo from "@/components/FiltrosEstilo";
+import { cumpleEstilos, estilosDe } from "@/lib/estilo-prenda";
+import { guardarEstilos, useEstilosFiltro } from "@/lib/filtros-promos";
 
 // Prendas con foto sacadas del catálogo que publican las tiendas.
 // Ver lib/catalogo-tiendas.ts para el porqué y sus límites: solo cubre
@@ -27,6 +30,9 @@ export default function ProductosSugeridos({
   grupos: GrupoProductos[];
   cargando: boolean;
 }) {
+  // Clima, momento y ocasión: los mismos de Promociones (se comparten en
+  // la visita). Aquí se filtra en la pantalla, sobre lo que ya llegó.
+  const estilos = useEstilosFiltro();
   if (cargando) {
     return (
       <div className="rounded-2xl border border-rosa-100 bg-white p-6 text-sm text-noche/50 shadow-sm sm:p-8">
@@ -38,6 +44,10 @@ export default function ProductosSugeridos({
   if (grupos.length === 0) return null;
 
   const variasPrendas = grupos.length > 1;
+  const filtrados = grupos.map((g) => ({
+    ...g,
+    productos: g.productos.filter((p) => cumpleEstilos(estilosDe(p.titulo, g.etiqueta), estilos)),
+  }));
 
   return (
     <div className="rounded-2xl border border-rosa-100 bg-white p-6 shadow-sm sm:p-8">
@@ -48,8 +58,12 @@ export default function ProductosSugeridos({
       </p>
       <ExplicaCampanita />
 
+      <div className="mt-4">
+        <FiltrosEstilo estilos={estilos} onEstilos={guardarEstilos} compacto />
+      </div>
+
       <div className="mt-6 space-y-8">
-        {grupos.map((g, i) => (
+        {filtrados.map((g, i) => (
           <div key={g.etiqueta}>
             <p className="mb-3 flex items-baseline gap-2">
               {variasPrendas && (
@@ -62,6 +76,11 @@ export default function ProductosSugeridos({
                 {Math.min(g.productos.length, POR_PRENDA)} parecidas
               </span>
             </p>
+            {g.productos.length === 0 && (
+              <p className="rounded-xl bg-rosa-50/70 px-4 py-2.5 text-sm text-noche/60">
+                Ninguna de las parecidas es para lo que escogiste. Quita algún filtro de arriba para verlas.
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {g.productos.slice(0, POR_PRENDA).map((p) => (
                 <a

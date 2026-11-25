@@ -3,7 +3,7 @@
 import { usePathname, useRouter } from "next/navigation";
 import { cuantasEnFiltro, useFiltroMarcas, useMarcasFavoritas } from "@/lib/marcas-favoritas";
 import { useTallasFavoritas } from "@/lib/tallas-favoritas";
-import { abrirFiltros, useAccesoPromos, usePrendasFiltro } from "@/lib/filtros-promos";
+import { abrirFiltros, useAccesoPromos, useEstilosFiltro, usePrendasFiltro } from "@/lib/filtros-promos";
 
 /**
  * Las rayitas de Filtros, en la barra de arriba al lado de "Promociones".
@@ -29,7 +29,8 @@ export default function BotonFiltrosPromos({
   // Cada marca del filtro, talla y tipo de prenda cuenta uno. Las
   // favoritas no cuentan: no filtran, solo ordenan.
   const favoritas = useMarcasFavoritas();
-  const cuantos = cuantasEnFiltro(useFiltroMarcas(), favoritas) + useTallasFavoritas().length + usePrendasFiltro().length;
+  const cuantos =
+    cuantasEnFiltro(useFiltroMarcas(), favoritas) + useTallasFavoritas().length + usePrendasFiltro().length + useEstilosFiltro().length;
   const bloqueado = acceso !== null && !acceso.permitido;
   const ayuda = bloqueado
     ? acceso!.plan === "anonimo"
@@ -55,7 +56,7 @@ export default function BotonFiltrosPromos({
           bloqueado ? "cursor-not-allowed opacity-40" : ""
         } ${oscuro ? "text-white/80 hover:bg-white/10" : "text-noche/80 hover:bg-rosa-50"}`}
       >
-        Filtros: prenda, talla y marcas
+        Filtros: prenda, talla, ocasión y marcas
         {cuantos > 0 && !bloqueado && (
           <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-rosa-500 px-1.5 text-[11px] font-semibold text-white">
             {cuantos}

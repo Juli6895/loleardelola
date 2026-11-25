@@ -24,7 +24,10 @@ import { estilosValidos } from "@/lib/estilo-prenda";
 // guarda en la caché de Vercel media hora.
 export const maxDuration = 60;
 
-const VISTA_PREVIA = 4;
+// De cada marca se mandan las 12 más rebajadas, y la página escoge al azar
+// cuáles mostrar en cada visita (ver lib/rotar.ts): así no se ven siempre
+// las mismas de primeras.
+const VISTA_PREVIA = 12;
 const POR_PAGINA = 40;
 const CACHE = "public, s-maxage=1800, stale-while-revalidate=3600";
 

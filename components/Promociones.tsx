@@ -6,6 +6,7 @@ import type { ProductoTienda } from "@/lib/use-catalogo";
 import { anotar, anotarClicComercio } from "@/lib/use-evento";
 import { PRECIOS, PRECIOS_NORMALES } from "@/lib/planes";
 import BotonAvisame from "@/components/BotonAvisame";
+import { mezclar, numeroDe, semillaDeVisita } from "@/lib/rotar";
 import {
   favoritasPrimero,
   guardarFiltroMarcas,
@@ -62,6 +63,8 @@ type Facetas = {
 type Acceso = { permitido: boolean; plan: "anonimo" | "gratis" | "membresia"; hasta: string | null };
 
 const pesos = (n: number) => "$" + n.toLocaleString("es-CO", { maximumFractionDigits: 0 });
+// Cuántas prendas de cada marca se ven antes de "Ver más".
+const MOSTRAR_POR_MARCA = 4;
 
 function descuento(p: ProductoTienda): number | null {
   if (!p.precioCop || !p.precioAntesCop) return null;
@@ -106,6 +109,10 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   }, []);
   const cerrarPanel = useCallback(() => setPanelAbierto(false), []);
   const [datos, setDatos] = useState<{ relacionadas: Grupo[]; marcas: Grupo[]; facetas: Facetas | null } | null>(null);
+  // La semilla de esta visita (lib/rotar.ts). Se lee al montar: en el
+  // servidor no hay sessionStorage, y las promos llegan después igual.
+  const [semilla, setSemilla] = useState(1);
+  useEffect(() => setSemilla(semillaDeVisita()), []);
 
   useEffect(() => {
     if (!acceso?.permitido) return;
@@ -134,12 +141,23 @@ export default function Promociones({ tipos = [] }: { tipos?: string[] }) {
   // falla.
   if (vacio && !conFiltros && vista === "promos") return null;
 
-  // Las de arriba no se repiten en la vista previa de abajo.
-  const yaArriba = new Set(datos?.relacionadas.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
   const sinPromos = !!vacio;
-  const primero = (grupos: Grupo[]) => favoritasPrimero(grupos, favoritas, (g) => g.dominio);
-  const otras = datos ? primero(datos.marcas.map((g) => ({ ...g, promos: g.promos.filter((p) => !yaArriba.has(p.url)) }))) : null;
-  const relacionadas = datos ? primero(datos.relacionadas) : null;
+  // Un orden distinto en cada visita (lib/rotar.ts): las marcas se mezclan
+  // (sus favoritas siguen primero) y de cada una se muestran 4 de sus 12
+  // más rebajadas, escogidas al azar y puestas de la más rebajada a la menos.
+  const rotar = (grupos: Grupo[]) => {
+    const conPromos = grupos.map((g) => ({
+      ...g,
+      promos: mezclar(g.promos, semilla ^ numeroDe(g.dominio))
+        .slice(0, MOSTRAR_POR_MARCA)
+        .sort((a, b) => (descuento(b) ?? 0) - (descuento(a) ?? 0)),
+    }));
+    return favoritasPrimero(mezclar(conPromos, semilla), favoritas, (g) => g.dominio);
+  };
+  const relacionadas = datos ? rotar(datos.relacionadas) : null;
+  // Las de arriba no se repiten en la vista previa de abajo.
+  const yaArriba = new Set(relacionadas?.flatMap((g) => g.promos.map((p) => p.url)) ?? []);
+  const otras = datos ? rotar(datos.marcas.map((g) => ({ ...g, promos: g.promos.filter((p) => !yaArriba.has(p.url)) }))) : null;
 
   return (
     <section aria-labelledby="promos-titulo" className="space-y-6">

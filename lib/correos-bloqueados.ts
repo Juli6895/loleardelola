@@ -17,11 +17,9 @@ import crypto from "crypto";
 // celular (+57...) o su navegador; para desbloquear, se quita.
 // =====================================================================
 
+// Diciembre de 2026: se desbloqueó a la única persona que estaba aquí (sus
+// dos correos, su celular y su navegador), a pedido de Juliana.
 const BLOQUEADOS = new Set<string>([
-  "a71230c11a8d113694f7fb384607ccf586192ec4373efd8150ce1c1544c19b4f", // correo (nov 2026)
-  "f487045ba2167e3d53753663de11ca8cd568758d8ecdabec873260ec940b2e7c", // correo (nov 2026)
-  "0afdb070c4e8dd64b819709ca551874fb03feeff96a8035b5c849d90b50d06ae", // celular (nov 2026)
-  "8ac715f90f68cda539cdb528120dd655ef4756633739a55e0dc1b5a8109a4bd4", // navegador (nov 2026)
 ]);
 
 const huella = (valor: string) => crypto.createHash("sha256").update(valor.trim().toLowerCase()).digest("hex");

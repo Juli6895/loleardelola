@@ -125,6 +125,17 @@ export function urlCatalogoStorefront(host: string, pagina: number): string {
   return `https://${host}/api/storefront/catalog?page=${pagina}`;
 }
 
+/**
+ * Lo que hay que mandarle a una tienda storefront para que responda en
+ * pesos. Pepita Pérez decide la moneda por el país de entrega: a nuestro
+ * servidor, que está en Estados Unidos, le daba dólares, y se descartaban
+ * 99 de sus 101 prendas (Black Friday, noviembre de 2026). Con la cookie
+ * de entrega en Colombia responde en COP, como a una clienta de acá.
+ */
+export function encabezadosParaColombia(url: string): Record<string, string> {
+  return /\/api\/storefront\/catalog/.test(url) ? { cookie: "pepita_pais_entrega_v1=CO" } : {};
+}
+
 /** La ficha de la prenda en la tienda. */
 export function urlProductoStorefront(host: string, slug: string): string {
   return `https://${host}/producto/${slug}`;

@@ -6,6 +6,7 @@ import {
   precioDeVariantes,
   precioWoo,
   precioStorefront,
+  encabezadosParaColombia,
   imagenStorefront,
   urlCatalogoStorefront,
   urlProductoStorefront,
@@ -112,7 +113,11 @@ export async function pedirJson(url: string, intento = 1): Promise<unknown> {
     const res = await fetch(url, {
       cache: "no-store",
       signal: AbortSignal.timeout(15_000),
-      headers: { "user-agent": "LoleardLola/1.0 (+https://www.loleardlola.com)", accept: "application/json" },
+      headers: {
+        "user-agent": "LoleardLola/1.0 (+https://www.loleardlola.com)",
+        accept: "application/json",
+        ...encabezadosParaColombia(url),
+      },
     });
     if (!res.ok) {
       // "Demasiadas solicitudes": Shopify frena a los servidores (como el

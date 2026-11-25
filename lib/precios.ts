@@ -1,5 +1,6 @@
 import {
   enColombia,
+  encabezadosParaColombia,
   POR_PAGINA_STOREFRONT,
   precioDeVariantes,
   precioStorefront,
@@ -51,7 +52,7 @@ export function compararPrecio(
 
 async function pedir(url: string): Promise<Response> {
   return fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: { Accept: "application/json", ...encabezadosParaColombia(url) },
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
   });

@@ -297,13 +297,21 @@ const TIENDAS: Tienda[] = [
   { plataforma: "shopify", dominio: "mhorayma.com", nombre: "Mhorayma" },
   { plataforma: "shopify", dominio: "molgoa.com", nombre: "Molgoa" },
   { plataforma: "shopify", dominio: "vidamia.co", nombre: "Vida Mía" },
-  // Pepita Pérez (Bucaramanga): WooCommerce, ver TiendaWoo.
+  // Pepita Pérez (Bucaramanga): tienda propia, ver TiendaStorefront.
   { plataforma: "storefront", dominio: "pepitaperez.co", nombre: "Pepita Pérez" },
   // H&M Colombia: VTEX en co.hm.com. Mezcla hombre y niños: los descarta
   // ES_DE_HOMBRE_O_NINO por la categoría ("/HOMBRE/...", "/NIÑOS/...").
   // Onda de Mar se quitó (noviembre de 2026). Zara y Mango no se pueden:
   // bloquean el acceso automático (verificación anti-robots y 429).
   { plataforma: "vtex", dominio: "co.hm.com", nombre: "H&M" },
+  // Agregadas a pedido de Juliana (noviembre de 2026). Al final de la lista
+  // para no cambiar el lote de revisión de las demás (ver LOTES).
+  { plataforma: "shopify", dominio: "bionica.co", nombre: "Biónica" },
+  // Lola Relola es sobre todo calzado (baletas, sandalias, mules).
+  { plataforma: "shopify", dominio: "lolarelola.com", host: "www.lolarelola.com", nombre: "Lola Relola" },
+  // wanitta.com es la tienda de Estados Unidos y lleva a esta.
+  { plataforma: "shopify", dominio: "wanitta.com.co", nombre: "Wanitta" },
+  { plataforma: "shopify", dominio: "lemontree.com.co", nombre: "Lemon Tree" },
 ];
 
 // Palabras que no ayudan a distinguir una prenda de otra.

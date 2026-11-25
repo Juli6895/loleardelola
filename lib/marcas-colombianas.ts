@@ -19,6 +19,7 @@ export const MARCAS_COLOMBIANAS = new Set([
   "benditaseas.co", "etnicacolombia.com", "maracolombia.com", "nittabonita.com", "elvestidor.co",
   "centricaropa.co", "mompossina.com", "juanashop.co", "lakapitalindomable.com.co", "superlindas.co",
   "elentari.co", "melaomimila.com", "mhorayma.com", "molgoa.com", "vidamia.co",
+  "bionica.co", "lolarelola.com", "wanitta.com.co", "lemontree.com.co",
   // WooCommerce
   "pepitaperez.co",
   // VTEX (Americanino nació en Italia, pero desde 1989 es de una empresa colombiana)
